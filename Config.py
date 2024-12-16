@@ -35,6 +35,7 @@ for zone, units in zip(work_name_down, unit_numbers_down):
 total_machines = 30  # 总机器数
 machine_power = 100  # 每台机器的功率（单位：W）
 work_time=1          #运行时间
+
 # ------------------------
 #小车配置
 total_vehicles = 15  # 总车辆数
