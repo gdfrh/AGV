@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
+
 class MapSpace:
     def __init__(self, rows, cols, fill_char, road_width,work_width_up,work_width_down, work_name_up, work_name_down):
         # 使用 NumPy 创建一个二维数组，填充默认字符
