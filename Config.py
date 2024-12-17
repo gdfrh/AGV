@@ -17,8 +17,8 @@ work_name_up=['组装区','铸造区','清洗区','包装区']
 work_name_down=['焊接区','喷漆区','配置区']
 
 # 每个生产区的单元数
-unit_numbers_up = [3, 2, 3, 5]  # 对应 work_name_up 每个区的单元数
-unit_numbers_down = [2, 4, 3]    # 对应 work_name_down 每个区的单元数
+unit_numbers_up = [2, 2, 1, 3]  # 对应 work_name_up 每个区的单元数
+unit_numbers_down = [2, 1, 3]    # 对应 work_name_down 每个区的单元数
 # 将生产区名称和单元数存储到字典中
 cell_number={}
 for zone, units in zip(work_name_up, unit_numbers_up):
@@ -29,7 +29,20 @@ for zone, units in zip(work_name_down, unit_numbers_down):
 
 # 打印字典，查看每个生产区的单元数
 #print(cell_number)
-
+"""
+我们进行假设，较为简单的生产区的生产单元增加机器臂后所需要的时间会显著下降
+较为复杂的生产区的生产单元增加机器臂后所需要的工作时间会下降，但是下降幅度较小
+暂定功率保持不变
+"""
+complexity = {
+    '组装区': 'simple',
+    '铸造区': 'complex',
+    '清洗区': 'simple',
+    '包装区': 'complex',
+    '焊接区': 'complex',
+    '喷漆区': 'simple',
+    '配置区': 'complex'
+}
 # ------------------------
 #机器臂配置
 total_machines = 30  # 总机器数

@@ -3,7 +3,7 @@ import random
 
 
 class Arm:
-    def __init__(self, work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power):
+    def __init__(self, work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power,complexity):
         # 初始化生产区名称和单元数
         self.work_name_up = work_name_up
         self.work_name_down = work_name_down
@@ -11,6 +11,7 @@ class Arm:
         self.unit_numbers_down = unit_numbers_down
         self.total_machines = total_machines  # 总机器数量
         self.machine_power = machine_power  # 每台机器的功率
+        self.complexity = complexity  # 生产区的复杂度（简单或复杂）
 
         # 创建字典来存储每个生产单元的机器数
         self.machines_count = {}
@@ -32,29 +33,54 @@ class Arm:
         """随机将机器分配到生产单元，并显示每个生产区分配的机器数量"""
         available_units = []  # 存储所有生产单元的可用位置（生产区 + 单元索引）
 
-        # 先把所有单元加入到 available_units 中
+        # 1. 首先为每个生产单元分配一个机器
         for zone in self.machines_count:
             for i in range(len(self.machines_count[zone])):
-                available_units.append((zone, i))  # 以 (生产区, 单元索引) 存储每个生产单元
+                self.machines_count[zone][i] = 1  # 每个单元至少分配1台机器
+                available_units.append((zone, i))  # 存储可用单元
 
-        # 存储每个生产区分配到的机器数量
-        machines_per_zone = {zone: 0 for zone in self.machines_count}
+        # 剩余机器数量
+        remaining_machines = self.total_machines - sum([sum(self.machines_count[zone]) for zone in self.machines_count])
 
-        # 随机分配机器
-        for _ in range(self.total_machines):
-            zone, unit_index = random.choice(available_units)
-            self.machines_count[zone][unit_index] += 1  # 增加该单元的机器数
-            machines_per_zone[zone] += 1  # 增加该生产区的机器总数
+        # 2. 随机分配剩余的机器
+        while remaining_machines > 0:
+            zone, unit_index = random.choice(available_units)  # 随机选择一个单元
+            self.machines_count[zone][unit_index] += 1  # 为该单元分配一台机器
+            remaining_machines -= 1  # 剩余机器数减少1
 
         # 输出每个生产区分配到的机器数量
-        print("\n每个生产区分配的机器数量：")
-        for zone, count in machines_per_zone.items():
-            print(f"{zone}: {count} 台机器")
+        self.display_machine_count()
 
     def display_machine_count(self):
         """显示每个生产区中各单元的机器数"""
         for zone, units in self.machines_count.items():
-            print(f"{zone}: {', '.join([str(unit) for unit in units])} 台机器")
+            print(f"{zone}: {', '.join([str(unit) for unit in units])} 台机器\t共{sum(self.machines_count[zone])}台机器")
+
+    def calculate_time_reduction(self, initial_time, zone, machine_count):
+        """
+        根据生产区的复杂度计算每个任务的运行时间
+        - 简单生产区：时间下降较大
+        - 复杂生产区：时间下降较小
+
+        参数:
+        initial_time (float): 初始运行时间
+        zone (str): 生产区名称
+        machine_count (int): 当前该生产单元的机器数量
+
+        返回:
+        float: 调整后的运行时间
+        """
+        if self.complexity[zone] == 'simple':
+            # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少30%-50%）
+            reduction_factor = random.uniform(0.3, 0.5)
+        elif self.complexity[zone] == 'complex':
+            # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少10%-20%）
+            reduction_factor = random.uniform(0.1, 0.2)
+        else:
+            reduction_factor = 0  # 默认情况下没有变化
+
+        return (initial_time * (1 - reduction_factor))**machine_count
+
 
     def calculate_task_energy(self, run_time, run_power, sleep_time, sleep_power, machine_count):
         """
@@ -92,9 +118,10 @@ class Arm:
         machine_count = self.machines_count[zone][unit_index]
         total_energy = 0
 
-        # 计算该单元所有任务的能量消耗
+        # 计算该单元所有任务的能量消耗，同时计算多个机器臂参与时，时间的减少
         for task in tasks:
             run_time = task['run_time']
+            run_time = self.calculate_time_reduction(run_time, zone, machine_count)
             run_power = task['run_power']
             sleep_time = task['sleep_time']
             sleep_power = task['sleep_power']

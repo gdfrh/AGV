@@ -28,26 +28,28 @@ class VehicleDistribution:
             self.vehicles_count[zone] = 0  # 为空单元初始化车辆数为 0
 
     def distribute_vehicles_randomly(self):
-        """随机将车辆分配到生产区，并显示每个生产区分配的车辆数量"""
+        """首先为每个生产区分配一个车辆，然后随机将剩余车辆分配到生产区"""
         available_zones = []  # 存储所有生产区
 
-        # 先把所有生产区加入到 available_zones 中
+        # 1. 为每个生产区分配一个车辆
         for zone in self.vehicles_count:
-            available_zones.append(zone)  # 以生产区名称存储
+            self.vehicles_count[zone] = 1  # 每个生产区至少分配一个车辆
+            available_zones.append(zone)  # 存储生产区名称
 
-        # 存储每个生产区分配到的车辆数量
-        vehicles_per_zone = {zone: 0 for zone in self.vehicles_count}
+        # 剩余车辆数量
+        remaining_vehicles = self.total_vehicles - len(self.vehicles_count)
 
-        # 随机分配车辆
-        for _ in range(self.total_vehicles):
+        # 2. 随机分配剩余的车辆
+        while remaining_vehicles > 0:
             zone = random.choice(available_zones)
-            self.vehicles_count[zone] += 1  # 增加该生产区的车辆数
-            vehicles_per_zone[zone] += 1  # 增加该生产区的车辆总数
-            #print(f"分配了 1 台车到 {zone}")
+            self.vehicles_count[zone] += 1  # 为该生产区分配一辆车
+            remaining_vehicles -= 1  # 剩余车辆数减少1
+
+        # 输出每个生产区分配到的车辆数量
+        self.display_vehicle_count()
 
     def display_vehicle_count(self):
         """显示每个生产区和分配的车辆数"""
         print("\n当前生产区车辆分布：")
         for zone, vehicle_count in self.vehicles_count.items():
             print(f"{zone}: {vehicle_count} 台车")
-
