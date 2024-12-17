@@ -169,3 +169,27 @@ class Arm:
                 unit_energy = self.calculate_unit_energy(zone, unit_index, tasks[zone][unit_index])
                 total_energy += unit_energy
         return total_energy
+
+    def calculate_and_display_energy(self,init_arm):
+        """
+        计算并显示整个车间的能量消耗，以及每个生产单元的能量消耗。
+
+        参数:
+        init_arm (Arm): 已初始化的车间对象
+
+        返回:
+        float: 整个车间的总能量消耗 (J)
+        """
+        # 生成任务
+        tasks = init_arm.generate_tasks()
+
+        # 显示每个生产单元的能量消耗
+        init_arm.display_unit_energy(tasks)
+
+        # 计算整个车间的总能量消耗
+        total_energy = init_arm.calculate_total_energy(tasks)
+
+        # 打印总能量消耗
+        print(f"\n整个车间的总能量消耗: {total_energy} J")
+
+        return total_energy
