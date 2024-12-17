@@ -81,7 +81,6 @@ class Arm:
 
         return (initial_time * (1 - reduction_factor))**machine_count
 
-
     def calculate_task_energy(self, run_time, run_power, sleep_time, sleep_power, machine_count):
         """
         计算单个任务的能量消耗，考虑机器数量的影响
