@@ -48,6 +48,11 @@ complexity = {
 total_machines = 30  # 总机器数
 machine_power = 100  # 每台机器的功率（单位：W）
 work_time=1          #运行时间,暂未使用
+#存储机器臂的分配
+machine_count_list = []#列表
+machine_counts = []#解的机器臂分配
+energy_counts= []#解的能量消耗
+time_counts= []#解的时间消耗
 
 # ------------------------
 #小车配置
@@ -57,5 +62,5 @@ total_vehicles = 15  # 总车辆数
 #NSGA2参数
 min_x = -55
 max_x = 55
-pop_size = 40
+pop_size = 50
 max_gen = 900

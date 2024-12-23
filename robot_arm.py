@@ -48,27 +48,21 @@ class Arm:
             self.machines_count[zone][unit_index] += 1  # 为该单元分配一台机器
             remaining_machines -= 1  # 剩余机器数减少1
 
-        # 输出每个生产区分配到的机器数量
-        self.display_machine_count()
-
 
     def display_machine_count(self):
         """返回每个生产区中各单元的机器数，并存储到字典中"""
-        machine_count_dict = {}
+        machine_count_list = []  #列表
         for zone, units in self.machines_count.items():
             # 将每个生产区的机器数存储到字典中
-            machine_count_dict[zone] = {
-                "unit_counts": units, # 每个单元的机器数
-                "total_machines": sum(units)  # 每个生产区的总机器数
-            }
+            machine_count_list += units# 每个单元的机器数
             print(
-                f"{zone}: {', '.join([str(unit) for unit in units])} 台机器\t共{sum(self.machines_count[zone])}台机器")
-        for zone, data in machine_count_dict.items():
-            print(f"{zone}:")
-            print(f"  单元机器数: {', '.join(map(str, data['unit_counts']))}")
-            print(f"  总机器数: {data['total_machines']}")
-            print()
-        return machine_count_dict
+                f"{zone}: {', '.join([str(unit) for unit in units])} 台机器")
+        merged_str = ''.join(map(str, machine_count_list))
+        # 将连接后的字符串转换为整数
+        merged_number = int(merged_str)
+        # 将合并后的数字存入列表
+        machine_count_list_renew = [merged_number]
+        return machine_count_list_renew
 
     def calculate_time_reduction(self, initial_time, zone, machine_count):
         """
@@ -157,10 +151,15 @@ class Arm:
 
     def generate_task(self):
         """随机生成一个任务的参数"""
-        run_time = random.randint(5, 30)  # 运行时间（秒），随机生成5到30秒之间
-        run_power = random.randint(100, 500)  # 运行功率（瓦特），随机生成100到500瓦特之间
-        sleep_time = random.randint(5, 20)  # 休眠时间（秒），随机生成5到20秒之间
-        sleep_power = random.randint(30, 100)  # 休眠功率（瓦特），随机生成30到100瓦特之间
+        # run_time = random.randint(5, 30)  # 运行时间（秒），随机生成5到30秒之间
+        # run_power = random.randint(100, 500)  # 运行功率（瓦特），随机生成100到500瓦特之间
+        # sleep_time = random.randint(5, 20)  # 休眠时间（秒），随机生成5到20秒之间
+        # sleep_power = random.randint(30, 100)  # 休眠功率（瓦特），随机生成30到100瓦特之间
+        """为了测试NSGA2算法，我固定了任务参数"""
+        run_time = 15  # 运行时间（秒），随机生成5到30秒之间
+        run_power = 300  # 运行功率（瓦特），随机生成100到500瓦特之间
+        sleep_time = 10  # 休眠时间（秒），随机生成5到20秒之间
+        sleep_power = 50  # 休眠功率（瓦特），随机生成30到100瓦特之间
         return {'run_time': run_time, 'run_power': run_power, 'sleep_time': sleep_time, 'sleep_power': sleep_power}
 
     def generate_tasks(self):
@@ -171,7 +170,7 @@ class Arm:
             tasks[zone] = []
             for _ in range(unit_count):
                 # 为每个单元生成随机任务列表
-                tasks[zone].append([self.generate_task() for _ in range(random.randint(1, 3))])  # 每个生产单元随机生成1到3个任务
+                tasks[zone].append([self.generate_task() for _ in range(3)])  # 每个生产单元生成3个任务
         return tasks
 
     def calculate_total_energy(self, tasks):
