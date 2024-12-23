@@ -58,9 +58,31 @@ def crowed_distance_assignment(values1, values2, front):
     return distance
 
 
-def function1(x):
-    total_energy, _ = x.calculate_and_display_energy(x)  # 获取总能量
+def function1(sequence):#实现反映射
+    # 执行反映射
+    list = dynamic_mapping(sequence)
+
+    # 输出结果
+    for zone, counts in list.items():
+        print(f"{zone}: {', '.join(map(str, counts))} 台机器")
+        """ 这里还要跑一遍计算时间和能耗"""
     return total_energy  # 返回总能量作为目标函数
+
+
+def dynamic_mapping(sequence):
+    machine_counts2 = {}  # 用于存储每个区的机器数量
+    sequence_idx = 0  # 用来追踪当前序列中的数字索引
+
+    for zone, num_units in zone_requirements:
+        zone_machines = []  # 存储当前区的机器数量
+        for _ in range(num_units):
+            # 如果序列中还有数字，分配给当前生产区
+            if sequence_idx < len(sequence):
+                zone_machines.append(int(sequence[sequence_idx]))
+                sequence_idx += 1
+        machine_counts2[zone] = zone_machines
+
+    return machine_counts2
 
 
 def function2(x):
