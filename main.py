@@ -2,6 +2,7 @@ from Config import *
 from Map import *
 from robot_arm import *
 from car import *
+from NSGA2 import *
 
 #创建初始地图
 # 创建一个二维空间# 创建一个 10x10 的车间地图
@@ -22,3 +23,11 @@ init_arm.calculate_and_display_energy(init_arm)
 car = VehicleDistribution(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_vehicles)
 # 随机分配所有车辆
 car.distribute_vehicles_randomly()
+
+
+#v1, v2 = main_loop(pop_size, max_gen, generate_initial_population(pop_size))
+
+"""
+我想循环随机分配机器臂，将每次随机分配的结果作为解，function分别得出这种分配求得的能耗和时间，现在的问题是如何表示这个解，用编码？字典？
+我现在调用任务是随机的，是否应该用固定的任务来查看配置的优先级
+"""

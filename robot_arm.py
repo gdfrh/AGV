@@ -51,10 +51,24 @@ class Arm:
         # 输出每个生产区分配到的机器数量
         self.display_machine_count()
 
+
     def display_machine_count(self):
-        """显示每个生产区中各单元的机器数"""
+        """返回每个生产区中各单元的机器数，并存储到字典中"""
+        machine_count_dict = {}
         for zone, units in self.machines_count.items():
-            print(f"{zone}: {', '.join([str(unit) for unit in units])} 台机器\t共{sum(self.machines_count[zone])}台机器")
+            # 将每个生产区的机器数存储到字典中
+            machine_count_dict[zone] = {
+                "unit_counts": units, # 每个单元的机器数
+                "total_machines": sum(units)  # 每个生产区的总机器数
+            }
+            print(
+                f"{zone}: {', '.join([str(unit) for unit in units])} 台机器\t共{sum(self.machines_count[zone])}台机器")
+        for zone, data in machine_count_dict.items():
+            print(f"{zone}:")
+            print(f"  单元机器数: {', '.join(map(str, data['unit_counts']))}")
+            print(f"  总机器数: {data['total_machines']}")
+            print()
+        return machine_count_dict
 
     def calculate_time_reduction(self, initial_time, zone, machine_count):
         """
@@ -169,6 +183,20 @@ class Arm:
                 total_energy += unit_energy
         return total_energy
 
+    def calculate_total_time(self, tasks):
+        """计算整个车间的总时间"""
+        total_time = 0
+        for zone in self.work_name_up + self.work_name_down:
+            for unit_index in range(len(self.machines_count[zone])):
+                # 获取该生产单元的机器数量
+                machine_count = self.machines_count[zone][unit_index]
+                for task in tasks[zone][unit_index]:
+                    run_time = task['run_time']
+                    run_time_renew = self.calculate_time_reduction(run_time, zone, machine_count)
+                    total_time += run_time_renew
+        return total_time
+
+
     def calculate_and_display_energy(self,init_arm):
         """
         计算并显示整个车间的能量消耗，以及每个生产单元的能量消耗。
@@ -187,8 +215,17 @@ class Arm:
 
         # 计算整个车间的总能量消耗
         total_energy = init_arm.calculate_total_energy(tasks)
+        total_time = init_arm.calculate_total_time(tasks)
 
         # 打印总能量消耗
         print(f"\n整个车间的总能量消耗: {total_energy} J")
+        print(f"\n整个车间的总时间消耗: {total_time} s")
 
-        return total_energy
+        return total_energy, total_time
+
+
+def generate_initial_population(pop_size):
+    population = []
+    for _ in range(pop_size):
+        population.append()  # 为每个个体创建一个随机的 Arm 对象
+    return population
