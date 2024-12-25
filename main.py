@@ -20,18 +20,18 @@ init_arm = Arm(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down,
 for _ in range(pop_size):
     init_arm.distribute_machines_randomly()
     new_list = copy.deepcopy(init_arm.display_machine_count())
-    machine_counts.append(new_list)
-#记录能耗与时间
-    energy_count, time_count = init_arm.calculate_and_display_energy(init_arm)
+    energy_count, time_count = init_arm.function_1(new_list)
+    print(energy_count)
+    print(time_count)
     # 保留两位小数
     energy_count = round(energy_count, 2)
     time_count = round(time_count, 2)
 
     energy_counts.append(energy_count)
     time_counts.append(time_count)
-print(machine_counts)
-print(energy_counts)
-print(time_counts)
+
+    machine_counts.append(new_list)
+#记录能耗与时间
 
 
 # 初始化车辆分配对象

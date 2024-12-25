@@ -2,6 +2,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from Config import *
+from robot_arm import Arm
 
 
 # 快速非支配排序
@@ -58,38 +59,6 @@ def crowed_distance_assignment(values1, values2, front):
     return distance
 
 
-def function1(sequence):#实现反映射
-    # 执行反映射
-    list = dynamic_mapping(sequence)
-
-    # 输出结果
-    for zone, counts in list.items():
-        print(f"{zone}: {', '.join(map(str, counts))} 台机器")
-        """ 这里还要跑一遍计算时间和能耗"""
-    return total_energy  # 返回总能量作为目标函数
-
-
-def dynamic_mapping(sequence):
-    machine_counts2 = {}  # 用于存储每个区的机器数量
-    sequence_idx = 0  # 用来追踪当前序列中的数字索引
-
-    for zone, num_units in zone_requirements:
-        zone_machines = []  # 存储当前区的机器数量
-        for _ in range(num_units):
-            # 如果序列中还有数字，分配给当前生产区
-            if sequence_idx < len(sequence):
-                zone_machines.append(int(sequence[sequence_idx]))
-                sequence_idx += 1
-        machine_counts2[zone] = zone_machines
-
-    return machine_counts2
-
-
-def function2(x):
-    _, total_time = x.calculate_and_display_energy(x)  # 获取总时间
-    return total_time  # 返回总时间作为目标函数
-
-
 def crossover(x, y):
     r = random.random()
     if r > 0.5:
@@ -108,7 +77,7 @@ def mutation(solution):
 
 
 # NSGA2主循环
-def main_loop(pop_size, max_gen, init_population):
+def main_loop(pop_size, max_gen, init_population,init_arm):
     gen_no = 0
     population_P = init_population.copy()
     while gen_no < max_gen:
@@ -119,8 +88,13 @@ def main_loop(pop_size, max_gen, init_population):
             y = random.randint(0, pop_size - 1)
             population_R.append(crossover(population_P[x], population_P[y]))
         # 对R(t)计算非支配前沿
-        objective1 = [function1(population_R[i]) for i in range(2 * pop_size)]
-        objective2 = [function2(population_R[i]) for i in range(2 * pop_size)]
+        for i in range(2 * pop_size):
+            # 通过调用 function_1，解包返回的元组（total_energy, total_time）
+            total_energy, total_time = init_arm.function_1(population_R[i])
+            objective1 = []
+            objective2 = []
+            objective1.append(total_energy)  # 将 total_energy 添加到 objective1
+            objective2.append(total_time)    # 将 total_time 添加到 objective2
         fronts = fast_non_dominated_sort(objective1, objective2)
         # 获取P(t+1)，先从等级高的fronts复制，然后在同一层front根据拥挤距离选择
         population_P_next = []
@@ -140,8 +114,13 @@ def main_loop(pop_size, max_gen, init_population):
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
         if gen_no % 50 == 0:
-            best_obj1 = [function1(population_P[i]) for i in range(pop_size)]
-            best_obj2 = [function2(population_P[i]) for i in range(pop_size)]
+            for i in range(pop_size):
+                # 通过调用 function_1，解包返回的元组（total_energy, total_time）
+                total_energy, total_time = init_arm.function_1(population_P[i])
+                best_obj1 = []
+                best_obj2 = []
+                best_obj1.append(total_energy)  # 将 total_energy 添加到 objective1
+                best_obj2.append(total_time)  # 将 total_time 添加到 objective2
             f = fast_non_dominated_sort(best_obj1, best_obj2)
             print(f'generation {gen_no}, first front:')
             for s in f[0]:
@@ -149,6 +128,5 @@ def main_loop(pop_size, max_gen, init_population):
             print('\n')
         gen_no += 1
     return best_obj1, best_obj2
-
 
 

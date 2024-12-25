@@ -47,7 +47,7 @@ complexity = {
 #机器臂配置
 total_machines = 30  # 总机器数
 machine_power = 100  # 每台机器的功率（单位：W）
-work_time=1          #运行时间,暂未使用
+
 #存储机器臂的分配
 machine_count_list = []#列表
 machine_counts = []#解的机器臂分配

@@ -78,20 +78,23 @@ class Arm:
         返回:
         float: 调整后的运行时间
         """
+        """为了测试我固定了参数"""
         if self.complexity[zone] == 'simple':
             # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少30%-50%）
-            reduction_factor = random.uniform(0.3, 0.5)
+            # reduction_factor = random.uniform(0.3, 0.5)
+            reduction_factor=0
         elif self.complexity[zone] == 'complex':
             # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少10%-20%）
-            reduction_factor = random.uniform(0.1, 0.2)
+            # reduction_factor = random.uniform(0.1, 0.2)
+            reduction_factor = 0
         else:
             reduction_factor = 0  # 默认情况下没有变化
 
-        return (initial_time * (1 - reduction_factor))**machine_count
+        return initial_time * ((1 - reduction_factor)**machine_count)
 
-    def calculate_task_energy(self, run_time, run_power, sleep_time, sleep_power, machine_count):
+    def calculate_task_energy(self, run_time, run_power, sleep_time, sleep_power):
         """
-        计算单个任务的能量消耗，考虑机器数量的影响
+        计算单个任务的能量消耗
 
         参数:
         run_time (float): 执行工艺任务的运行时间 (秒)
@@ -105,9 +108,7 @@ class Arm:
         """
         # 单个任务的能量消耗
         task_energy = (run_time * run_power) + (sleep_time * sleep_power)
-        # 考虑机器数量的影响
-        total_energy = task_energy * machine_count
-        return total_energy
+        return task_energy
 
     def calculate_unit_energy(self, zone, unit_index, tasks):
         """
@@ -123,7 +124,7 @@ class Arm:
         """
         # 获取该生产单元的机器数量
         machine_count = self.machines_count[zone][unit_index]
-        total_energy = 0
+        total_unit_energy = 0
 
         # 计算该单元所有任务的能量消耗，同时计算多个机器臂参与时，时间的减少
         for task in tasks:
@@ -134,11 +135,11 @@ class Arm:
             sleep_power = task['sleep_power']
 
             # 计算该任务的能量消耗
-            task_energy = self.calculate_task_energy(run_time, run_power, sleep_time, sleep_power, machine_count)
+            task_energy = self.calculate_task_energy(run_time, run_power, sleep_time, sleep_power)*machine_count
 
-            total_energy += task_energy
+            total_unit_energy += task_energy
 
-        return total_energy
+        return total_unit_energy
 
     def display_unit_energy(self, tasks):
         """显示每个生产单元的能量消耗"""
@@ -156,9 +157,9 @@ class Arm:
         # sleep_time = random.randint(5, 20)  # 休眠时间（秒），随机生成5到20秒之间
         # sleep_power = random.randint(30, 100)  # 休眠功率（瓦特），随机生成30到100瓦特之间
         """为了测试NSGA2算法，我固定了任务参数"""
-        run_time = 15  # 运行时间（秒），随机生成5到30秒之间
-        run_power = 300  # 运行功率（瓦特），随机生成100到500瓦特之间
-        sleep_time = 10  # 休眠时间（秒），随机生成5到20秒之间
+        run_time = 20  # 运行时间（秒），随机生成5到30秒之间
+        run_power = 100  # 运行功率（瓦特），随机生成100到500瓦特之间
+        sleep_time = 10 # 休眠时间（秒），随机生成5到20秒之间
         sleep_power = 50  # 休眠功率（瓦特），随机生成30到100瓦特之间
         return {'run_time': run_time, 'run_power': run_power, 'sleep_time': sleep_time, 'sleep_power': sleep_power}
 
@@ -171,6 +172,7 @@ class Arm:
             for _ in range(unit_count):
                 # 为每个单元生成随机任务列表
                 tasks[zone].append([self.generate_task() for _ in range(3)])  # 每个生产单元生成3个任务
+
         return tasks
 
     def calculate_total_energy(self, tasks):
@@ -222,9 +224,47 @@ class Arm:
 
         return total_energy, total_time
 
+    def function_1(self,sequence):#由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+        for zone, unit_count in zip(self.work_name_up, self.unit_numbers_up):
+            self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
 
-def generate_initial_population(pop_size):
-    population = []
-    for _ in range(pop_size):
-        population.append()  # 为每个个体创建一个随机的 Arm 对象
-    return population
+        # 下半部分生产区
+        for zone, unit_count in zip(self.work_name_down, self.unit_numbers_down):
+            self.machines_count[zone] = [0] * unit_count  # 为空单元初始化机器数为 0
+        sequence_idx = 0  # 追踪当前序列中的索引
+        # 使用序列填充机器臂数量
+        for zone in self.machines_count:
+            for i in range(len(self.machines_count[zone])):
+                if sequence_idx < len(list(str(sequence[0]))):
+                    # 将 sequence 中的数字逐个赋值到生产区的机器臂数量
+                    # 把每个元素转换为字符串，然后逐个字符赋值
+                    machines = list(str(sequence[0]))  # 将数字转为字符串
+                    self.machines_count[zone][i] = int(machines[sequence_idx])  # 给当前生产单元赋值机器数量
+                    sequence_idx += 1
+
+
+        tasks = {}
+        for zone, unit_count in zip(self.work_name_up + self.work_name_down,
+                                    self.unit_numbers_up + self.unit_numbers_down):
+            tasks[zone] = []
+            for _ in range(unit_count):
+                # 为每个单元生成随机任务列表
+                tasks[zone].append([self.generate_task() for _ in range(3)])  # 每个生产单元生成3个任务
+
+        total_energy = 0
+        for zone in self.work_name_up + self.work_name_down:
+            for unit_index in range(len(self.machines_count[zone])):
+                unit_energy = self.calculate_unit_energy(zone, unit_index, tasks[zone][unit_index])
+                total_energy += unit_energy
+        total_time = 0
+        for zone in self.work_name_up + self.work_name_down:
+            for unit_index in range(len(self.machines_count[zone])):
+                # 获取该生产单元的机器数量
+                machine_count = self.machines_count[zone][unit_index]
+                for task in tasks[zone][unit_index]:
+                    run_time = task['run_time']
+                    run_time_renew = self.calculate_time_reduction(run_time, zone, machine_count)
+                    total_time += run_time_renew
+        return total_energy, total_time
+
+
