@@ -16,13 +16,12 @@ map.display()
 init_arm = Arm(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power,complexity)
 
 
-# 随机分配所有机器
+# 随机分配所有机器C
 for _ in range(pop_size):
     init_arm.distribute_machines_randomly()
     new_list = copy.deepcopy(init_arm.display_machine_count())
     energy_count, time_count = init_arm.function_1(new_list)
-    print(energy_count)
-    print(time_count)
+
     # 保留两位小数
     energy_count = round(energy_count, 2)
     time_count = round(time_count, 2)
@@ -30,8 +29,8 @@ for _ in range(pop_size):
     energy_counts.append(energy_count)
     time_counts.append(time_count)
 
-    machine_counts.append(new_list)
-#记录能耗与时间
+    machine_counts.append(new_list)#记录机器臂数量
+
 
 
 # 初始化车辆分配对象
@@ -40,7 +39,7 @@ car = VehicleDistribution(work_name_up, work_name_down, unit_numbers_up, unit_nu
 car.distribute_vehicles_randomly()
 
 
-#v1, v2 = main_loop(pop_size, max_gen, generate_initial_population(pop_size))
+v1, v2 = main_loop(pop_size, max_gen,machine_counts ,init_arm)
 
 """
 我想循环随机分配机器臂，将每次随机分配的结果作为解，function分别得出这种分配求得的能耗和时间，现在的问题是如何表示这个解，用编码？字典？

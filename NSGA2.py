@@ -59,21 +59,12 @@ def crowed_distance_assignment(values1, values2, front):
     return distance
 
 
-def crossover(x, y):
-    r = random.random()
-    if r > 0.5:
-        return mutation((x+y)/2)
-    else:
-        return mutation((x-y)/2)
-
-
-def mutation(solution):
-    min_v = -55
-    max_v = 55
-    mutation_prob = random.random()
-    if mutation_prob < 0.5:
-        solution = min_v + (max_v - min_v) * random.random()
-    return solution
+def mutation(individual, idx1, idx2):
+    # 确保 idx1 和 idx2 是有效的索引
+    if idx1 != idx2:
+        # 交换两个位置的元素
+        individual[idx1], individual[idx2] = individual[idx2], individual[idx1]
+    return individual
 
 
 # NSGA2主循环
@@ -85,8 +76,9 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         while len(population_R) != 2 * pop_size:
             x = random.randint(0, pop_size - 1)
-            y = random.randint(0, pop_size - 1)
-            population_R.append(crossover(population_P[x], population_P[y]))
+            idx1 = random.randint(0, len(population_P[x])-1)
+            idx2 = random.randint(0, len(population_P[x])-1)
+            population_R.append(mutation(population_P[x],idx1,idx2))
         # 对R(t)计算非支配前沿
         for i in range(2 * pop_size):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）

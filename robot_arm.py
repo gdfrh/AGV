@@ -81,12 +81,12 @@ class Arm:
         """为了测试我固定了参数"""
         if self.complexity[zone] == 'simple':
             # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少30%-50%）
-            # reduction_factor = random.uniform(0.3, 0.5)
-            reduction_factor=0
+            reduction_factor = random.uniform(0.3, 0.5)
+
         elif self.complexity[zone] == 'complex':
             # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少10%-20%）
-            # reduction_factor = random.uniform(0.1, 0.2)
-            reduction_factor = 0
+            reduction_factor = random.uniform(0.1, 0.2)
+
         else:
             reduction_factor = 0  # 默认情况下没有变化
 
