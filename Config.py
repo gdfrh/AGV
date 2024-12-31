@@ -69,7 +69,5 @@ total_vehicles = 15  # 总车辆数
 
 # ------------------------
 #NSGA2参数
-min_x = -55
-max_x = 55
 pop_size = 50
 max_gen = 900

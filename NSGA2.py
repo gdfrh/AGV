@@ -61,30 +61,47 @@ def crowed_distance_assignment(values1, values2, front):
 
 def mutation(individual, idx1, idx2):
     # 确保 idx1 和 idx2 是有效的索引
+
+    # 将列表中的数字转换为字符串
+    individual_str = str(individual)#不考虑括号
+
+    # 将字符串中的每个字符转换为整数，存入新列表
+    expanded_list = [int(digit) for digit in individual_str]
+
     if idx1 != idx2:
         # 交换两个位置的元素
-        individual[idx1], individual[idx2] = individual[idx2], individual[idx1]
-    return individual
+        expanded_list[idx1], expanded_list[idx2] = expanded_list[idx2], expanded_list[idx1]
+    # 将 expanded_list 中的数字重新组合成一个新的字符串
+    new_str = ''.join(map(str, expanded_list))
+
+    # 将组合后的字符串转换为一个整数
+    new_individual = int(new_str)
+
+    # 返回重新组合后的结果,是一个列表
+    return new_individual
+
 
 
 # NSGA2主循环
 def main_loop(pop_size, max_gen, init_population,init_arm):
     gen_no = 0
     population_P = init_population.copy()
+    print(population_P)
     while gen_no < max_gen:
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         while len(population_R) != 2 * pop_size:
             x = random.randint(0, pop_size - 1)
-            idx1 = random.randint(0, len(population_P[x])-1)
-            idx2 = random.randint(0, len(population_P[x])-1)
+            idx1 = random.randint(0, len(str(population_P[x]))-1)
+            idx2 = random.randint(0, len(str(population_P[x]))-1)
             population_R.append(mutation(population_P[x],idx1,idx2))
         # 对R(t)计算非支配前沿
+        objective1 = []
+        objective2 = []
         for i in range(2 * pop_size):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
             total_energy, total_time = init_arm.function_1(population_R[i])
-            objective1 = []
-            objective2 = []
+
             objective1.append(total_energy)  # 将 total_energy 添加到 objective1
             objective2.append(total_time)    # 将 total_time 添加到 objective2
         fronts = fast_non_dominated_sort(objective1, objective2)
@@ -116,7 +133,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             f = fast_non_dominated_sort(best_obj1, best_obj2)
             print(f'generation {gen_no}, first front:')
             for s in f[0]:
-                print(round(population_P[s], 2), end=' ')
+                print((population_P[s], 2), end=' ')
             print('\n')
         gen_no += 1
     return best_obj1, best_obj2

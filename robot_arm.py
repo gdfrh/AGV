@@ -60,8 +60,7 @@ class Arm:
         merged_str = ''.join(map(str, machine_count_list))
         # 将连接后的字符串转换为整数
         merged_number = int(merged_str)
-        # 将合并后的数字存入列表
-        machine_count_list_renew = [merged_number]
+        machine_count_list_renew = merged_number
         return machine_count_list_renew
 
     def calculate_time_reduction(self, initial_time, zone, machine_count):
@@ -80,12 +79,12 @@ class Arm:
         """
         """为了测试我固定了参数"""
         if self.complexity[zone] == 'simple':
-            # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少30%-50%）
-            reduction_factor = random.uniform(0.3, 0.5)
+            # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少50%）
+            reduction_factor = 0.50
 
         elif self.complexity[zone] == 'complex':
-            # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少10%-20%）
-            reduction_factor = random.uniform(0.1, 0.2)
+            # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少20%）
+            reduction_factor = 0.20
 
         else:
             reduction_factor = 0  # 默认情况下没有变化
@@ -235,10 +234,10 @@ class Arm:
         # 使用序列填充机器臂数量
         for zone in self.machines_count:
             for i in range(len(self.machines_count[zone])):
-                if sequence_idx < len(list(str(sequence[0]))):
+                if sequence_idx < len(list(str(sequence))):
                     # 将 sequence 中的数字逐个赋值到生产区的机器臂数量
                     # 把每个元素转换为字符串，然后逐个字符赋值
-                    machines = list(str(sequence[0]))  # 将数字转为字符串
+                    machines = list(str(sequence))  # 将数字转为字符串
                     self.machines_count[zone][i] = int(machines[sequence_idx])  # 给当前生产单元赋值机器数量
                     sequence_idx += 1
 
