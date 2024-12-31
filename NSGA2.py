@@ -86,7 +86,6 @@ def mutation(individual, idx1, idx2):
 def main_loop(pop_size, max_gen, init_population,init_arm):
     gen_no = 0
     population_P = init_population.copy()
-    print(population_P)
     while gen_no < max_gen:
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
@@ -123,19 +122,25 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
         if gen_no % 50 == 0:
+            best_obj1 = []
+            best_obj2 = []
             for i in range(pop_size):
                 # 通过调用 function_1，解包返回的元组（total_energy, total_time）
                 total_energy, total_time = init_arm.function_1(population_P[i])
-                best_obj1 = []
-                best_obj2 = []
+
                 best_obj1.append(total_energy)  # 将 total_energy 添加到 objective1
                 best_obj2.append(total_time)  # 将 total_time 添加到 objective2
             f = fast_non_dominated_sort(best_obj1, best_obj2)
-            print(f'generation {gen_no}, first front:')
+            # 打印第一前沿中的目标值
+            print(f"Generation {gen_no}, first front:")
             for s in f[0]:
                 print((population_P[s], 2), end=' ')
-            print('\n')
+                print()
+                print(f"Individual {s}: Energy = {objective1[s]}, Time = {objective2[s]}")
+                print('\n')
+
         gen_no += 1
+
     return best_obj1, best_obj2
 
 

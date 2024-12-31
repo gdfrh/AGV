@@ -39,7 +39,8 @@ car = VehicleDistribution(work_name_up, work_name_down, unit_numbers_up, unit_nu
 car.distribute_vehicles_randomly()
 
 
-v1, v2 = main_loop(pop_size, max_gen,machine_counts ,init_arm)
+v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
+
 
 """
 我想循环随机分配机器臂，将每次随机分配的结果作为解，function分别得出这种分配求得的能耗和时间，现在的问题是如何表示这个解，用编码？字典？

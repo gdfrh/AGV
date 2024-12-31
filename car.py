@@ -46,10 +46,10 @@ class VehicleDistribution:
             remaining_vehicles -= 1  # 剩余车辆数减少1
 
         # 输出每个生产区分配到的车辆数量
-        self.display_vehicle_count()
+        # self.display_vehicle_count()
 
-    def display_vehicle_count(self):
-        """显示每个生产区和分配的车辆数"""
-        print("\n当前生产区车辆分布：")
-        for zone, vehicle_count in self.vehicles_count.items():
-            print(f"{zone}: {vehicle_count} 台车")
+    # def display_vehicle_count(self):
+    #     """显示每个生产区和分配的车辆数"""
+    #     print("\n当前生产区车辆分布：")
+    #     for zone, vehicle_count in self.vehicles_count.items():
+    #         print(f"{zone}: {vehicle_count} 台车")
