@@ -150,6 +150,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             """我感觉是点覆盖了，结果重复，所以需要对时间和功率进行调整"""
         gen_no += 1
 
+
     return energy_pic, time_pic
 
 
