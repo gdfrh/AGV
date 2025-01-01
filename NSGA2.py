@@ -91,9 +91,12 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         while len(population_R) != 2 * pop_size:
             x = random.randint(0, pop_size - 1)
-            idx1 = random.randint(0, len(str(population_P[x]))-1)
-            idx2 = random.randint(0, len(str(population_P[x]))-1)
-            population_R.append(mutation(population_P[x],idx1,idx2))
+            y = random.randint(1, len(str(population_P[x]))-2)
+            idx1 = random.randint(0, y)
+            idx2 = random.randint(y+1, len(str(population_P[x]))-1)
+            new_member = mutation(population_P[x], idx1, idx2)
+            if new_member not in population_R:
+                population_R.append(new_member)
         # 对R(t)计算非支配前沿
         objective1 = []
         objective2 = []
@@ -128,19 +131,25 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 # 通过调用 function_1，解包返回的元组（total_energy, total_time）
                 total_energy, total_time = init_arm.function_1(population_P[i])
 
-                best_obj1.append(total_energy)  # 将 total_energy 添加到 objective1
-                best_obj2.append(total_time)  # 将 total_time 添加到 objective2
+                best_obj1.append(total_energy)  # 将 total_energy 添加到 best_obj1
+                best_obj2.append(total_time)  # 将 total_time 添加到 best_obj2
             f = fast_non_dominated_sort(best_obj1, best_obj2)
             # 打印第一前沿中的目标值
             print(f"Generation {gen_no}, first front:")
+            energy_pic=[]
+            time_pic=[]
             for s in f[0]:
                 print((population_P[s], 2), end=' ')
                 print()
-                print(f"Individual {s}: Energy = {objective1[s]}, Time = {objective2[s]}")
+                print(f"Individual {s}: Energy = {best_obj1[s]}, Time = {best_obj2[s]}")
                 print('\n')
-
+                energy_pic.append(best_obj1[s])
+                time_pic.append(best_obj2[s])
+            plt.scatter(energy_pic, time_pic)
+            plt.show()
+            """我感觉是点覆盖了，结果重复，所以需要对时间和功率进行调整"""
         gen_no += 1
 
-    return best_obj1, best_obj2
+    return energy_pic, time_pic
 
 

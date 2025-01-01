@@ -38,8 +38,8 @@ car = VehicleDistribution(work_name_up, work_name_down, unit_numbers_up, unit_nu
 # 随机分配所有车辆
 car.distribute_vehicles_randomly()
 
-
 v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
+
 
 
 """
