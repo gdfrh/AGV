@@ -81,12 +81,12 @@ class Arm:
         if self.complexity[zone] == 'simple':
             # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少50%）
             reduction_factor_time = 0.50
-            reduction_factor_power = 0.50
+            reduction_factor_power = 0.35
 
         elif self.complexity[zone] == 'complex':
             # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少20%）
             reduction_factor_time = 0.20
-            reduction_factor_power = 0.10
+            reduction_factor_power = 0.05
 
         else:
             reduction_factor_time = 0  # 默认情况下没有变化
@@ -121,10 +121,10 @@ class Arm:
         # sleep_time = random.randint(5, 20)  # 休眠时间（秒），随机生成5到20秒之间
         # sleep_power = random.randint(30, 100)  # 休眠功率（瓦特），随机生成30到100瓦特之间
         """为了测试NSGA2算法，我固定了任务参数"""
-        run_time = 20  # 运行时间（秒），随机生成5到30秒之间
-        run_power = 100  # 运行功率（瓦特），随机生成100到500瓦特之间
-        sleep_time = 10 # 休眠时间（秒），随机生成5到20秒之间
-        sleep_power = 50  # 休眠功率（瓦特），随机生成30到100瓦特之间
+        run_time = 17.5  # 运行时间（秒），随机生成5到30秒之间
+        run_power = 33.70  # 运行功率（瓦特），随机生成100到500瓦特之间
+        sleep_time = 8.3 # 休眠时间（秒），随机生成5到20秒之间
+        sleep_power = 19.1  # 休眠功率（瓦特），随机生成30到100瓦特之间
         return {'run_time': run_time, 'run_power': run_power, 'sleep_time': sleep_time, 'sleep_power': sleep_power}
 
 

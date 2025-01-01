@@ -124,7 +124,8 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 population_P_next.append(population_R[sort_solution[i]])
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
-        if gen_no % 50 == 0:
+        print(population_P)
+        if gen_no % 1 == 0:
             best_obj1 = []
             best_obj2 = []
             for i in range(pop_size):
@@ -147,9 +148,9 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 time_pic.append(best_obj2[s])
             plt.scatter(energy_pic, time_pic)
             plt.show()
-            """我感觉是点覆盖了，结果重复，所以需要对时间和功率进行调整"""
+            """我感觉是点覆盖了，结果重复，所以需要对时间和功率进行调整
+            至于s的问题，应该是之前排序过了，所以最优的已经往前放了，就会顺序执行"""
         gen_no += 1
-
 
     return energy_pic, time_pic
 
