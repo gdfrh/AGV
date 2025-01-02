@@ -33,16 +33,19 @@ for zone, units in zip(work_name_down, unit_numbers_down):
 我们进行假设，较为简单的生产区的生产单元增加机器臂后所需要的时间会显著下降
 较为复杂的生产区的生产单元增加机器臂后所需要的工作时间会下降，但是下降幅度较小
 暂定功率保持不变
+修改一下吧，为了保证样本丰富性，我为每个生产区设定参数
 """
-complexity = {
-    '组装区': 'simple',
-    '铸造区': 'complex',
-    '清洗区': 'simple',
-    '包装区': 'complex',
-    '焊接区': 'complex',
-    '喷漆区': 'simple',
-    '配置区': 'complex'
-}
+reduction_factor_time_list = [0.30, 0.15, 0.50, 0.65, 0.12, 0.35, 0.10]
+reduction_factor_power_list = [0.25, 0.20, 0.45, 0.70, 0.10, 0.30, 0.05]
+# complexity = {
+#     '组装区': 'simple',
+#     '铸造区': 'complex',
+#     '清洗区': 'simple',
+#     '包装区': 'complex',
+#     '焊接区': 'complex',
+#     '喷漆区': 'simple',
+#     '配置区': 'complex'
+# }
 # ------------------------
 #机器臂配置
 total_machines = 30  # 总机器数
@@ -70,4 +73,4 @@ total_vehicles = 15  # 总车辆数
 # ------------------------
 #NSGA2参数
 pop_size = 50
-max_gen = 2
+max_gen = 5

@@ -3,7 +3,7 @@ import random
 
 
 class Arm:
-    def __init__(self, work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power,complexity):
+    def __init__(self, work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power):
         # 初始化生产区名称和单元数
         self.work_name_up = work_name_up
         self.work_name_down = work_name_down
@@ -11,7 +11,7 @@ class Arm:
         self.unit_numbers_down = unit_numbers_down
         self.total_machines = total_machines  # 总机器数量
         self.machine_power = machine_power  # 每台机器的功率
-        self.complexity = complexity  # 生产区的复杂度（简单或复杂）
+        #self.complexity = complexity  # 生产区的复杂度（简单或复杂）
 
         # 创建字典来存储每个生产单元的机器数
         self.machines_count = {}
@@ -63,7 +63,7 @@ class Arm:
         machine_count_list_renew = merged_number
         return machine_count_list_renew
 
-    def calculate_reduction(self, initial_time, initial_power, zone, machine_count):
+    def calculate_reduction(self, initial_time, initial_power, zone_name, machine_count):
         """
         根据生产区的复杂度计算每个任务的运行时间
         - 简单生产区：时间下降较大
@@ -78,22 +78,32 @@ class Arm:
         返回:
         float: 调整后的运行时间
         """
-        if self.complexity[zone] == 'simple':
-            # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少50%）
-            reduction_factor_time = 0.50
-            reduction_factor_power = 0.35
+        # if self.complexity[zone] == 'simple':
+        #     # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少50%）
+        #     reduction_factor_time = 0.50
+        #     reduction_factor_power = 0.35
+        #
+        # elif self.complexity[zone] == 'complex':
+        #     # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少20%）
+        #     reduction_factor_time = 0.20
+        #     reduction_factor_power = 0.05
+        #
+        # else:
+        #     reduction_factor_time = 0  # 默认情况下没有变化
+        #     reduction_factor_power = 0
+        reduction_factor_time = 0  #初始化
+        reduction_factor_power = 0
+        temp_idx = 0
+        for zone in self.work_name_up + self.work_name_down:
 
-        elif self.complexity[zone] == 'complex':
-            # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少20%）
-            reduction_factor_time = 0.20
-            reduction_factor_power = 0.05
+            if zone == zone_name:
+                reduction_factor_time = reduction_factor_time_list[temp_idx]
+                reduction_factor_power = reduction_factor_power_list[temp_idx]
+                break
+            temp_idx += 1
 
-        else:
-            reduction_factor_time = 0  # 默认情况下没有变化
-            reduction_factor_power = 0
-
-        return initial_time * ((1 - reduction_factor_time)**machine_count)\
-              ,initial_power*((1 - reduction_factor_power)**machine_count)
+        return initial_time * ((1 - reduction_factor_time )**machine_count)\
+              ,initial_power*((1 - reduction_factor_power )**machine_count)
 
     def calculate_task_energy(self, run_time, run_power, sleep_time, sleep_power):
         """

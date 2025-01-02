@@ -124,7 +124,6 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 population_P_next.append(population_R[sort_solution[i]])
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
-        print(population_P)
         if gen_no % 1 == 0:
             best_obj1 = []
             best_obj2 = []

@@ -13,7 +13,7 @@ map.display()
 
 #显示生产单元的机器臂分配
 # 初始化车间对象
-init_arm = Arm(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power,complexity)
+init_arm = Arm(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power)
 
 
 # 随机分配所有机器C
