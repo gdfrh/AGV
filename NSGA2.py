@@ -59,7 +59,7 @@ def crowed_distance_assignment(values1, values2, front):
     return distance
 
 
-def mutation(individual, idx1, idx2):
+def crossover(individual, idx1, idx2):
     # 确保 idx1 和 idx2 是有效的索引
 
     # 将列表中的数字转换为字符串
@@ -80,6 +80,26 @@ def mutation(individual, idx1, idx2):
     # 返回重新组合后的结果,是一个列表
     return new_individual
 
+def mutate(individual):
+    # 将列表中的数字转换为字符串
+    individual_str = str(individual)  # 不考虑括号
+
+    # 将字符串中的每个字符转换为整数，存入新列表
+    expanded_list = [int(digit) for digit in individual_str]
+    # 随机的找到变异的元素的索引
+    idx = random.randint(0, len(expanded_list)-1)
+    # 读出这个单元分配的机器臂数量，并且任意的减少此数量，不超过总数
+    n = random.randint(0,expanded_list[idx]-1)
+
+    expanded_list[idx] -= n
+    # 将 expanded_list 中的数字重新组合成一个新的字符串
+    new_str = ''.join(map(str, expanded_list))
+
+    # 将组合后的字符串转换为一个整数
+    new_individual = int(new_str)
+
+    # 返回重新组合后的结果,是一个列表
+    return new_individual
 
 
 # NSGA2主循环
@@ -94,7 +114,10 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             y = random.randint(1, len(str(population_P[x]))-2)
             idx1 = random.randint(0, y)
             idx2 = random.randint(y+1, len(str(population_P[x]))-1)
-            new_member = mutation(population_P[x], idx1, idx2)
+            new_member = crossover(population_P[x], idx1, idx2)
+            # 变异操作
+            if random.random() < 0.1:  # 假设变异概率为10%
+                new_member = mutate(new_member)  # 对新个体进行变异
             if new_member not in population_R:
                 population_R.append(new_member)
         # 对R(t)计算非支配前沿
@@ -124,7 +147,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 population_P_next.append(population_R[sort_solution[i]])
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
-        if gen_no % 1 == 0:
+        if gen_no % 100 == 0:
             best_obj1 = []
             best_obj2 = []
             for i in range(pop_size):

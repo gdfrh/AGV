@@ -35,7 +35,7 @@ for zone, units in zip(work_name_down, unit_numbers_down):
 暂定功率保持不变
 修改一下吧，为了保证样本丰富性，我为每个生产区设定参数
 """
-reduction_factor_time_list = [0.30, 0.15, 0.50, 0.65, 0.12, 0.35, 0.10]
+reduction_factor_time_list = [0.30, 0.30, 0.50, 0.65, 0.12, 0.35, 0.10]
 reduction_factor_power_list = [0.25, 0.20, 0.45, 0.70, 0.10, 0.30, 0.05]
 # complexity = {
 #     '组装区': 'simple',
@@ -72,5 +72,5 @@ total_vehicles = 15  # 总车辆数
 
 # ------------------------
 #NSGA2参数
-pop_size = 50
-max_gen = 5
+pop_size = 200
+max_gen = 1000

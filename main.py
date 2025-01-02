@@ -5,13 +5,13 @@ from car import *
 from NSGA2 import *
 import copy
 
-#创建初始地图
+# 创建初始地图
 # 创建一个二维空间# 创建一个 10x10 的车间地图
-map = MapSpace(map_rows, map_cols,map_fill_char,road_width,work_width_up,work_width_down,work_name_up,work_name_down)
+map = MapSpace(map_rows, map_cols, map_fill_char, road_width, work_width_up, work_width_down, work_name_up, work_name_down)
 # 打印车间地图
 map.display()
 
-#显示生产单元的机器臂分配
+# 显示生产单元的机器臂分配
 # 初始化车间对象
 init_arm = Arm(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power)
 
@@ -29,8 +29,7 @@ for _ in range(pop_size):
     energy_counts.append(energy_count)
     time_counts.append(time_count)
 
-    machine_counts.append(new_list)#记录机器臂数量
-
+    machine_counts.append(new_list)# 记录机器臂数量
 
 
 # 初始化车辆分配对象
@@ -39,8 +38,6 @@ car = VehicleDistribution(work_name_up, work_name_down, unit_numbers_up, unit_nu
 car.distribute_vehicles_randomly()
 
 v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
-
-
 
 
 """
