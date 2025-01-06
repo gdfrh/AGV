@@ -1,33 +1,29 @@
 from Config import *
+from order import *
 import random
 
 
 class Arm:
-    def __init__(self, work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power):
+    def __init__(self, work_name, unit_numbers, total_machines, machine_power,num_orders):
         # 初始化生产区名称和单元数
-        self.work_name_up = work_name_up
-        self.work_name_down = work_name_down
-        self.unit_numbers_up = unit_numbers_up
-        self.unit_numbers_down = unit_numbers_down
+        self.work_name = work_name
+        self.unit_numbers = unit_numbers
         self.total_machines = total_machines  # 总机器数量
         self.machine_power = machine_power  # 每台机器的功率
-        #self.complexity = complexity  # 生产区的复杂度（简单或复杂）
-
-        # 创建字典来存储每个生产单元的机器数
-        self.machines_count = {}
-
-        # 初始化生产区的机器数
-        self._initialize_cells()
+        self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
+        self.order_manager = OrderManager(work_name, num_orders)
+        self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
+        print(self.orders)
+        """还没用到"""
+        # self.work_status = {}  # 用来判断生产区是否在工作
+        self._initialize_cells()  # 初始化生产区的机器数
 
     def _initialize_cells(self):
         """初始化生产区及其对应的机器数"""
-        # 上半部分生产区
-        for zone, unit_count in zip(self.work_name_up, self.unit_numbers_up):
+        for zone, unit_count in zip(self.work_name, self.unit_numbers):
             self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
+            # self.work_status[zone] = False  # 初始时，生产区是空闲的
 
-        # 下半部分生产区
-        for zone, unit_count in zip(self.work_name_down, self.unit_numbers_down):
-            self.machines_count[zone] = [0] * unit_count  # 为空单元初始化机器数为 0
 
     def distribute_machines_randomly(self):
         """随机将机器分配到生产单元，并显示每个生产区分配的机器数量"""
@@ -48,13 +44,12 @@ class Arm:
             self.machines_count[zone][unit_index] += 1  # 为该单元分配一台机器
             remaining_machines -= 1  # 剩余机器数减少1
 
-
     def display_machine_count(self):
-        """返回每个生产区中各单元的机器数，并存储到字典中"""
-        machine_count_list = []  #列表
+        """返回每个生产区中各单元的机器数，并存储到列表中"""
+        machine_count_list = []   # 列表
         for zone, units in self.machines_count.items():
             # 将每个生产区的机器数存储到字典中
-            machine_count_list += units# 每个单元的机器数
+            machine_count_list += units  # 每个单元的机器数
             # print(
             #     f"{zone}: {', '.join([str(unit) for unit in units])} 台机器")
         merged_str = ''.join(map(str, machine_count_list))
@@ -65,10 +60,6 @@ class Arm:
 
     def calculate_reduction(self, initial_time, initial_power, zone_name, machine_count):
         """
-        根据生产区的复杂度计算每个任务的运行时间
-        - 简单生产区：时间下降较大
-        - 复杂生产区：时间下降较小
-
         参数:
         initial_time (float): 初始运行时间
         initial_power (float):初始运行功率
@@ -78,23 +69,11 @@ class Arm:
         返回:
         float: 调整后的运行时间
         """
-        # if self.complexity[zone] == 'simple':
-        #     # 简单生产区：增加机器时，运行时间下降较大（每增加1台机器，减少50%）
-        #     reduction_factor_time = 0.50
-        #     reduction_factor_power = 0.35
-        #
-        # elif self.complexity[zone] == 'complex':
-        #     # 复杂生产区：增加机器时，运行时间下降较小（每增加1台机器，减少20%）
-        #     reduction_factor_time = 0.20
-        #     reduction_factor_power = 0.05
-        #
-        # else:
-        #     reduction_factor_time = 0  # 默认情况下没有变化
-        #     reduction_factor_power = 0
+
         reduction_factor_time = 0  #初始化
         reduction_factor_power = 0
         temp_idx = 0
-        for zone in self.work_name_up + self.work_name_down:
+        for zone in self.work_name:
 
             if zone == zone_name:
                 reduction_factor_time = reduction_factor_time_list[temp_idx]
@@ -123,29 +102,42 @@ class Arm:
         task_energy = (run_time * run_power) + (sleep_time * sleep_power)
         return task_energy
 
+    def calculate_processing_time(self):
+        """计算生产区的处理时间"""
+        return processing_time
 
-    def generate_task(self):
-        """随机生成一个任务的参数"""
-        # run_time = random.randint(5, 30)  # 运行时间（秒），随机生成5到30秒之间
-        # run_power = random.randint(100, 500)  # 运行功率（瓦特），随机生成100到500瓦特之间
-        # sleep_time = random.randint(5, 20)  # 休眠时间（秒），随机生成5到20秒之间
-        # sleep_power = random.randint(30, 100)  # 休眠功率（瓦特），随机生成30到100瓦特之间
-        """为了测试NSGA2算法，我固定了任务参数"""
-        run_time = 17.5  # 运行时间（秒），随机生成5到30秒之间
-        run_power = 33.70  # 运行功率（瓦特），随机生成100到500瓦特之间
-        sleep_time = 8.3 # 休眠时间（秒），随机生成5到20秒之间
-        sleep_power = 19.1  # 休眠功率（瓦特），随机生成30到100瓦特之间
-        return {'run_time': run_time, 'run_power': run_power, 'sleep_time': sleep_time, 'sleep_power': sleep_power}
+    def order_time_and_power(self, order):
+        """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
+        order_total_time = 0  # 一个订单完成所需时间
+        order_total_power = 0  # 一个订单完成所需功率
+        max_machines = []  # 用于存储生产单元中最多的机器臂
+        # 遍历订单的每个生产区，计算总时间
+        for i in order:
+            units = self.machines_count[i]
+            max_machines.append(max(units))  # 找到最大的机器臂数量
+            #max_index = units.index(max_machines)  # 找到最大值的索引
+            """这里准备加上空闲、忙碌状态判断"""
+
+            """"""
+
+            """这里我们先找到最多机器臂的生产单元和机器臂数量，再根据数量对时间和功率的影响修改时间和功率"""
+        for i in range(len(order) - 1):
+            start_zone = order[i]
+            #end_zone = order[i + 1]
+            order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines[i])
+            order_total_time += order_total_time_renew + processing_time['sleep_time']
+            order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines[i]
+            # 2. 计算运输时间
+            # transport_time = calculate_transport_time(start_zone, end_zone)
+            # total_time += transport_time  # 加上运输时间
+
+        return order_total_time, order_total_power
 
 
-    def function_1(self,sequence):#由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+    def function_1(self, sequence):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
-        for zone, unit_count in zip(self.work_name_up, self.unit_numbers_up):
+        for zone, unit_count in zip(self.work_name, self.unit_numbers):
             self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
-
-        # 下半部分生产区
-        for zone, unit_count in zip(self.work_name_down, self.unit_numbers_down):
-            self.machines_count[zone] = [0] * unit_count  # 为空单元初始化机器数为 0
 
         """序列反填充"""
         sequence_idx = 0  # 追踪当前序列中的索引
@@ -159,35 +151,41 @@ class Arm:
                     self.machines_count[zone][i] = int(machines[sequence_idx])  # 给当前生产单元赋值机器数量
                     sequence_idx += 1
 
-        """任务的指定"""
-        tasks = {}
-
-        for zone, unit_count in zip(self.work_name_up + self.work_name_down,
-                                    self.unit_numbers_up + self.unit_numbers_down):
-            tasks[zone] = []
-            for _ in range(unit_count):
-                # 为每个单元生成随机任务列表
-                tasks[zone].append([self.generate_task() for _ in range(3)])  # 每个生产单元生成3个任务
+        """任务的指定,需要修改"""
+        # tasks = {}
+        #
+        # for zone, unit_count in zip(self.work_name,self.unit_numbers):
+        #     tasks[zone] = []
+        #     for _ in range(unit_count):
+        #         # 为每个单元生成随机任务列表
+        #         tasks[zone].append([self.generate_task() for _ in range(3)])  # 每个生产单元生成3个任务
 
         """能量，时间计算"""
-        total_energy, total_time = 0, 0
-        for zone in self.work_name_up + self.work_name_down:
-            for unit_index in range(len(self.machines_count[zone])):
-                # 获取该生产单元的机器数量
-                machine_count = self.machines_count[zone][unit_index]
-
-                for task in tasks[zone][unit_index]:
-                    run_time = task['run_time']
-                    run_power = task['run_power']
-                    sleep_time = task['sleep_time']
-                    sleep_power = task['sleep_power']
-                    run_time_renew, run_power_renew = self.calculate_reduction(run_time, run_power, zone, machine_count)
-
-                    # 计算该任务的能量消耗
-                    task_energy = self.calculate_task_energy(run_time_renew, run_power_renew, sleep_time, sleep_power) * machine_count
-                    total_energy += task_energy
-                    total_time += run_time_renew + sleep_time
-
-        return total_energy, total_time
-
+        total_time, total_power = 0, 0
+        for order in self.orders:
+            """计算每个订单的消耗"""
+            total_time_order, total_power_order = self.order_time_and_power(order)
+            total_time += total_time_order
+            total_power += total_power_order
+        return total_time, total_power
+        # total_energy, total_time = 0, 0
+        # for zone in self.work_name:
+        #     for unit_index in range(len(self.machines_count[zone])):
+        #         # 获取该生产单元的机器数量
+        #         machine_count = self.machines_count[zone][unit_index]
+        #
+        #         for task in tasks[zone][unit_index]:
+        #             run_time = task['run_time']
+        #             run_power = task['run_power']
+        #             sleep_time = task['sleep_time']
+        #             sleep_power = task['sleep_power']
+        #             run_time_renew, run_power_renew = self.calculate_reduction(run_time, run_power, zone, machine_count)
+        #
+        #             # 计算该任务的能量消耗
+        #             task_energy = self.calculate_task_energy(run_time_renew, run_power_renew, sleep_time, sleep_power) * machine_count
+        #             total_energy += task_energy
+        #             total_time += run_time_renew + sleep_time
+        #
+        # return total_energy, total_time
+"""现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果，并且时间是累加计算的，应该得计算最后结束就行"""
 

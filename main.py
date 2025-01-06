@@ -3,18 +3,19 @@ from Map import *
 from robot_arm import *
 from car import *
 from NSGA2 import *
+from order import *
 import copy
+
 
 # 创建初始地图
 # 创建一个二维空间# 创建一个 10x10 的车间地图
-map = MapSpace(map_rows, map_cols, map_fill_char, road_width, work_width_up, work_width_down, work_name_up, work_name_down)
-# 打印车间地图
-map.display()
+# map = MapSpace(map_rows, map_cols, map_fill_char, road_width, work_width_up, work_width_down, work_name_up, work_name_down)
+# # 打印车间地图
+# map.display()
 
 # 显示生产单元的机器臂分配
 # 初始化车间对象
-init_arm = Arm(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_machines, machine_power)
-
+init_arm = Arm(work_name, unit_numbers, total_machines, machine_power, num_orders)
 
 # 随机分配所有机器C
 for _ in range(pop_size):
@@ -31,13 +32,15 @@ for _ in range(pop_size):
 
     machine_counts.append(new_list)# 记录机器臂数量
 
-
-# 初始化车辆分配对象
-car = VehicleDistribution(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_vehicles)
-# 随机分配所有车辆
-car.distribute_vehicles_randomly()
-
 v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
+
+
+# # 初始化车辆分配对象
+# car = VehicleDistribution(work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_vehicles)
+# # 随机分配所有车辆
+# car.distribute_vehicles_randomly()
+
+
 
 
 """

@@ -1,15 +1,17 @@
 from Config import *
 import random
+from order import Order
+from order import OrderManager
 
 
 class VehicleDistribution:
-    def __init__(self, work_name_up, work_name_down, unit_numbers_up, unit_numbers_down, total_vehicles):
+    def __init__(self, work_name, unit_numbers, total_vehicles, order):
         # 初始化生产区名称和单元数
-        self.work_name_up = work_name_up
-        self.work_name_down = work_name_down
-        self.unit_numbers_up = unit_numbers_up
-        self.unit_numbers_down = unit_numbers_down
+        self.work_name = work_name
+        self.unit_numbers = unit_numbers
         self.total_vehicles = total_vehicles  # 总车辆数量
+        self.order = order
+        self.order_manager = OrderManager(work_name, 5)
 
         # 创建字典来存储每个生产区的车辆数
         self.vehicles_count = {}
@@ -20,12 +22,9 @@ class VehicleDistribution:
     def _initialize_cells(self):
         """初始化生产区及其对应的车辆数"""
         # 上半部分生产区
-        for zone, unit_count in zip(self.work_name_up, self.unit_numbers_up):
+        for zone, unit_count in zip(self.work_name, self.unit_numbers):
             self.vehicles_count[zone] = 0  # 每个生产区初始分配的车辆数为 0
 
-        # 下半部分生产区
-        for zone, unit_count in zip(self.work_name_down, self.unit_numbers_down):
-            self.vehicles_count[zone] = 0  # 为空单元初始化车辆数为 0
 
     def distribute_vehicles_randomly(self):
         """首先为每个生产区分配一个车辆，然后随机将剩余车辆分配到生产区"""
