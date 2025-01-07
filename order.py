@@ -43,7 +43,7 @@ class Order:
     def get_order_details(self):
         return {
             "order_id": self.order_id,
-            "zones": self.zones
+            "zones": self.zones,
         }
 
 
@@ -66,9 +66,11 @@ class OrderManager:
 
 
     def get_orders(self):
-        orders=[]
+        orders = []
         for order in self.orders:
             details = order.get_order_details()
             orders.append(details['zones'])
+
+
         return orders
 

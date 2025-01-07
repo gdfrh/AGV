@@ -106,6 +106,22 @@ class Arm:
         """计算生产区的处理时间"""
         return processing_time
 
+    def calculate_transport_time(self, start_zone, end_zone, distance_matrix, work_name_order, speed):
+        """由于传递过来的订单是汉字，我们反映射为数字"""
+        # Step 1: 创建一个反向字典，将生产区汉字名称映射到数字索引
+        zone_to_index = {name: index for index, name in work_name_order.items()}
+
+        # Step 2: 使用反向字典，将汉字生产区转换为数字索引
+        start_index = zone_to_index[start_zone]
+        end_index = zone_to_index[end_zone]
+
+        # Step 3: 使用转换后的数字索引从距离矩阵中获取距离
+        distance = distance_matrix[start_index][end_index]
+
+        # Step 4: 计算运输时间（假设速度是已知的，单位为距离/时间）
+        transport_time = distance / speed  # 时间 = 距离 / 速度
+        return transport_time
+
     def order_time_and_power(self, order):
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_total_time = 0  # 一个订单完成所需时间
@@ -121,16 +137,18 @@ class Arm:
             """"""
 
             """这里我们先找到最多机器臂的生产单元和机器臂数量，再根据数量对时间和功率的影响修改时间和功率"""
-        for i in range(len(order) - 1):
+        for i in range(len(order)):
             start_zone = order[i]
-            #end_zone = order[i + 1]
+
             order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines[i])
             order_total_time += order_total_time_renew + processing_time['sleep_time']
             order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines[i]
             # 2. 计算运输时间
-            # transport_time = calculate_transport_time(start_zone, end_zone)
-            # total_time += transport_time  # 加上运输时间
-
+            if i < len(order) - 1:
+                end_zone = order[i + 1]
+                transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, vga_speed)
+                order_total_time += transport_time  # 加上运输时间
+            # 3. 计算等待时间时间
         return order_total_time, order_total_power
 
 
