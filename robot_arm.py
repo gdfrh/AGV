@@ -13,19 +13,22 @@ class Arm:
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
         self.order_manager = OrderManager(work_name, num_orders)
         self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
-        print(self.orders)
-        """还没用到"""
-        # self.work_status = {}  # 用来判断生产区是否在工作
+        # print(self.orders)
+        """用False表示空闲，True表示忙碌"""
+        self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self._initialize_cells()  # 初始化生产区的机器数
 
     def _initialize_cells(self):
         """初始化生产区及其对应的机器数"""
         for zone, unit_count in zip(self.work_name, self.unit_numbers):
             self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
-            # self.work_status[zone] = False  # 初始时，生产区是空闲的
+            self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
+            # print(self.work_status[zone])
 
 
     def distribute_machines_randomly(self):
+        """每次初始化解的时候需要对work_state也要初始化"""
+        self._initialize_cells()
         """随机将机器分配到生产单元，并显示每个生产区分配的机器数量"""
         available_units = []  # 存储所有生产单元的可用位置（生产区 + 单元索引）
 
@@ -122,40 +125,57 @@ class Arm:
         transport_time = distance / speed  # 时间 = 距离 / 速度
         return transport_time
 
+    def find_false_max_machines(self, zone):
+        """找出某个生产区中状态为 False 的生产单元中，机器臂最多的单元"""
+        max_machines = 0
+        max_unit_index = -1  # 记录机器臂最多的生产单元的索引
+
+        for i, status in enumerate(self.work_status[zone]):
+            if not status:  # 如果当前生产单元处于空闲状态
+                if self.machines_count[zone][i] > max_machines:
+                    max_machines = self.machines_count[zone][i]
+                    max_unit_index = i
+
+        # 返回机器臂最多的生产单元及其机器臂数量
+        if max_unit_index != -1:
+            return max_unit_index, max_machines
+        else:
+            return None  # 如果没有空闲单元
+
     def order_time_and_power(self, order):
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_total_time = 0  # 一个订单完成所需时间
         order_total_power = 0  # 一个订单完成所需功率
-        max_machines = []  # 用于存储生产单元中最多的机器臂
         # 遍历订单的每个生产区，计算总时间
-        for i in order:
-            units = self.machines_count[i]
-            max_machines.append(max(units))  # 找到最大的机器臂数量
-            #max_index = units.index(max_machines)  # 找到最大值的索引
-            """这里准备加上空闲、忙碌状态判断"""
+        # for i in order:
+        #     units = self.machines_count[i]
+        #
+        #     """这里我们先找到最多机器臂的生产单元和机器臂数量，再根据数量对时间和功率的影响修改时间和功率"""
+        #     max_machines.append(max(units))  # 找到最大的机器臂数量
+        #     #max_index = units.index(max_machines)  # 找到最大值的索引
 
-            """"""
-
-            """这里我们先找到最多机器臂的生产单元和机器臂数量，再根据数量对时间和功率的影响修改时间和功率"""
         for i in range(len(order)):
             start_zone = order[i]
-
-            order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines[i])
-            order_total_time += order_total_time_renew + processing_time['sleep_time']
-            order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines[i]
-            # 2. 计算运输时间
-            if i < len(order) - 1:
-                end_zone = order[i + 1]
-                transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, vga_speed)
-                order_total_time += transport_time  # 加上运输时间
-            # 3. 计算等待时间时间
+            if False in self.work_status[start_zone]:
+                """如果该生产区存在空闲单元"""
+                max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
+                self.work_status[start_zone][max_unit_index] = True#占据了这个生产单元
+                # print(self.work_status)
+                order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
+                order_total_time += order_total_time_renew + processing_time['sleep_time']
+                order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
+                # 2. 计算运输时间
+                if i < len(order) - 1:
+                    end_zone = order[i + 1]
+                    transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, vga_speed)
+                    order_total_time += transport_time  # 加上运输时间
+                # 3. 计算等待时间时间
         return order_total_time, order_total_power
 
 
-    def function_1(self, sequence):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+    def object_function(self, sequence):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
-        for zone, unit_count in zip(self.work_name, self.unit_numbers):
-            self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
+        self._initialize_cells()
 
         """序列反填充"""
         sequence_idx = 0  # 追踪当前序列中的索引

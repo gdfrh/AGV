@@ -125,7 +125,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         objective2 = []
         for i in range(2 * pop_size):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-            total_energy, total_time = init_arm.function_1(population_R[i])
+            total_energy, total_time = init_arm.object_function(population_R[i])
 
             objective1.append(total_energy)  # 将 total_energy 添加到 objective1
             objective2.append(total_time)    # 将 total_time 添加到 objective2
@@ -152,7 +152,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             best_obj2 = []
             for i in range(pop_size):
                 # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-                total_energy, total_time = init_arm.function_1(population_P[i])
+                total_energy, total_time = init_arm.object_function(population_P[i])
 
                 best_obj1.append(total_energy)  # 将 total_energy 添加到 best_obj1
                 best_obj2.append(total_time)  # 将 total_time 添加到 best_obj2

@@ -18,10 +18,11 @@ import copy
 init_arm = Arm(work_name, unit_numbers, total_machines, machine_power, num_orders)
 
 # 随机分配所有机器C
+"""每次初始化解的时候需要对work_state也要初始化"""
 for _ in range(pop_size):
     init_arm.distribute_machines_randomly()
     new_list = copy.deepcopy(init_arm.display_machine_count())
-    energy_count, time_count = init_arm.function_1(new_list)
+    energy_count, time_count = init_arm.object_function(new_list)
 
     # 保留两位小数
     energy_count = round(energy_count, 2)
@@ -30,7 +31,7 @@ for _ in range(pop_size):
     energy_counts.append(energy_count)
     time_counts.append(time_count)
 
-    machine_counts.append(new_list)# 记录机器臂数量
+    machine_counts.append(new_list)  # 记录机器臂数量
 
 v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
 
