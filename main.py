@@ -24,14 +24,14 @@ for _ in range(pop_size):
     new_list = copy.deepcopy(init_arm.display_machine_count())
 
     """还没用到这个"""
-    energy_count, time_count = init_arm.object_function(new_list)
-
-    # 保留两位小数
-    energy_count = round(energy_count, 2)
-    time_count = round(time_count, 2)
-
-    energy_counts.append(energy_count)
-    time_counts.append(time_count)
+    # energy_count, time_count = init_arm.object_function(new_list)
+    #
+    # # 保留两位小数
+    # energy_count = round(energy_count, 2)
+    # time_count = round(time_count, 2)
+    #
+    # energy_counts.append(energy_count)
+    # time_counts.append(time_count)
     """还没用到上面"""
 
     machine_counts.append(new_list)  # 列表形式记录机器臂数量
@@ -54,7 +54,7 @@ v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
 字典不太好变异
 
 1.7：接下来的问题：
-1.引入时间改变状态
+1.引入时间改变状态，这里需要使用线程的方法解决，小车同理，订单同理
 2.小车的变换与状态改变
 3.循环套循环
 4.现在订单是随机给的，是否需要修改

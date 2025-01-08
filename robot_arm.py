@@ -22,15 +22,16 @@ class Arm:
         self.end_time = {}  # 用来记录生产区工作的结束时间
         self._initialize_cells()  # 初始化生产区的机器数
 
-        self.state_change()  # 不断判断生产单元的状态并改变
+        """不能放在这，会无限循环"""
+        # self.state_change()  # 不断判断生产单元的状态并改变
 
     def _initialize_cells(self):
         """初始化生产区及其对应的机器数"""
         for zone, unit_count in zip(self.work_name, self.unit_numbers):
             self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
             self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
-            self.start_time[zone] = [None] * unit_count  #初始时，没有开始时间
-            self.end_time[zone] = [None] * unit_count  #初始时，没有结束时间
+            self.start_time[zone] = [None] * unit_count  # 初始时，没有开始时间
+            self.end_time[zone] = [None] * unit_count  # 初始时，没有结束时间
             # print(self.work_status[zone])
 
 
@@ -151,6 +152,23 @@ class Arm:
         else:
             return None  # 如果没有空闲单元
 
+    def find_true_min_time(self, zone):
+        """找出某个生产区中状态为 True 的生产单元中，所需等待时间最短的"""
+        min_wait_time = float('inf')
+        min_unit_index = -1  # 记录等待时间最短的生产单元的索引
+
+        for i, status in enumerate(self.work_status[zone]):
+            if status:  # 如果当前生产单元处于忙碌状态
+                if self.end_time[zone][i] - time.time() < min_wait_time:
+                    min_wait_time = self.end_time[zone][i] - time.time()
+                    min_unit_index = i
+
+        # 返回机器臂最多的生产单元及其机器臂数量
+        if min_unit_index != -1:
+            return min_unit_index, min_wait_time
+        else:
+            return None  # 如果没有空闲单元
+
     def order_time_and_power(self, order):
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_total_time = 0  # 一个订单完成所需时间
@@ -183,14 +201,15 @@ class Arm:
                     order_total_time += transport_time  # 加上运输时间
                 # 3. 只有等待小车的时间
 
-            else:#生产单元全部忙碌
+            elif False not in self.work_status[start_zone]:  # 生产单元全部忙碌
                 """需要获得等待时间再加上工作时间"""
-                print()
+                min_unit_index, min_wait_time = self.find_true_min_time(start_zone)
+
 
         return order_total_time, order_total_power
 
     def state_change(self):
-        """不断地查看状态是否变化"""
+        """不断地查看状态是否变化，但是现在回无限循环，需要修改一下"""
         while True:
             """对于每个生产单元，如果当前时间为任务结束时间，就改变生产单元状态为False空闲"""
             for zone in self.machines_count:
