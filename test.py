@@ -118,5 +118,11 @@
 #
 # scheduler = Scheduler(work_name, unit_numbers, total_machines, machine_power, num_orders)
 # scheduler.process_orders()
-a=[0, 6, 2, 1, 5, 4, 3]
-print(len(a))
+# a=[0, 6, 2, 1, 5, 4, 3]
+# print(len(a))
+import time
+a=time.time()
+
+time.sleep(2)
+b=time.time()
+print(a,b)

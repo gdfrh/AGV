@@ -22,6 +22,8 @@ init_arm = Arm(work_name, unit_numbers, total_machines, machine_power, num_order
 for _ in range(pop_size):
     init_arm.distribute_machines_randomly()
     new_list = copy.deepcopy(init_arm.display_machine_count())
+
+    """还没用到这个"""
     energy_count, time_count = init_arm.object_function(new_list)
 
     # 保留两位小数
@@ -30,8 +32,9 @@ for _ in range(pop_size):
 
     energy_counts.append(energy_count)
     time_counts.append(time_count)
+    """还没用到上面"""
 
-    machine_counts.append(new_list)  # 记录机器臂数量
+    machine_counts.append(new_list)  # 列表形式记录机器臂数量
 
 v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
 
@@ -49,4 +52,16 @@ v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
 我现在调用任务是随机的，是否应该用固定的任务来查看配置的优先级
 如果用编码的方式，那么比较容易进行最开始初始解以及第一代子代的构造，只需要变异（比如交换编码）然后提取到对应的生产单元，重新计算时间和能耗即可
 字典不太好变异
+
+1.7：接下来的问题：
+1.引入时间改变状态
+2.小车的变换与状态改变
+3.循环套循环
+4.现在订单是随机给的，是否需要修改
+5.生产单元固定，是否需要修改
+6.调度问题
+
+
+
+
 """

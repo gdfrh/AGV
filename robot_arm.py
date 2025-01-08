@@ -1,6 +1,8 @@
 from Config import *
 from order import *
 import random
+import time
+from Util import *
 
 
 class Arm:
@@ -16,13 +18,19 @@ class Arm:
         # print(self.orders)
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
+        self.start_time = {}  # 用来记录生产区工作的开始时间
+        self.end_time = {}  # 用来记录生产区工作的结束时间
         self._initialize_cells()  # 初始化生产区的机器数
+
+        self.state_change()  # 不断判断生产单元的状态并改变
 
     def _initialize_cells(self):
         """初始化生产区及其对应的机器数"""
         for zone, unit_count in zip(self.work_name, self.unit_numbers):
             self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
             self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
+            self.start_time[zone] = [None] * unit_count  #初始时，没有开始时间
+            self.end_time[zone] = [None] * unit_count  #初始时，没有结束时间
             # print(self.work_status[zone])
 
 
@@ -63,6 +71,7 @@ class Arm:
 
     def calculate_reduction(self, initial_time, initial_power, zone_name, machine_count):
         """
+        根据机器臂数量来改变消耗
         参数:
         initial_time (float): 初始运行时间
         initial_power (float):初始运行功率
@@ -159,18 +168,35 @@ class Arm:
             if False in self.work_status[start_zone]:
                 """如果该生产区存在空闲单元"""
                 max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
-                self.work_status[start_zone][max_unit_index] = True#占据了这个生产单元
+                self.work_status[start_zone][max_unit_index] = True  # 占据了这个生产单元
+                self.start_time[start_zone][max_unit_index] = time.time()  # 将开始时间记录下来
                 # print(self.work_status)
                 order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
                 order_total_time += order_total_time_renew + processing_time['sleep_time']
                 order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
+                # 记录任务结束时间
+                self.end_time[start_zone][max_unit_index] = self.start_time[start_zone][max_unit_index] + order_total_time_renew + processing_time['sleep_time']
                 # 2. 计算运输时间
                 if i < len(order) - 1:
                     end_zone = order[i + 1]
                     transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, vga_speed)
                     order_total_time += transport_time  # 加上运输时间
-                # 3. 计算等待时间时间
+                # 3. 只有等待小车的时间
+
+            else:#生产单元全部忙碌
+                """需要获得等待时间再加上工作时间"""
+                print()
+
         return order_total_time, order_total_power
+
+    def state_change(self):
+        """不断地查看状态是否变化"""
+        while True:
+            """对于每个生产单元，如果当前时间为任务结束时间，就改变生产单元状态为False空闲"""
+            for zone in self.machines_count:
+                for i in range(len(self.machines_count[zone])):
+                    if time.time() == self.end_time[zone][i]:
+                        self.work_status[zone][i] = False
 
 
     def object_function(self, sequence):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
