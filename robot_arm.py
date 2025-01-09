@@ -1,6 +1,7 @@
 from Config import *
 from order import *
 import random
+import threading
 import time
 from Util import *
 
@@ -20,6 +21,7 @@ class Arm:
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
         self.end_time = {}  # 用来记录生产区工作的结束时间
+        self.stop_thread = False  # 新增标志来控制线程的停止(判断状态的那个线程)，False代表进行，True代表停止线程
         self._initialize_cells()  # 初始化生产区的机器数
 
         """不能放在这，会无限循环"""
@@ -30,8 +32,8 @@ class Arm:
         for zone, unit_count in zip(self.work_name, self.unit_numbers):
             self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
             self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
-            self.start_time[zone] = [None] * unit_count  # 初始时，没有开始时间
-            self.end_time[zone] = [None] * unit_count  # 初始时，没有结束时间
+            self.start_time[zone] = [0] * unit_count  # 初始时，没有开始时间
+            self.end_time[zone] = [0] * unit_count  # 初始时，没有结束时间
             # print(self.work_status[zone])
 
 
@@ -183,6 +185,12 @@ class Arm:
 
         for i in range(len(order)):
             start_zone = order[i]
+            min_unit_index, min_wait_time = 0, 0
+            if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
+                """需要获得等待时间再加上工作时间"""
+                min_unit_index, min_wait_time = self.find_true_min_time(start_zone)
+                self.work_status[start_zone][min_unit_index] = False
+
             if False in self.work_status[start_zone]:
                 """如果该生产区存在空闲单元"""
                 max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
@@ -199,29 +207,34 @@ class Arm:
                     end_zone = order[i + 1]
                     transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, vga_speed)
                     order_total_time += transport_time  # 加上运输时间
-                # 3. 只有等待小车的时间
-
-            elif False not in self.work_status[start_zone]:  # 生产单元全部忙碌
-                """需要获得等待时间再加上工作时间"""
-                min_unit_index, min_wait_time = self.find_true_min_time(start_zone)
-
+                # 3. 工作区等待时间
+                order_total_time += min_wait_time
+                # 4. 现在回到闲置区等待小车的到来
+                # wait_vga_time
 
         return order_total_time, order_total_power
-
-    def state_change(self):
-        """不断地查看状态是否变化，但是现在回无限循环，需要修改一下"""
-        while True:
-            """对于每个生产单元，如果当前时间为任务结束时间，就改变生产单元状态为False空闲"""
-            for zone in self.machines_count:
-                for i in range(len(self.machines_count[zone])):
-                    if time.time() == self.end_time[zone][i]:
-                        self.work_status[zone][i] = False
+    """线程太难跑了"""
+    # def state_change(self):
+    #     """不断地查看状态是否变化，但是现在回无限循环，需要修改一下"""
+    #     while not self.stop_thread:
+    #         """对于每个生产单元，如果当前时间为任务结束时间，就改变生产单元状态为False空闲"""
+    #         for zone in self.machines_count:
+    #             for i in range(len(self.machines_count[zone])):
+    #                 if time.time() == self.end_time[zone][i]:
+    #                     self.work_status[zone][i] = False
+    #     time.sleep(0.001)  # 每秒检查一次
 
 
     def object_function(self, sequence):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
         self._initialize_cells()
-
+        """感觉直接在这里开线程，因为这个函数对某一个解进行处理，我们对某一个机器臂的解经过订单检测来计算时间和能耗"""
+        # # 重置线程停止标志，以便在下一次运行时重新启动线程
+        # self.stop_thread = False  # 重置标志
+        # # 在这里启动线程来实时更新状态
+        # state_thread = threading.Thread(target=self.state_change)
+        # state_thread.daemon = True  # 设置为守护线程，程序结束时会自动结束
+        # state_thread.start()
         """序列反填充"""
         sequence_idx = 0  # 追踪当前序列中的索引
         # 使用序列填充机器臂数量
@@ -250,6 +263,10 @@ class Arm:
             total_time_order, total_power_order = self.order_time_and_power(order)
             total_time += total_time_order
             total_power += total_power_order
+
+        # # 设置状态判断线程的停止线程的标志
+        # self.stop_thread = True  # 停止线程
+
         return total_time, total_power
         # total_energy, total_time = 0, 0
         # for zone in self.work_name:

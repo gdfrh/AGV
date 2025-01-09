@@ -1,10 +1,6 @@
-from Config import *
 from Map import *
-from robot_arm import *
-from car import *
-from NSGA2 import *
-from order import *
-import copy
+from Config import *
+from schedule import Schedule
 
 
 # 创建初始地图
@@ -12,31 +8,9 @@ import copy
 # map = MapSpace(map_rows, map_cols, map_fill_char, road_width, work_width_up, work_width_down, work_name_up, work_name_down)
 # # 打印车间地图
 # map.display()
-
-# 显示生产单元的机器臂分配
-# 初始化车间对象
-init_arm = Arm(work_name, unit_numbers, total_machines, machine_power, num_orders)
-
-# 随机分配所有机器C
-"""每次初始化解的时候需要对work_state也要初始化"""
-for _ in range(pop_size):
-    init_arm.distribute_machines_randomly()
-    new_list = copy.deepcopy(init_arm.display_machine_count())
-
-    """还没用到这个"""
-    # energy_count, time_count = init_arm.object_function(new_list)
-    #
-    # # 保留两位小数
-    # energy_count = round(energy_count, 2)
-    # time_count = round(time_count, 2)
-    #
-    # energy_counts.append(energy_count)
-    # time_counts.append(time_count)
-    """还没用到上面"""
-
-    machine_counts.append(new_list)  # 列表形式记录机器臂数量
-
-v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
+scheduler = Schedule(work_name, unit_numbers, total_machines, machine_power, num_orders)
+scheduler.arm_random()
+scheduler.arm_loop()
 
 
 # # 初始化车辆分配对象
@@ -47,21 +21,3 @@ v1, v2 = main_loop(pop_size, max_gen, machine_counts, init_arm)
 
 
 
-"""
-我想循环随机分配机器臂，将每次随机分配的结果作为解，function分别得出这种分配求得的能耗和时间，现在的问题是如何表示这个解，用编码？字典？
-我现在调用任务是随机的，是否应该用固定的任务来查看配置的优先级
-如果用编码的方式，那么比较容易进行最开始初始解以及第一代子代的构造，只需要变异（比如交换编码）然后提取到对应的生产单元，重新计算时间和能耗即可
-字典不太好变异
-
-1.7：接下来的问题：
-1.引入时间改变状态，这里需要使用线程的方法解决，小车同理，订单同理
-2.小车的变换与状态改变
-3.循环套循环
-4.现在订单是随机给的，是否需要修改
-5.生产单元固定，是否需要修改
-6.调度问题
-
-
-
-
-"""

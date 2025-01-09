@@ -28,9 +28,9 @@ work_name_order = {  # 用来处理订单对应输出
 """生产区处理时间"""
 # 我想试一试固定处理时间，即订单经过某生产区的停留时间
 processing_time = {
-'run_time' : 0.1,  # 运行时间（秒），
+'run_time' : 0.01,  # 运行时间（秒），
 'run_power' : 33.70,  # 运行功率（瓦特），
-'sleep_time' : 0.02,  # 休眠时间（秒），
+'sleep_time' : 0.002,  # 休眠时间（秒），
 'sleep_power' : 19.1  # 休眠功率（瓦特），
 }
 
@@ -93,13 +93,13 @@ time_counts = []  # 解的时间消耗
 # ------------------------
 # 小车配置
 total_vehicles = 15  # 总车辆数
-vga_speed = 100
+vga_speed = 5000
 
 # ------------------------
 # NSGA2参数
-pop_size = 80
-max_gen = 500
+pop_size = 5
+max_gen = 10
 
 # ------------------------
 # 订单数
-num_orders = 10
+num_orders = 1
