@@ -59,26 +59,29 @@ def crowed_distance_assignment(values1, values2, front):
     return distance
 
 
-def crossover(individual, idx1, idx2):
-    # 确保 idx1 和 idx2 是有效的索引
+def crossover(individual1, individual2, idx):
+    # 确保 individual1 和 individual2 不是同一个解
 
     # 将列表中的数字转换为字符串
-    individual_str = str(individual)#不考虑括号
+    individual1_str = str(individual1)  # 不考虑括号
+    individual2_str = str(individual2)
 
     # 将字符串中的每个字符转换为整数，存入新列表
-    expanded_list = [int(digit) for digit in individual_str]
-
-    if idx1 != idx2:
-        # 交换两个位置的元素
-        expanded_list[idx1], expanded_list[idx2] = expanded_list[idx2], expanded_list[idx1]
+    expanded1_list = [int(digit) for digit in individual1_str]
+    expanded2_list = [int(digit) for digit in individual2_str]
+    """如果选择的2个位置都是0或者是相同的数字，那么交换之后解是不变的，我们可以在之后进行判断"""
+    # 交换两个位置的元素
+    expanded1_list[idx], expanded2_list[idx] = expanded2_list[idx], expanded1_list[idx]
     # 将 expanded_list 中的数字重新组合成一个新的字符串
-    new_str = ''.join(map(str, expanded_list))
+    new_str1 = ''.join(map(str, expanded1_list))
+    new_str2 = ''.join(map(str, expanded2_list))
 
     # 将组合后的字符串转换为一个整数
-    new_individual = int(new_str)
+    new_individual1 = int(new_str1)
+    new_individual2 = int(new_str2)
 
-    # 返回重新组合后的结果,是一个列表
-    return new_individual
+    # 返回重新组合后的结果,是一个数字
+    return new_individual1, new_individual2
 
 def mutate(individual):
     # 将列表中的数字转换为字符串
@@ -89,9 +92,10 @@ def mutate(individual):
     # 随机的找到变异的元素的索引
     idx = random.randint(0, len(expanded_list)-1)
     # 读出这个单元分配的机器臂数量，并且任意的减少此数量，不超过总数
-    n = random.randint(0,expanded_list[idx]-1)
-
-    expanded_list[idx] -= n
+    """还没考虑加，可以先sum来判断是否满足约束，如果等于总数，变异只考虑减法，如果小于总数概率考虑加减"""
+    if expanded_list[idx] >= 1:
+        n = random.randint(0, expanded_list[idx]-1)
+        expanded_list[idx] -= n
     # 将 expanded_list 中的数字重新组合成一个新的字符串
     new_str = ''.join(map(str, expanded_list))
 
@@ -109,18 +113,58 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
     while gen_no < max_gen:
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
-        while len(population_R) != 2 * pop_size:
-            x = random.randint(0, pop_size - 1)
-            y = random.randint(1, len(str(population_P[x]))-2)
-            idx1 = random.randint(0, y)
-            idx2 = random.randint(y+1, len(str(population_P[x]))-1)
-            new_member = crossover(population_P[x], idx1, idx2)
-            # 变异操作
-            if random.random() < 0.1:  # 假设变异概率为10%
-                new_member = mutate(new_member)  # 对新个体进行变异
-            if new_member not in population_R:
-                population_R.append(new_member)
+        # while len(population_R) != 2 * pop_size:
+        #     x = random.randint(0, pop_size - 1)
+        #     y = random.randint(1, len(str(population_P[x]))-2)
+        #     idx1 = random.randint(0, y)
+        #     idx2 = random.randint(y+1, len(str(population_P[x]))-1)
+        #     new_member = crossover(population_P[x], idx1, idx2)
+        #     # 变异操作
+        #     if random.random() < 0.1:  # 假设变异概率为10%
+        #         new_member = mutate(new_member)  # 对新个体进行变异
+        #     if new_member not in population_R:
+        #         population_R.append(new_member)
         # 对R(t)计算非支配前沿
+        # 计算每个解的目标函数值
+        objective1 = []
+        objective2 = []
+        for i in range(len(population_R)):
+            total_energy, total_time = init_arm.object_function(population_R[i])
+            objective1.append(total_energy)  # 将 total_energy 添加到 objective1
+            objective2.append(total_time)  # 将 total_time 添加到 objective2
+
+        # 非支配排序，得到不同前沿
+        fronts = fast_non_dominated_sort(objective1, objective2)
+
+        # 获取非第一前沿的解，进行交叉和变异
+        non_front_1 = []  # 非第一前沿的解的索引
+        for level in range(1, len(fronts)):  # 从第二前沿开始
+            for s in fronts[level]:
+                non_front_1.append(s)
+
+        # 每一次迭代之后解数量不足2 * pop_size
+        while len(population_R) != 2 * pop_size:
+            # 对非第一前沿的解进行交叉和变异
+            # for s in non_front_1:
+            # 随机选择2个不同的非第一前沿的个体进行交叉
+            x = random.choice(non_front_1)
+            y = random.choice(non_front_1)
+            if x != y:
+                # 再找到交叉的位置
+                idx = random.randint(0, len(str(population_R[x])) - 1)
+                new_member1, new_member2 = crossover(population_R[x], population_R[y], idx)
+
+                # 变异操作
+                if random.random() < 0.1:  # 假设变异概率为10%
+                    new_member1 = mutate(new_member1)  # 对新个体进行变异
+                    new_member2 = mutate(new_member2)
+
+                """如果选择的2个位置都是0或者是相同的数字，那么交换之后解是不变的,如果解存在了，就不考虑它"""
+                if new_member1 not in population_R:
+                    population_R.append(new_member1)
+                if new_member2 not in population_R:
+                    population_R.append(new_member2)
+
         objective1 = []
         objective2 = []
         for i in range(2 * pop_size):

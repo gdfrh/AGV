@@ -120,9 +120,11 @@
 # scheduler.process_orders()
 # a=[0, 6, 2, 1, 5, 4, 3]
 # print(len(a))
-import time
-a=time.time()
-
-time.sleep(2)
-b=time.time()
-print(a,b)
+# import time
+# a=time.time()
+#
+# time.sleep(2)
+# b=time.time()
+# print(a,b)
+a=[123,123]
+print(len(str(a[0])))

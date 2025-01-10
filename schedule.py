@@ -10,13 +10,38 @@ from car import Car
 
 
 class Schedule:
-    def __init__(self, work_name, unit_numbers, total_machines, machine_power, num_orders):
+    def __init__(self, work_name, total_machines, machine_power, num_orders, zone_requirements):
         """初始化调度类"""
-        self.arm = Arm(work_name, unit_numbers, total_machines, machine_power, num_orders)  # 创建 Arm 类实例
-        self.car = Car(work_name, unit_numbers, total_machines)  # 创建 Car 类实例
+        self.unit_numbers = self.get_max_units(zone_requirements, total_machines)  # 获取最多生产单元数量
+        self.arm = Arm(work_name, self.unit_numbers, total_machines, machine_power, num_orders)  # 创建 Arm 类实例
+        self.car = Car(work_name, self.unit_numbers, total_machines)  # 创建 Car 类实例
         self.orders = self.arm.orders  # 获取从 OrderManager 获取到的订单
+        print(self.unit_numbers)
 
-    #initialize
+    def get_max_units(self, zone_requirements, total_machines):
+        # 初始化每个生产区的生产单元数和剩余机器臂
+        production_units = {}
+        remaining_machines = total_machines
+
+        # 第一轮给每个生产区分配一个生产单元
+        for zone, min_machines in zone_requirements:
+            # 消耗掉每个生产区的初始机器臂
+            production_units[zone] = 1
+            remaining_machines -= min_machines
+
+        # 然后根据剩余的机器臂来计算每个生产区最多能有多少个生产单元
+        for zone, min_machines in zone_requirements:
+            if remaining_machines >= min_machines:
+                # 对于剩余的机器臂，计算最多能分配的生产单元数
+                max_additional_units = remaining_machines // min_machines
+                production_units[zone] += max_additional_units
+
+        # 将每个生产区的最多生产单元的数量按照顺序存储到列表中
+        # 如果你希望按生产区名称的顺序排列
+        max_units_list = [production_units[zone] for zone, _ in zone_requirements]
+
+        return max_units_list
+
     def arm_random(self):
         # 随机分配所有机器臂，形成一组机器臂的初始解
         for _ in range(pop_size):

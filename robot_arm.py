@@ -24,8 +24,6 @@ class Arm:
         self.stop_thread = False  # 新增标志来控制线程的停止(判断状态的那个线程)，False代表进行，True代表停止线程
         self._initialize_cells()  # 初始化生产区的机器数
 
-        """不能放在这，会无限循环"""
-        # self.state_change()  # 不断判断生产单元的状态并改变
 
     def _initialize_cells(self):
         """初始化生产区及其对应的机器数"""
@@ -36,27 +34,41 @@ class Arm:
             self.end_time[zone] = [0] * unit_count  # 初始时，没有结束时间
             # print(self.work_status[zone])
 
-
     def distribute_machines_randomly(self):
-        """每次初始化解的时候需要对work_state也要初始化"""
+        # 先初始化机器臂的数量
         self._initialize_cells()
         """随机将机器分配到生产单元，并显示每个生产区分配的机器数量"""
         available_units = []  # 存储所有生产单元的可用位置（生产区 + 单元索引）
-
-        # 1. 首先为每个生产单元分配一个机器
-        for zone in self.machines_count:
-            for i in range(len(self.machines_count[zone])):
-                self.machines_count[zone][i] = 1  # 每个单元至少分配1台机器
-                available_units.append((zone, i))  # 存储可用单元
-
-        # 剩余机器数量
-        remaining_machines = self.total_machines - sum([sum(self.machines_count[zone]) for zone in self.machines_count])
-
-        # 2. 随机分配剩余的机器
+        # 1. 根据需求给每个生产区分配机器
+        remaining_machines = self.total_machines  # 总机器数量
+        for zone, min_machines in zone_requirements:  # zone_requirements 中保存每个生产区需要的最小机器数量
+            # 获取该生产区的单元数
+            units = len(self.machines_count[zone])
+            obj_units = random.randint(0, units - 1)
+            # 先给每个生产单元分配最低机器臂数量
+            self.machines_count[zone][obj_units] = min_machines
+            remaining_machines -= min_machines
+        # 2. 随机分配机器
         while remaining_machines > 0:
-            zone, unit_index = random.choice(available_units)  # 随机选择一个单元
-            self.machines_count[zone][unit_index] += 1  # 为该单元分配一台机器
-            remaining_machines -= 1  # 剩余机器数减少1
+            zone = random.choice(self.work_name)  # 随机选择一个生产区
+            unit_index = random.randint(0, len(self.machines_count[zone]) - 1)  # 随机选择一个生产单元
+            # 分配每个生产区需要的机器数，而不是逐个机器分配
+            """如果机器臂数量为0，则分配最低要求数"""
+            if self.machines_count[zone][unit_index] == 0:
+                min_required_machines = zone_requirements[self.work_name.index(zone)][1]  # 获取该生产区的最小机器需求
+                if remaining_machines >= min_required_machines:
+                    self.machines_count[zone][unit_index] = min_required_machines
+                    remaining_machines -= min_required_machines
+                """如果已分配机器臂，就多分配1个"""
+            elif self.machines_count[zone][unit_index] != 0:
+                self.machines_count[zone][unit_index] += 1
+                remaining_machines -= 1
+
+
+        # 3. 对每个生产区的生产单元按机器数量从大到小排序
+        # for zone in self.machines_count:
+        #     # 排序每个生产区的单元，按机器数量从大到小
+        #     self.machines_count[zone] = sorted(self.machines_count[zone], reverse=True)
 
     def display_machine_count(self):
         """返回每个生产区中各单元的机器数，并存储到列表中"""
@@ -165,7 +177,7 @@ class Arm:
                     min_wait_time = self.end_time[zone][i] - time.time()
                     min_unit_index = i
 
-        # 返回机器臂最多的生产单元及其机器臂数量
+        # 返回等待时间最短的生产单元索引及其等待时间
         if min_unit_index != -1:
             return min_unit_index, min_wait_time
         else:
@@ -182,17 +194,24 @@ class Arm:
         #     """这里我们先找到最多机器臂的生产单元和机器臂数量，再根据数量对时间和功率的影响修改时间和功率"""
         #     max_machines.append(max(units))  # 找到最大的机器臂数量
         #     #max_index = units.index(max_machines)  # 找到最大值的索引
+        """遍历所有生产区和单元，将机器臂数量为 0 的生产单元的状态改为忙碌，避免出现选择0个机器臂的生产单元进行操作"""
+        for zone in self.machines_count:
+            for i in range(len(self.machines_count[zone])):
+                if self.machines_count[zone][i] == 0:  # 如果该生产单元的机器臂数量为 0
+                    self.work_status[zone][i] = True  # 将该生产单元状态设为忙碌
+                    self.end_time[zone][i] = float('inf')  # 设置一个很大的结束时间，确保不会被选中
 
         for i in range(len(order)):
             start_zone = order[i]
             min_unit_index, min_wait_time = 0, 0
+
             if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
                 """需要获得等待时间再加上工作时间"""
                 min_unit_index, min_wait_time = self.find_true_min_time(start_zone)
                 self.work_status[start_zone][min_unit_index] = False
 
             if False in self.work_status[start_zone]:
-                """如果该生产区存在空闲单元"""
+                """如果该生产区存在空闲单元,暂时寻找最大机器臂数量的生产单元"""
                 max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
                 self.work_status[start_zone][max_unit_index] = True  # 占据了这个生产单元
                 self.start_time[start_zone][max_unit_index] = time.time()  # 将开始时间记录下来
