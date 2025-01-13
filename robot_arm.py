@@ -16,7 +16,7 @@ class Arm:
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
         self.order_manager = OrderManager(work_name, num_orders)
         self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
-        # print(self.orders)
+        #print(self.orders)
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
@@ -49,6 +49,7 @@ class Arm:
             self.machines_count[zone][obj_units] = min_machines
             remaining_machines -= min_machines
         # 2. 随机分配机器
+        """如果我按最低部署，那么感觉很难找到种群，那我直接都可以按1个机器臂部署，变异再按最小数量？"""
         while remaining_machines > 0:
             zone = random.choice(self.work_name)  # 随机选择一个生产区
             unit_index = random.randint(0, len(self.machines_count[zone]) - 1)  # 随机选择一个生产单元
@@ -64,8 +65,7 @@ class Arm:
                 self.machines_count[zone][unit_index] += 1
                 remaining_machines -= 1
 
-
-        # 3. 对每个生产区的生产单元按机器数量从大到小排序
+        # # 3. 对每个生产区的生产单元按机器数量从大到小排序
         # for zone in self.machines_count:
         #     # 排序每个生产区的单元，按机器数量从大到小
         #     self.machines_count[zone] = sorted(self.machines_count[zone], reverse=True)
@@ -76,12 +76,15 @@ class Arm:
         for zone, units in self.machines_count.items():
             # 将每个生产区的机器数存储到字典中
             machine_count_list += units  # 每个单元的机器数
-            # print(
-            #     f"{zone}: {', '.join([str(unit) for unit in units])} 台机器")
+        # print(machine_count_list)
         merged_str = ''.join(map(str, machine_count_list))
         # 将连接后的字符串转换为整数
         merged_number = int(merged_str)
-        machine_count_list_renew = merged_number
+        """前导0的问题，不足位数补0"""
+        # 先计算总单元数
+        total_units = sum(self.unit_numbers)
+        machine_count_list_renew = f"{merged_number:0{total_units}d}"
+        # machine_count_list_renew = merged_number
         return machine_count_list_renew
 
     def calculate_reduction(self, initial_time, initial_power, zone_name, machine_count):

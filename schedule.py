@@ -16,7 +16,6 @@ class Schedule:
         self.arm = Arm(work_name, self.unit_numbers, total_machines, machine_power, num_orders)  # 创建 Arm 类实例
         self.car = Car(work_name, self.unit_numbers, total_machines)  # 创建 Car 类实例
         self.orders = self.arm.orders  # 获取从 OrderManager 获取到的订单
-        print(self.unit_numbers)
 
     def get_max_units(self, zone_requirements, total_machines):
         # 初始化每个生产区的生产单元数和剩余机器臂

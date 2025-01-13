@@ -59,7 +59,7 @@ def crowed_distance_assignment(values1, values2, front):
     return distance
 
 
-def crossover(individual1, individual2, idx):
+def crossover(individual1, individual2, idx, total_units):
     # 确保 individual1 和 individual2 不是同一个解
 
     # 将列表中的数字转换为字符串
@@ -77,22 +77,26 @@ def crossover(individual1, individual2, idx):
     new_str2 = ''.join(map(str, expanded2_list))
 
     # 将组合后的字符串转换为一个整数
+    """前导0？如果从大到小排序，对应交换，第一个就不会是零,否则规定一下位数"""
     new_individual1 = int(new_str1)
     new_individual2 = int(new_str2)
+    new_individual1 = f"{new_individual1:0{total_units}d}"
+    new_individual2 = f"{new_individual2:0{total_units}d}"
 
     # 返回重新组合后的结果,是一个数字
     return new_individual1, new_individual2
 
-def mutate(individual):
+def mutate(individual, total_units):
     # 将列表中的数字转换为字符串
     individual_str = str(individual)  # 不考虑括号
 
     # 将字符串中的每个字符转换为整数，存入新列表
     expanded_list = [int(digit) for digit in individual_str]
-    # 随机的找到变异的元素的索引
+    # 随机找到变异的元素的索引
     idx = random.randint(0, len(expanded_list)-1)
-    # 读出这个单元分配的机器臂数量，并且任意的减少此数量，不超过总数
-    """还没考虑加，可以先sum来判断是否满足约束，如果等于总数，变异只考虑减法，如果小于总数概率考虑加减"""
+    # 读出这个单元分配的机器臂数量，并且任意减少此数量，不超过总数
+    """还没考虑加，可以先sum来判断是否满足约束，如果等于总数，变异只考虑减法，如果小于总数概率考虑加减
+    我考虑的是，若剩余机器臂小于最小所需，就随机改变已有生产单元机器臂，大于就增加生产单元并拥有最小机器臂数"""
     if expanded_list[idx] >= 1:
         n = random.randint(0, expanded_list[idx]-1)
         expanded_list[idx] -= n
@@ -101,16 +105,30 @@ def mutate(individual):
 
     # 将组合后的字符串转换为一个整数
     new_individual = int(new_str)
+    new_individual = f"{new_individual:0{total_units}d}"
 
     # 返回重新组合后的结果,是一个列表
     return new_individual
 
+def anti_mapping(init_arm,sequence):
+    """反映射:将序列填充到machines_count内部"""
+    sequence_idx = 0  # 追踪当前序列中的索引
+    # 使用序列填充机器臂数量
+    for zone in init_arm.machines_count:
+        for i in range(len(init_arm.machines_count[zone])):
+            if sequence_idx < len(list(str(sequence))):
+                # 将 sequence 中的数字逐个赋值到生产区的机器臂数量
+                # 把每个元素转换为字符串，然后逐个字符赋值
+                machines = list(str(sequence))  # 将数字转为字符串
+                init_arm.machines_count[zone][i] = int(machines[sequence_idx])  # 给当前生产单元赋值机器数量
+                sequence_idx += 1
+    return init_arm.machines_count
 
 # NSGA2主循环
 def main_loop(pop_size, max_gen, init_population,init_arm):
     gen_no = 0
     population_P = init_population.copy()
-    while gen_no < max_gen:
+    while gen_no <= max_gen:
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         # while len(population_R) != 2 * pop_size:
@@ -135,35 +153,65 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
 
         # 非支配排序，得到不同前沿
         fronts = fast_non_dominated_sort(objective1, objective2)
-
+        """如果全是第一前沿呢？加判断条件"""
         # 获取非第一前沿的解，进行交叉和变异
         non_front_1 = []  # 非第一前沿的解的索引
         for level in range(1, len(fronts)):  # 从第二前沿开始
             for s in fronts[level]:
                 non_front_1.append(s)
-
+        front_1 = []  # 第一前沿的解的索引
+        for s in fronts[0]:  # 从第一前沿开始
+                front_1.append(s)
+        if non_front_1:
+            """non_front_1不为空，则使用它"""
+            use_list = non_front_1
+        else:
+            """non_front_1为空，则使用第一前沿解"""
+            use_list = front_1
         # 每一次迭代之后解数量不足2 * pop_size
-        while len(population_R) != 2 * pop_size:
-            # 对非第一前沿的解进行交叉和变异
-            # for s in non_front_1:
+        while len(population_R) < 2 * pop_size:
+            machine_counts1 = {}
+            machine_counts2 = {}
+            # 标志，若生产单元为0，则为True，反之为False
+            is_zero1 = False
+            is_zero2 = False
             # 随机选择2个不同的非第一前沿的个体进行交叉
-            x = random.choice(non_front_1)
-            y = random.choice(non_front_1)
+            x = random.choice(use_list)
+            y = random.choice(use_list)
             if x != y:
                 # 再找到交叉的位置
                 idx = random.randint(0, len(str(population_R[x])) - 1)
-                new_member1, new_member2 = crossover(population_R[x], population_R[y], idx)
+                """如果变异改变生产单元数，这里是否考虑修改？"""
+                new_member1, new_member2 = crossover(population_R[x], population_R[y], idx, sum(init_arm.unit_numbers))
 
                 # 变异操作
-                if random.random() < 0.1:  # 假设变异概率为10%
-                    new_member1 = mutate(new_member1)  # 对新个体进行变异
-                    new_member2 = mutate(new_member2)
+                if random.random() < 0.2:  # 假设变异概率为20%
+                    new_member1 = mutate(new_member1, sum(init_arm.unit_numbers))  # 对新个体进行变异
+                    new_member2 = mutate(new_member2, sum(init_arm.unit_numbers))
 
                 """如果选择的2个位置都是0或者是相同的数字，那么交换之后解是不变的,如果解存在了，就不考虑它"""
-                if new_member1 not in population_R:
-                    population_R.append(new_member1)
-                if new_member2 not in population_R:
-                    population_R.append(new_member2)
+                """首先得判断不能让某个生产区没有生产单元,我们可以使用反映射，来判断"""
+
+                """反映射"""
+                machine_counts1 = anti_mapping(init_arm, new_member1)
+                # 遍历每个生产区，检查该生产区的机器数量是否全为0
+                for zone, machines in machine_counts1.items():
+                    if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
+                        is_zero1 = True
+
+                machine_counts2 = anti_mapping(init_arm, new_member2)
+                # 遍历每个生产区，检查该生产区的机器数量是否全为0
+                for zone, machines in machine_counts2.items():
+                    if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
+                        is_zero2 = True
+
+                if not is_zero1:
+                    if new_member1 not in population_R:
+                        population_R.append(new_member1)
+
+                if not is_zero2:
+                    if new_member2 not in population_R:
+                        population_R.append(new_member2)
 
         objective1 = []
         objective2 = []
@@ -191,7 +239,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 population_P_next.append(population_R[sort_solution[i]])
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
-        if gen_no % 10 == 0:
+        if gen_no % 2 == 0:
             best_obj1 = []
             best_obj2 = []
             for i in range(pop_size):
