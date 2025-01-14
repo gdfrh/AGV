@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from Config import *
 from robot_arm import Arm
 import copy
+import bisect
 
 
 # 快速非支配排序
@@ -93,7 +94,7 @@ def crossover(individual1, individual2, idx, unit_number1, unit_number2):
     return new_individual1, new_individual2
 
 
-def mutate(individual, init_arm, unit_state):
+def mutate(individual, init_arm, unit_state, agv_count):
     # 将列表中的数字转换为字符串
     individual_str = str(individual)  # 不考虑括号
 
@@ -146,8 +147,43 @@ def mutate(individual, init_arm, unit_state):
     new_individual = int(new_str)
     new_individual = f"{new_individual:0{total_units}d}"
 
+    """对小车进行变异"""
+    # 先随机选择一个生产区
+    object_zone_agv = random.choice(work_name)
+    # 找到对应的生产区的索引
+    zone_index_agv = work_name.index(object_zone)
+    # 先记录一下选到的小车的数量
+    target_agv_count = agv_count[zone_index_agv]
+    # 从小到大排序所有的生产区的小车数量
+    sorted_list = sorted(agv_count)
+    # 找到可以变化的范围
+    # 找到比 target 小的最大值
+    pos = bisect.bisect_left(sorted_list, target_agv_count)
+    if pos > 0:
+        smaller_value = sorted_list[pos - 1]
+    else:
+        smaller_value = None  # 如果 target 是最小值，则没有比它小的值
+
+    # 找到比 target 大的最小值
+    pos = bisect.bisect_right(sorted_list, target_agv_count)
+    if pos < len(sorted_list):
+        larger_value = sorted_list[pos]
+    else:
+        larger_value = None  # 如果 target 是最大值，则没有比它大的值
+    """如果最大值最小值都存在"""
+    if smaller_value is not None and larger_value is not None:
+        new_agv_count = random.randint(smaller_value, larger_value)
+    elif smaller_value is not None and larger_value is None:
+        new_agv_count = random.randint(smaller_value, target_agv_count + 1)
+    elif smaller_value is None and larger_value is not None:
+        new_agv_count = random.randint(max(target_agv_count - 1, 1), larger_value)
+    elif smaller_value is None and larger_value is None:
+        new_agv_count = target_agv_count
+        """小车小车数量不能为0，所以这样可以保证没有0个小车的情况"""
+    agv_count[zone_index_agv] = new_agv_count
+
     # 返回重新组合后的结果,是一个列表,以及分布状态
-    return new_individual, new_state
+    return new_individual, new_state, agv_count
 
 
 def anti_mapping(sequence, unit_state):
@@ -234,12 +270,11 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 """对小车的变异还没做（未完成）"""
                 # 变异操作
                 if random.random() < 0.2:  # 假设变异概率为20%
-                    new_member1, new_state1 = mutate(new_member1, init_arm, init_arm.unit_states[x])  # 对新个体进行变异
-                    new_member2, new_state2 = mutate(new_member2, init_arm, init_arm.unit_states[y])
+                    new_member1, new_state1,new_agv_count1= mutate(new_member1, init_arm, init_arm.unit_states[x], init_arm.agv_count[x])  # 对新个体进行变异
+                    new_member2, new_state2,new_agv_count2= mutate(new_member2, init_arm, init_arm.unit_states[y], init_arm.agv_count[y])
 
                 """首先得判断不能让某个生产区没有生产单元,我们可以使用反映射，来判断"""
                 """反映射，如果生产单元个数发生了变化如何判断,我直接新设了一个字典来判断，不影响machines_count"""
-                """小车也需要这样的判断（未完成）"""
                 machine_counts1 = anti_mapping(new_member1, new_state1)
                 # 遍历每个生产区，检查该生产区的机器数量是否全为0
                 for zone, machines in machine_counts1.items():
@@ -248,6 +283,9 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                         is_zero1 = True
                     if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
                         is_zero1 = True
+                # 对小车:数量不能超出约束
+                if sum(new_agv_count1) > total_agv:
+                    is_zero1 = True
 
                 machine_counts2 = anti_mapping(new_member2, new_state2)
                 # 遍历每个生产区，检查该生产区的机器数量是否全为0
@@ -257,17 +295,24 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                         is_zero1 = True
                     if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
                         is_zero2 = True
+
+                # 对小车:数量不能超出约束
+                if sum(new_agv_count2) > total_agv:
+                    is_zero2 = True
+
                 """不能有某个生产区机器臂为0，并且不能超过机器臂总数"""
                 if not is_zero1:
                     """如果解存在了，就不考虑它"""
                     if new_member1 not in population_R:
                         population_R.append(new_member1)
                         init_arm.unit_states.append(new_state1)
+                        init_arm.agv_count.append(new_agv_count1)
 
                 if not is_zero2:
                     if new_member2 not in population_R:
                         population_R.append(new_member2)
                         init_arm.unit_states.append(new_state2)
+                        init_arm.agv_count.append(new_agv_count2)
 
         objective1 = []
         objective2 = []

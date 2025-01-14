@@ -126,6 +126,18 @@
 # time.sleep(2)
 # b=time.time()
 # print(a,b)
-a='200202000000022000000030000040200020000010000000000100000030'
-c=len(a)
-print(c)
+import bisect
+sorted_list = [1,2,3,5,5,5,7,8,9,10]
+target_agv_count = 5
+pos = bisect.bisect_left(sorted_list, target_agv_count)
+if pos > 0:
+    smaller_value = sorted_list[pos - 1]
+else:
+    smaller_value = None  # 如果 target 是最小值，则没有比它小的值
+
+pos = bisect.bisect_right(sorted_list, target_agv_count)
+if pos < len(sorted_list):
+    larger_value = sorted_list[pos]
+else:
+    larger_value = None  # 如果 target 是最大值，则没有比它大的值
+print(smaller_value, larger_value)
