@@ -10,7 +10,8 @@ class Arm:
     def __init__(self, work_name, unit_numbers, total_machines, machine_power,num_orders):
         # 初始化生产区名称和单元数
         self.work_name = work_name
-        self.unit_numbers = unit_numbers
+        self.unit_numbers = unit_numbers  # 初始的生产单元个数
+        self.unit_states = []  # 后续每个序列的生产单元个数
         self.total_machines = total_machines  # 总机器数量
         self.machine_power = machine_power  # 每台机器的功率
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
@@ -49,7 +50,7 @@ class Arm:
             self.machines_count[zone][obj_units] = min_machines
             remaining_machines -= min_machines
         # 2. 随机分配机器
-        """如果我按最低部署，那么感觉很难找到种群，那我直接都可以按1个机器臂部署，变异再按最小数量？"""
+        """如果我按最低部署，那么感觉很难找到种群，那我直接都可以按1个机器臂部署，变异再按最小数量？（未改）"""
         while remaining_machines > 0:
             zone = random.choice(self.work_name)  # 随机选择一个生产区
             unit_index = random.randint(0, len(self.machines_count[zone]) - 1)  # 随机选择一个生产单元
@@ -247,9 +248,13 @@ class Arm:
     #     time.sleep(0.001)  # 每秒检查一次
 
 
-    def object_function(self, sequence):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+    def object_function(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
-        self._initialize_cells()
+        for zone, unit_count in zip(self.work_name, self.unit_states[idx]):
+            self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
+            self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
+            self.start_time[zone] = [0] * unit_count  # 初始时，没有开始时间
+            self.end_time[zone] = [0] * unit_count  # 初始时，没有结束时间
         """感觉直接在这里开线程，因为这个函数对某一个解进行处理，我们对某一个机器臂的解经过订单检测来计算时间和能耗"""
         # # 重置线程停止标志，以便在下一次运行时重新启动线程
         # self.stop_thread = False  # 重置标志

@@ -43,8 +43,11 @@ class Schedule:
 
     def arm_random(self):
         # 随机分配所有机器臂，形成一组机器臂的初始解
-        for _ in range(pop_size):
+
+        while len(machine_counts) < pop_size:
             self.arm.distribute_machines_randomly()
+            """添加初始分布状态"""
+            self.arm.unit_states.append(self.unit_numbers)
             new_list = copy.deepcopy(self.arm.display_machine_count())
 
             """还没用到这个"""
@@ -57,8 +60,8 @@ class Schedule:
             # energy_counts.append(energy_count)
             # time_counts.append(time_count)
             """还没用到上面"""
-
-            machine_counts.append(new_list)  # 列表形式记录机器臂数量
+            if new_list not in machine_counts:
+                machine_counts.append(new_list)  # 列表形式记录机器臂数量
     def arm_loop(self):
         """实现机器臂的 NSGA-II算法来优化机器臂数量"""
         v1, v2 = main_loop(pop_size, max_gen, machine_counts, self.arm)
