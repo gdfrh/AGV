@@ -129,14 +129,14 @@ def mutate(individual, init_arm, unit_state):
         expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
         """对应拷贝分布状态减一，避免影响之前的状态"""
         new_state[zone_index] -= 1
-        # init_arm.unit_states.append()
+
     elif total_machines - sum_of_digits >= required_machines:
         """机器臂可以新增一个生产单元，随机选择一个生产区，增加1个生产单元"""
         zone_units.append(required_machines)
         expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
         """对应拷贝分布状态加一，避免影响之前的状态"""
         new_state[zone_index] += 1
-        # init_arm.unit_states.append()
+
 
     # 将 expanded_list 中的数字重新组合成一个新的字符串
     new_str = ''.join(map(str, expanded_list))
@@ -216,27 +216,30 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             x = random.choice(use_list)
             y = random.choice(use_list)
             if x != y:
-                # #先读出生产单元的分布状态
-                # state1 = init_arm.unit_states[x]
-                # state2 = init_arm.unit_states[y]
+
                 # 再找到交叉的位置
                 """这里选择需要判断一下，选取最短的序列的任意一位"""
                 idx = random.randint(0, min(len(str(population_R[x])) - 1, len(str(population_R[y])) - 1))
                 """如果变异改变生产单元数，这里修改为判断unit_states,但是有个问题，对应交换是否达不到预期，因为序列长度不同？（未解决）"""
                 new_member1, new_member2 = crossover(population_R[x], population_R[y], idx,
                                                      sum(init_arm.unit_states[x]), sum(init_arm.unit_states[y]))
-                """下一个可能的分布状态"""
+                """下一个可能的生产单元分布状态"""
                 new_state1 = init_arm.unit_states[x]
                 new_state2 = init_arm.unit_states[y]
+
+                """下一个可能的小车分布数量"""
+                new_agv_count1 = init_arm.agv_count[x]
+                new_agv_count2 = init_arm.agv_count[y]
+
+                """对小车的变异还没做（未完成）"""
                 # 变异操作
                 if random.random() < 0.2:  # 假设变异概率为20%
                     new_member1, new_state1 = mutate(new_member1, init_arm, init_arm.unit_states[x])  # 对新个体进行变异
                     new_member2, new_state2 = mutate(new_member2, init_arm, init_arm.unit_states[y])
 
-                """如果选择的2个位置都是0或者是相同的数字，那么交换之后解是不变的,如果解存在了，就不考虑它"""
                 """首先得判断不能让某个生产区没有生产单元,我们可以使用反映射，来判断"""
-
                 """反映射，如果生产单元个数发生了变化如何判断,我直接新设了一个字典来判断，不影响machines_count"""
+                """小车也需要这样的判断（未完成）"""
                 machine_counts1 = anti_mapping(new_member1, new_state1)
                 # 遍历每个生产区，检查该生产区的机器数量是否全为0
                 for zone, machines in machine_counts1.items():
@@ -256,6 +259,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                         is_zero2 = True
                 """不能有某个生产区机器臂为0，并且不能超过机器臂总数"""
                 if not is_zero1:
+                    """如果解存在了，就不考虑它"""
                     if new_member1 not in population_R:
                         population_R.append(new_member1)
                         init_arm.unit_states.append(new_state1)
@@ -282,11 +286,13 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         choose_solution = []
         # 存储新一代的分布状态
         new_state = []
+        new_agv_count = []
         level = 0
         while len(population_P_next) + len(fronts[level]) <= pop_size:
             for s in fronts[level]:
                 choose_solution.append(s)
                 new_state.append(init_arm.unit_states[s])
+                new_agv_count.append(init_arm.agv_count[s])
                 population_P_next.append(population_R[s])
             level += 1
         if len(population_P_next) != pop_size:
@@ -295,11 +301,13 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             for i in range(pop_size - len(population_P_next)):
                 choose_solution.append(sort_solution[i])
                 new_state.append(init_arm.unit_states[sort_solution[i]])
+                new_agv_count.append(init_arm.agv_count[sort_solution[i]])
                 population_P_next.append(population_R[sort_solution[i]])
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
         """新一代分布状态"""
         init_arm.unit_states = new_state.copy()
+        init_arm.agv_count = new_agv_count.copy()
         if gen_no % 10 == 0:
             best_obj1 = []
             best_obj2 = []

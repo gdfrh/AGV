@@ -99,8 +99,6 @@ class Arm:
             car_count_for_zone = round(proportion * total_agv)  # 根据比例计算，并取整
             agv_distribute.append(car_count_for_zone)
         self.agv_count.append(agv_distribute)
-        print(self.agv_count)
-
 
         # # 3. 对每个生产区的生产单元按机器数量从大到小排序
         # for zone in self.machines_count:
