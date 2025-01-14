@@ -22,7 +22,13 @@ class Arm:
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
         self.end_time = {}  # 用来记录生产区工作的结束时间
-        self.stop_thread = False  # 新增标志来控制线程的停止(判断状态的那个线程)，False代表进行，True代表停止线程
+        # ------------------------
+        """小车"""
+        self.agv_count = []  # 创建列表来存储每个生产区的小车数
+        self.agv_states = {}  # 用来判断生产区的小车是否在工作
+        self.agv_start_time = {}  # 用来记录生产区小车工作的开始时间
+        self.agv_end_time = {}  # 用来记录生产区小车工作的结束时间
+        # ------------------------
         self._initialize_cells()  # 初始化生产区的机器数
 
 
@@ -33,7 +39,18 @@ class Arm:
             self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
             self.start_time[zone] = [0] * unit_count  # 初始时，没有开始时间
             self.end_time[zone] = [0] * unit_count  # 初始时，没有结束时间
-            # print(self.work_status[zone])
+            self.agv_states[zone] = [False]  # 初始时，生产区的小车是空闲的
+
+    def count_nonzero_machines(self):
+        """统计每个生产区中机器臂不为0的生产单元数量"""
+        non_zero_machines_count = {}  # 用来存储每个生产区的非零机器臂数量
+
+        for zone in self.machines_count:
+            # 统计当前生产区中机器臂不为0的生产单元数量
+            non_zero_count = sum(1 for machine in self.machines_count[zone] if machine != 0)
+            non_zero_machines_count[zone] = non_zero_count
+
+        return non_zero_machines_count
 
     def distribute_machines_randomly(self):
         # 先初始化机器臂的数量
@@ -65,6 +82,25 @@ class Arm:
             elif self.machines_count[zone][unit_index] != 0:
                 self.machines_count[zone][unit_index] += 1
                 remaining_machines -= 1
+
+
+        """根据生产区机器臂分配比例来分配小车数量"""
+        # 1. 计算每个生产区机器臂不为零的生产单元数量
+        non_zero_machines_count = self.count_nonzero_machines()
+
+        # 2. 计算所有生产区机器臂不为零的生产单元总和
+        total_non_zero = sum(non_zero_machines_count.values())
+
+        # 3. 根据比例来分配小车数量
+        agv_distribute = []
+        for zone, non_zero_count in non_zero_machines_count.items():
+            # 计算该生产区应该分配的小车数量
+            proportion = non_zero_count / total_non_zero
+            car_count_for_zone = round(proportion * total_agv)  # 根据比例计算，并取整
+            agv_distribute.append(car_count_for_zone)
+        self.agv_count.append(agv_distribute)
+        print(self.agv_count)
+
 
         # # 3. 对每个生产区的生产单元按机器数量从大到小排序
         # for zone in self.machines_count:
@@ -187,6 +223,33 @@ class Arm:
         else:
             return None  # 如果没有空闲单元
 
+    def find_true_min_time_agv(self, zone):
+        """找出某个生产区中状态为 True 所需等待时间最短的小车"""
+        min_wait_time = float('inf')
+        min_unit_index = -1  # 记录等待时间最短的生产单元的索引
+
+        for i, status in enumerate(self.agv_states[zone]):
+            if status:  # 如果当前小车处于忙碌状态
+                if self.agv_end_time[zone][i] - time.time() < min_wait_time:
+                    min_wait_time = self.agv_end_time[zone][i] - time.time()
+                    min_unit_index = i
+
+        # 返回等待时间最短的生产单元索引及其等待时间
+        if min_unit_index != -1:
+            return min_unit_index, min_wait_time
+        else:
+            return None  # 如果没有空闲单元
+
+    def find_random_idle_agv(self, start_zone):
+        """随机找到一个空闲的小车，并返回其索引"""
+        # 获取当前生产区的工作状态
+        agv_work_status = self.agv_states[start_zone]
+
+        # 找到所有空闲的小车的索引（状态为 False）
+        idle_cars = [index for index, status in enumerate(agv_work_status) if not status]
+
+        return idle_cars
+
     def order_time_and_power(self, order):
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_total_time = 0  # 一个订单完成所需时间
@@ -208,6 +271,7 @@ class Arm:
         for i in range(len(order)):
             start_zone = order[i]
             min_unit_index, min_wait_time = 0, 0
+            min_unit_index_agv, min_wait_time_agv = 0, 0
 
             if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
                 """需要获得等待时间再加上工作时间"""
@@ -225,28 +289,44 @@ class Arm:
                 order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
                 # 记录任务结束时间
                 self.end_time[start_zone][max_unit_index] = self.start_time[start_zone][max_unit_index] + order_total_time_renew + processing_time['sleep_time']
+
                 # 2. 计算运输时间
-                if i < len(order) - 1:
-                    end_zone = order[i + 1]
-                    transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, vga_speed)
-                    order_total_time += transport_time  # 加上运输时间
-                # 3. 工作区等待时间
+                if False not in self.agv_states[start_zone]:  # 该生产区的小车全部忙碌
+                    """如果该生产区不存在空闲小车"""
+                    min_unit_index_agv, min_wait_time_agv = self.find_true_min_time_agv(start_zone)
+                    self.agv_states[start_zone][min_unit_index] = False
+
+                if False in self.work_status[start_zone]:
+                    """如果该生产区存在空闲小车"""
+                    agv_index = self.find_random_idle_agv(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
+                    self.agv_states[start_zone][agv_index[0]] = True  # 占据了这个生产单元
+                    self.agv_start_time[start_zone][agv_index[0]] = time.time()  # 将开始时间记录下来
+                    transport_time = 0
+                    if i < len(order) - 1:
+                        end_zone = order[i + 1]
+                        transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, agv_speed)
+                        order_total_time += transport_time  # 加上运输时间
+                        """离开车间"""
+                    if i == len(order) - 1:
+                        # Step 1: 创建一个反向字典，将生产区汉字名称映射到数字索引
+                        zone_to_index = {name: index for index, name in work_name_order.items()}
+                        # Step 2: 使用反向字典，将汉字生产区转换为数字索引
+                        start_index = zone_to_index[start_zone]
+                        # Step 3: 使用转换后的数字索引从距离矩阵中获取距离
+                        distance = distance_matrix[start_index][-1]
+                        # Step 4: 计算运输时间（假设速度是已知的，单位为距离/时间）
+                        transport_time = distance / agv_speed  # 时间 = 距离 / 速度
+                        order_total_time += transport_time  # 加上运输时间
+
+                    self.agv_end_time[start_zone][agv_index[0]] = self.agv_start_time[start_zone][agv_index[0]] + transport_time * 2
+
+                # 3. 工作区生产单元等待时间
                 order_total_time += min_wait_time
-                # 4. 现在回到闲置区等待小车的到来
-                # wait_vga_time
+
+                # 4. 工作区小车等待时间
+                order_total_time += min_wait_time_agv
 
         return order_total_time, order_total_power
-    """线程太难跑了"""
-    # def state_change(self):
-    #     """不断地查看状态是否变化，但是现在回无限循环，需要修改一下"""
-    #     while not self.stop_thread:
-    #         """对于每个生产单元，如果当前时间为任务结束时间，就改变生产单元状态为False空闲"""
-    #         for zone in self.machines_count:
-    #             for i in range(len(self.machines_count[zone])):
-    #                 if time.time() == self.end_time[zone][i]:
-    #                     self.work_status[zone][i] = False
-    #     time.sleep(0.001)  # 每秒检查一次
-
 
     def object_function(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
@@ -255,13 +335,12 @@ class Arm:
             self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
             self.start_time[zone] = [0] * unit_count  # 初始时，没有开始时间
             self.end_time[zone] = [0] * unit_count  # 初始时，没有结束时间
-        """感觉直接在这里开线程，因为这个函数对某一个解进行处理，我们对某一个机器臂的解经过订单检测来计算时间和能耗"""
-        # # 重置线程停止标志，以便在下一次运行时重新启动线程
-        # self.stop_thread = False  # 重置标志
-        # # 在这里启动线程来实时更新状态
-        # state_thread = threading.Thread(target=self.state_change)
-        # state_thread.daemon = True  # 设置为守护线程，程序结束时会自动结束
-        # state_thread.start()
+
+        for zone, agv_count in zip(self.work_name, self.agv_count[idx]):
+            self.agv_states[zone] = [False] * agv_count  # 初始时，生产区是空闲的
+            self.agv_start_time[zone] = [0] * agv_count  # 初始时，没有开始时间
+            self.agv_end_time[zone] = [0] * agv_count  # 初始时，没有结束时间
+
         """序列反填充"""
         sequence_idx = 0  # 追踪当前序列中的索引
         # 使用序列填充机器臂数量
@@ -273,15 +352,6 @@ class Arm:
                     machines = list(str(sequence))  # 将数字转为字符串
                     self.machines_count[zone][i] = int(machines[sequence_idx])  # 给当前生产单元赋值机器数量
                     sequence_idx += 1
-
-        """任务的指定,需要修改"""
-        # tasks = {}
-        #
-        # for zone, unit_count in zip(self.work_name,self.unit_numbers):
-        #     tasks[zone] = []
-        #     for _ in range(unit_count):
-        #         # 为每个单元生成随机任务列表
-        #         tasks[zone].append([self.generate_task() for _ in range(3)])  # 每个生产单元生成3个任务
 
         """能量，时间计算"""
         total_time, total_power = 0, 0
