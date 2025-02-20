@@ -6,6 +6,7 @@ import time
 from Util import *
 
 
+
 class Arm:
     def __init__(self, work_name, unit_numbers, total_machines, machine_power,num_orders):
         # 初始化生产区名称和单元数
@@ -17,7 +18,7 @@ class Arm:
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
         self.order_manager = OrderManager(work_name, num_orders)
         self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
-        #print(self.orders)
+        print(self.orders)
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
@@ -351,36 +352,72 @@ class Arm:
                     self.machines_count[zone][i] = int(machines[sequence_idx])  # 给当前生产单元赋值机器数量
                     sequence_idx += 1
 
-        """能量，时间计算"""
-        total_time, total_power = 0, 0
-        for order in self.orders:
-            """计算每个订单的消耗"""
-            total_time_order, total_power_order = self.order_time_and_power(order)
-            total_time += total_time_order
-            total_power += total_power_order
+        """ALNS计算能量，时间"""
+        best_order, best_time, best_power = self.apply_ALNS(iterations=30)
 
-        # # 设置状态判断线程的停止线程的标志
-        # self.stop_thread = True  # 停止线程
+        return best_power, best_time
 
-        return total_time, total_power
-        # total_energy, total_time = 0, 0
-        # for zone in self.work_name:
-        #     for unit_index in range(len(self.machines_count[zone])):
-        #         # 获取该生产单元的机器数量
-        #         machine_count = self.machines_count[zone][unit_index]
-        #
-        #         for task in tasks[zone][unit_index]:
-        #             run_time = task['run_time']
-        #             run_power = task['run_power']
-        #             sleep_time = task['sleep_time']
-        #             sleep_power = task['sleep_power']
-        #             run_time_renew, run_power_renew = self.calculate_reduction(run_time, run_power, zone, machine_count)
-        #
-        #             # 计算该任务的能量消耗
-        #             task_energy = self.calculate_task_energy(run_time_renew, run_power_renew, sleep_time, sleep_power) * machine_count
-        #             total_energy += task_energy
-        #             total_time += run_time_renew + sleep_time
-        #
-        # return total_energy, total_time
-"""现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果，并且时间是累加计算的，应该得计算最后结束就行"""
+    """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""
 
+    def swap(self, orders):
+        """
+        随机交换两个订单的位置
+        """
+        new_orders = orders[:]
+        i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
+        new_orders[i], new_orders[j] = new_orders[j], new_orders[i]  # 交换
+        return new_orders
+
+    def reverse(self, orders):
+        """
+        随机反转一段订单顺序
+        """
+        new_orders = orders[:]
+        i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
+        if i > j:
+            i, j = j, i  # 保证 i < j
+        new_orders[i:j+1] = reversed(new_orders[i:j+1])  # 反转区间
+        return new_orders
+
+    def select_neighbor(self, orders):
+        """
+        随机选择一个邻域操作（比如交换或反转）来改变订单顺序
+        """
+        # 随机选择操作：50%概率进行交换，50%概率进行反转
+        if random.random() < 0.5:
+            return self.swap(orders)
+        else:
+            return self.reverse(orders)
+
+    def apply_ALNS(self, iterations=100):
+        """
+        使用ALNS算法优化订单顺序
+        """
+        """初始化最佳时间和能耗"""
+        best_time, best_power = float('inf'), float('inf')
+        best_order = self.orders  # 初始订单
+        for _ in range(iterations):
+            # 随机选择一个邻域操作
+            neighbor_order = self.select_neighbor(best_order)
+
+            """能量，时间计算"""
+            total_time, total_power = 0, 0
+            total_time_list = []
+            # 计算邻域解的总时间和总功率
+            """计算每个订单的消耗，功率应该累加，但是时间不应该"""
+            for order in neighbor_order:
+                total_time_order, total_power_order = self.order_time_and_power(order)
+                total_time_list.append(total_time_order)
+                total_power += total_power_order
+
+            total_time = max(total_time_list)
+            # 如果邻域解的时间或功率更好，则更新最优解
+            if total_time < best_time and total_power < best_power:
+                best_order = neighbor_order
+                best_time = total_time
+                best_power = total_power
+
+                # 更新当前解
+                best_order = neighbor_order
+
+        return best_order, best_time, best_power

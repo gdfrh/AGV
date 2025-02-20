@@ -18,25 +18,33 @@ class Order:
         self.order_id = order_id  # 订单ID
         self.zones = self.generate_order_zones(all_zones)  # 订单所需的生产区顺序
 
+    import random
+
     def generate_order_zones(self, all_zones):
         """
         生成一个订单所需的生产区顺序。
         - 订单总是从生产区 0 开始
         - 后续的生产区可以从剩余的区中随机选择
+        - 不一定使用所有的生产区，可以通过 max_zones 控制使用的车间数量
         """
         # 确保从生产区 0 开始
         zones = [0]
 
         # 剩余的生产区（不包含0号区）
         remaining_zones = list(range(1, len(all_zones)))
+        max_zones = random.randint(1,7)
 
-        # 随机选择后续的生产区顺序
+        num_zones_to_select = min(max_zones - 1, len(remaining_zones))  # 除了0号区外，最多选择的数量
+
+        # 随机选择剩余的生产区
         random.shuffle(remaining_zones)
+        selected_zones = remaining_zones[:num_zones_to_select]
 
-        # 将剩余的生产区加入订单的生产区顺序
-        zones.extend(remaining_zones)
+        # 将选择的生产区加入订单的生产区顺序
+        zones.extend(selected_zones)
 
-        zones = [work_name_order[zone] for zone in zones]  # 使用字典转换数字为汉字
+        # 使用字典转换数字为汉字
+        zones = [work_name_order[zone] for zone in zones]  # 假设 work_name_order 是你定义的映射字典
 
         return zones
 

@@ -126,18 +126,102 @@
 # time.sleep(2)
 # b=time.time()
 # print(a,b)
-import bisect
-sorted_list = [1,2,3,5,5,5,7,8,9,10]
-target_agv_count = 5
-pos = bisect.bisect_left(sorted_list, target_agv_count)
-if pos > 0:
-    smaller_value = sorted_list[pos - 1]
-else:
-    smaller_value = None  # 如果 target 是最小值，则没有比它小的值
+# import bisect
+# sorted_list = [1,2,3,5,5,5,7,8,9,10]
+# target_agv_count = 5
+# pos = bisect.bisect_left(sorted_list, target_agv_count)
+# if pos > 0:
+#     smaller_value = sorted_list[pos - 1]
+# else:
+#     smaller_value = None  # 如果 target 是最小值，则没有比它小的值
+#
+# pos = bisect.bisect_right(sorted_list, target_agv_count)
+# if pos < len(sorted_list):
+#     larger_value = sorted_list[pos]
+# else:
+#     larger_value = None  # 如果 target 是最大值，则没有比它大的值
+# print(smaller_value, larger_value)
+import random
+import math
 
-pos = bisect.bisect_right(sorted_list, target_agv_count)
-if pos < len(sorted_list):
-    larger_value = sorted_list[pos]
-else:
-    larger_value = None  # 如果 target 是最大值，则没有比它大的值
-print(smaller_value, larger_value)
+
+# 生成随机城市坐标
+def generate_cities(n):
+    return [(random.randint(0, 100), random.randint(0, 100)) for _ in range(n)]
+
+
+# 计算城市之间的欧几里得距离
+def calculate_distance(city1, city2):
+    return math.sqrt((city1[0] - city2[0]) ** 2 + (city1[1] - city2[1]) ** 2)
+
+
+# 计算总路径长度
+def total_distance(route, cities):
+    return sum(calculate_distance(cities[route[i]], cities[route[i + 1]]) for i in range(len(route) - 1)) + \
+        calculate_distance(cities[route[-1]], cities[route[0]])
+
+
+# 生成一个随机的初始解
+def generate_initial_solution(n):
+    return random.sample(range(n), n)
+
+
+# 扰动操作：交换路径中的两个城市
+def swap(route):
+    i, j = random.sample(range(len(route)), 2)
+    route[i], route[j] = route[j], route[i]
+
+
+# 扰动操作：反转路径的一部分
+def reverse(route):
+    i, j = sorted(random.sample(range(len(route)), 2))
+    route[i:j + 1] = reversed(route[i:j + 1])
+
+
+# 选择邻域操作
+def select_neighborhood():
+    return random.choice([swap, reverse])
+
+
+# ALNS算法
+def alns(cities, max_iterations=1000, temperature=1.0, cooling_rate=0.995):
+    n = len(cities)
+    current_solution = generate_initial_solution(n)
+    best_solution = current_solution
+    best_distance = total_distance(best_solution, cities)
+
+    for iteration in range(max_iterations):
+        # 随机选择一个邻域操作
+        neighborhood = select_neighborhood()
+
+        # 生成新解
+        new_solution = current_solution[:]
+        neighborhood(new_solution)
+
+        # 计算新解的总距离
+        new_distance = total_distance(new_solution, cities)
+
+        # 接受准则：模拟退火
+        if new_distance < best_distance:
+            current_solution = new_solution
+            best_solution = new_solution
+            best_distance = new_distance
+        else:
+            acceptance_prob = math.exp(-(new_distance - total_distance(current_solution, cities)) / temperature)
+            if random.random() < acceptance_prob:
+                current_solution = new_solution
+
+        # 降低温度
+        temperature *= cooling_rate
+
+    return best_solution, best_distance
+
+
+# 测试代码
+if __name__ == "__main__":
+    n = 20  # 城市数量
+    cities = generate_cities(n)
+
+    best_solution, best_distance = alns(cities)
+    print("Best Solution:", best_solution)
+    print("Best Distance:", best_distance)

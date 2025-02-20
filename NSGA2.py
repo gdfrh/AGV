@@ -235,7 +235,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         for s in fronts[0]:  # 从第一前沿开始
                 front_1.append(s)
         if non_front_1:
-            """non_front_1不为空，则使用它"""
+            """non_front_1不为空，则使用它（如果数量太少呢）"""
             use_list = non_front_1
         else:
             """non_front_1为空，则使用第一前沿解"""
@@ -248,10 +248,10 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             is_zero1 = False
             is_zero2 = False
             # 随机选择2个不同的非第一前沿的个体进行交叉
-            """如果use_list只有一个呢？（未解决）"""
+            """如果use_list过于少呢？是否应该选择部分的第一前沿？（未解决）"""
             x = random.choice(use_list)
             y = random.choice(use_list)
-            if x != y:
+            if x != y:#虽然应该不止一个
 
                 # 再找到交叉的位置
                 """这里选择需要判断一下，选取最短的序列的任意一位"""
@@ -267,7 +267,6 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 new_agv_count1 = init_arm.agv_count[x]
                 new_agv_count2 = init_arm.agv_count[y]
 
-                """对小车的变异还没做（未完成）"""
                 # 变异操作
                 if random.random() < 0.2:  # 假设变异概率为20%
                     new_member1, new_state1,new_agv_count1= mutate(new_member1, init_arm, init_arm.unit_states[x], init_arm.agv_count[x])  # 对新个体进行变异

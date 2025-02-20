@@ -45,6 +45,7 @@ class Schedule:
         # 随机分配所有机器臂，形成一组机器臂的初始解
 
         while len(machine_counts) < pop_size:
+            """当目前的解数量小于种群代规模"""
             self.arm.distribute_machines_randomly()
             """添加初始分布状态"""
             self.arm.unit_states.append(self.unit_numbers)
