@@ -220,8 +220,8 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         objective2 = []
         for i in range(len(population_R)):
             total_energy, total_time = init_arm.object_function(population_R[i], i)
-            objective1.append(total_energy)  # 将 total_energy 添加到 objective1
-            objective2.append(total_time)  # 将 total_time 添加到 objective2
+            objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
+            objective2.append(round(total_time,2))  # 将 total_time 添加到 objective2
 
         # 非支配排序，得到不同前沿
         fronts = fast_non_dominated_sort(objective1, objective2)
@@ -322,8 +322,8 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
             total_energy, total_time = init_arm.object_function(population_R[i], i)
 
-            objective1.append(total_energy)  # 将 total_energy 添加到 objective1
-            objective2.append(total_time)    # 将 total_time 添加到 objective2
+            objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
+            objective2.append(round(total_time,2))    # 将 total_time 添加到 objective2
         fronts = fast_non_dominated_sort(objective1, objective2)
         # 获取P(t+1)，先从等级高的fronts复制，然后在同一层front根据拥挤距离选择
         population_P_next = []
@@ -359,8 +359,8 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 # 通过调用 function_1，解包返回的元组（total_energy, total_time）
                 total_energy, total_time = init_arm.object_function(population_P[i], i)
 
-                best_obj1.append(total_energy)  # 将 total_energy 添加到 best_obj1
-                best_obj2.append(total_time)  # 将 total_time 添加到 best_obj2
+                best_obj1.append(round(total_energy,2))  # 将 total_energy 添加到 best_obj1
+                best_obj2.append(round(total_time,2))  # 将 total_time 添加到 best_obj2
             f = fast_non_dominated_sort(best_obj1, best_obj2)
             # 打印第一前沿中的目标值
             print(f"Generation {gen_no}, first front:")

@@ -359,9 +359,10 @@ class Arm:
 
     """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""
 
-    def swap(self, orders):
+    """这里要使用破坏修复算子"""
+    def random_destruction_fix(self, orders):
         """
-        随机交换两个订单的位置
+        随机交换两个订单的位置，随机破坏，随机修复
         """
         new_orders = orders[:]
         i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
@@ -379,13 +380,42 @@ class Arm:
         new_orders[i:j+1] = reversed(new_orders[i:j+1])  # 反转区间
         return new_orders
 
+    def greedy_destruction(self, list1, list2):
+        """破坏时间最长的"""
+        # 计算需要获取的前 % 的元素数量
+        top_percent_count = int(len(list1) * greedy_percent)
+
+        # 获取总时间列表中每个元素的索引和对应的值
+        indexed_list = list(enumerate(list1))
+
+        # 按照总时间的值降序排序
+        indexed_list.sort(key=lambda x: x[1], reverse=True)
+
+        # 取前 % 最大值的索引
+        top_percent_indices = [index for index, _ in indexed_list[:top_percent_count]]
+
+        # 存储删除的元素
+        removed_elements = []
+
+        # 按照从大的索引到小的索引删除元素
+        for index in sorted(top_percent_indices, reverse=True):
+            removed_elements.append(list2[index])  # 存储删除的元素
+            del list2[index]  # 删除元素
+
+        # 随机顺序将删除的元素插入到列表尾部
+        random.shuffle(removed_elements)  # 随机打乱删除的元素
+
+        # 将删除的元素插入到列表尾部
+        list2.extend(removed_elements)
+
+        return list2
     def select_neighbor(self, orders):
         """
         随机选择一个邻域操作（比如交换或反转）来改变订单顺序
         """
         # 随机选择操作：50%概率进行交换，50%概率进行反转
         if random.random() < 0.5:
-            return self.swap(orders)
+            return self.random_destruction_fix(orders)
         else:
             return self.reverse(orders)
 
@@ -419,5 +449,8 @@ class Arm:
 
                 # 更新当前解
                 best_order = neighbor_order
+            if random.random() < 0.5:
+                # 概率使用贪婪破坏修复
+                best_order = self.greedy_destruction(total_time_list, neighbor_order)
 
         return best_order, best_time, best_power
