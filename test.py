@@ -266,11 +266,16 @@ import random
 # print("After insertion:", total_time_list)
 # orders = [[1,2],[1,3],[1,4],[1,5]]
 # print(len(orders))
-import numpy as np
-similarity_matrix = np.zeros((2, 2))
-similarity_matrix[0, 0] = 1
-similarity_matrix[1, 1] = 0
-similarity_matrix[1, 0] = 2
-similarity_matrix[0, 1] = 3
-n = similarity_matrix.sum(axis=1)
-print(n)
+# import numpy as np
+# similarity_matrix = np.zeros((2, 2))
+# similarity_matrix[0, 0] = 1
+# similarity_matrix[1, 1] = 0
+# similarity_matrix[1, 0] = 2
+# similarity_matrix[0, 1] = 3
+# n = similarity_matrix.sum(axis=1)
+# print(n)
+new_order = [1,2,3,4,5]
+indices = [0,2,1]
+for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
+    del new_order[index]
+print(new_order)

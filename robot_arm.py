@@ -465,16 +465,24 @@ class Arm:
         best_time, best_power = float('inf'), float('inf')
         best_order = self.orders  # 初始订单
         for _ in range(iterations):
-            regret_matching_operator = []# 要使用后悔修复算子的元素组成的列表
+            regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
             similarity = self.calculate_similarity(best_order)  # 存储订单相似值的列表
-            num_instruction =int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
+            num_instruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
             # 找到最大的部分元素
             max_values = heapq.nlargest(num_instruction, similarity)
 
             # 找到这些最大值的索引
             indices = [i for i, value in enumerate(similarity) if value in max_values]
             for index in indices:
-                regret_matching_operator.append(best_order[index])  # 将最大值添加到新列表
+                regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
+            """接下来我要来破坏订单内部的工艺流程"""
+
+
+
+            """这里准备进行后悔修复"""
+            new_order = best_order
+            for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
+                del new_order[index]
 
 
             # # 随机选择一个邻域操作
