@@ -11,8 +11,3 @@ from schedule import Schedule
 scheduler = Schedule(work_name, total_machines, machine_power, num_orders, zone_requirements)
 scheduler.arm_random()
 scheduler.arm_loop()
-
-
-
-
-

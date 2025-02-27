@@ -239,28 +239,38 @@
 # print(total_time_list)  # 输出：[10, 25, 15, 30, 5, 35, 20, 45]
 import random
 
-# 假设 total_time_list 存储的是总时间
-total_time_list = [10, 25, 15, 30, 5, 60, 35, 20, 45, 55]
-
-# 假设 top_20_percent_indices 存储的是需要删除的索引列表
-top_20_percent_indices = [5, 9, 6]  # 要删除的索引
-
-# 存储删除的元素
-removed_elements = []
-
-# 按照从大的索引到小的索引删除元素
-for index in sorted(top_20_percent_indices, reverse=True):
-    removed_elements.append(total_time_list[index])  # 存储删除的元素
-    del total_time_list[index]  # 删除元素
-
-# 打印删除后的 total_time_list
-print("After deletion:", total_time_list)
-
-# 随机顺序将删除的元素插入到列表尾部
-random.shuffle(removed_elements)  # 随机打乱删除的元素
-
-# 将删除的元素插入到列表尾部
-total_time_list.extend(removed_elements)
-
-# 打印最终结果
-print("After insertion:", total_time_list)
+# # 假设 total_time_list 存储的是总时间
+# total_time_list = [10, 25, 15, 30, 5, 60, 35, 20, 45, 55]
+#
+# # 假设 top_20_percent_indices 存储的是需要删除的索引列表
+# top_20_percent_indices = [5, 9, 6]  # 要删除的索引
+#
+# # 存储删除的元素
+# removed_elements = []
+#
+# # 按照从大的索引到小的索引删除元素
+# for index in sorted(top_20_percent_indices, reverse=True):
+#     removed_elements.append(total_time_list[index])  # 存储删除的元素
+#     del total_time_list[index]  # 删除元素
+#
+# # 打印删除后的 total_time_list
+# print("After deletion:", total_time_list)
+#
+# # 随机顺序将删除的元素插入到列表尾部
+# random.shuffle(removed_elements)  # 随机打乱删除的元素
+#
+# # 将删除的元素插入到列表尾部
+# total_time_list.extend(removed_elements)
+#
+# # 打印最终结果
+# print("After insertion:", total_time_list)
+# orders = [[1,2],[1,3],[1,4],[1,5]]
+# print(len(orders))
+import numpy as np
+similarity_matrix = np.zeros((2, 2))
+similarity_matrix[0, 0] = 1
+similarity_matrix[1, 1] = 0
+similarity_matrix[1, 0] = 2
+similarity_matrix[0, 1] = 3
+n = similarity_matrix.sum(axis=1)
+print(n)

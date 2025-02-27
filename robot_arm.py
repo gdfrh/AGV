@@ -4,7 +4,9 @@ import random
 import threading
 import time
 from Util import *
-
+import numpy as np
+import math
+import heapq
 
 
 class Arm:
@@ -18,7 +20,6 @@ class Arm:
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
         self.order_manager = OrderManager(work_name, num_orders)
         self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
-        print(self.orders)
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
@@ -279,6 +280,9 @@ class Arm:
 
             if False in self.work_status[start_zone]:
                 """如果该生产区存在空闲单元,暂时寻找最大机器臂数量的生产单元"""
+                """"""
+                """"""
+                """这里要改成找到加权之后的最低的生产单元"""
                 max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
                 self.work_status[start_zone][max_unit_index] = True  # 占据了这个生产单元
                 self.start_time[start_zone][max_unit_index] = time.time()  # 将开始时间记录下来
@@ -360,64 +364,98 @@ class Arm:
     """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""
 
     """这里要使用破坏修复算子"""
-    def random_destruction_fix(self, orders):
-        """
-        随机交换两个订单的位置，随机破坏，随机修复
-        """
-        new_orders = orders[:]
-        i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
-        new_orders[i], new_orders[j] = new_orders[j], new_orders[i]  # 交换
-        return new_orders
+    # def random_destruction_fix(self, orders):
+    #     """
+    #     随机交换两个订单的位置，随机破坏，随机修复
+    #     """
+    #     new_orders = orders[:]
+    #     i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
+    #     new_orders[i], new_orders[j] = new_orders[j], new_orders[i]  # 交换
+    #     return new_orders
+    #
+    # def reverse(self, orders):
+    #     """
+    #     随机反转一段订单顺序
+    #     """
+    #     new_orders = orders[:]
+    #     i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
+    #     if i > j:
+    #         i, j = j, i  # 保证 i < j
+    #     new_orders[i:j+1] = reversed(new_orders[i:j+1])  # 反转区间
+    #     return new_orders
+    #
+    # def greedy_destruction(self, list1, list2):
+    #     """破坏时间最长的"""
+    #     # 计算需要获取的前 % 的元素数量
+    #     top_percent_count = int(len(list1) * greedy_percent)
+    #
+    #     # 获取总时间列表中每个元素的索引和对应的值
+    #     indexed_list = list(enumerate(list1))
+    #
+    #     # 按照总时间的值降序排序
+    #     indexed_list.sort(key=lambda x: x[1], reverse=True)
+    #
+    #     # 取前 % 最大值的索引
+    #     top_percent_indices = [index for index, _ in indexed_list[:top_percent_count]]
+    #
+    #     # 存储删除的元素
+    #     removed_elements = []
+    #
+    #     # 按照从大的索引到小的索引删除元素
+    #     for index in sorted(top_percent_indices, reverse=True):
+    #         removed_elements.append(list2[index])  # 存储删除的元素
+    #         del list2[index]  # 删除元素
+    #
+    #     # 随机顺序将删除的元素插入到列表尾部
+    #     random.shuffle(removed_elements)  # 随机打乱删除的元素
+    #
+    #     # 将删除的元素插入到列表尾部
+    #     list2.extend(removed_elements)
+    #
+    #     return list2
+    # def select_neighbor(self, orders):
+    #     """
+    #     随机选择一个邻域操作（比如交换或反转）来改变订单顺序
+    #     """
+    #     # 随机选择操作：50%概率进行交换，50%概率进行反转
+    #     if random.random() < 0.5:
+    #         return self.random_destruction_fix(orders)
+    #     else:
+    #         return self.reverse(orders)
+    def calculate_similarity(self, orders):
+        """相似性指标计算"""
+        """我想存在矩阵里面"""
+        similarity_matrix = np.zeros((len(orders), len(orders)))
+        # for order in orders:
+        #     # 找出需要进行相似性目标
+        #     obj_order = order
+        #     for search_order in orders
+        #     for index, element in enumerate(obj_order):
+        for i in range(len(orders)):
+            for j in range(i + 1, len(orders)):  # 只比较后续的订单，避免重复比较
+                obj_order = orders[i]  # 查找这个列表中的元素是否在其他列表中
+                search_order = orders[j]  # 被查找的其他元素
+                # 在这里进行比较操作
+                if obj_order == search_order:  # 如果订单完全相同，相似值设为最大
+                    """越近越相似"""
+                    similarity_matrix[i, j] = 10000 / (j - i)
+                    similarity_matrix[j, i] = 10000 / (j - i)
+                else:
+                    similarity = 0  # 临时相似值
+                    for index, element in enumerate(obj_order):
+                        if element in search_order:  # 检查该元素是否在 search_order 中
+                            position_unit = work_name.index(element)  # 找到该生产区的生产单元的数量
+                            num_unit = self.unit_states[-1][position_unit]
+                            position = search_order.index(element)  # 获取该元素在 search_order 中的位置
+                            similarity += math.exp(abs(position - index)) / num_unit  # e^|poi - poj|/number_生产单元
+                    similarity = similarity / (j - i)
+                    similarity_matrix[i, j] = similarity
+                    similarity_matrix[j, i] = similarity
+        """将矩阵的每一行加起来就是某个订单的总体相似值"""
+        similarity_list = similarity_matrix.sum(axis=1)
 
-    def reverse(self, orders):
-        """
-        随机反转一段订单顺序
-        """
-        new_orders = orders[:]
-        i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
-        if i > j:
-            i, j = j, i  # 保证 i < j
-        new_orders[i:j+1] = reversed(new_orders[i:j+1])  # 反转区间
-        return new_orders
+        return similarity_list
 
-    def greedy_destruction(self, list1, list2):
-        """破坏时间最长的"""
-        # 计算需要获取的前 % 的元素数量
-        top_percent_count = int(len(list1) * greedy_percent)
-
-        # 获取总时间列表中每个元素的索引和对应的值
-        indexed_list = list(enumerate(list1))
-
-        # 按照总时间的值降序排序
-        indexed_list.sort(key=lambda x: x[1], reverse=True)
-
-        # 取前 % 最大值的索引
-        top_percent_indices = [index for index, _ in indexed_list[:top_percent_count]]
-
-        # 存储删除的元素
-        removed_elements = []
-
-        # 按照从大的索引到小的索引删除元素
-        for index in sorted(top_percent_indices, reverse=True):
-            removed_elements.append(list2[index])  # 存储删除的元素
-            del list2[index]  # 删除元素
-
-        # 随机顺序将删除的元素插入到列表尾部
-        random.shuffle(removed_elements)  # 随机打乱删除的元素
-
-        # 将删除的元素插入到列表尾部
-        list2.extend(removed_elements)
-
-        return list2
-    def select_neighbor(self, orders):
-        """
-        随机选择一个邻域操作（比如交换或反转）来改变订单顺序
-        """
-        # 随机选择操作：50%概率进行交换，50%概率进行反转
-        if random.random() < 0.5:
-            return self.random_destruction_fix(orders)
-        else:
-            return self.reverse(orders)
 
     def apply_ALNS(self, iterations=100):
         """
@@ -427,30 +465,42 @@ class Arm:
         best_time, best_power = float('inf'), float('inf')
         best_order = self.orders  # 初始订单
         for _ in range(iterations):
-            # 随机选择一个邻域操作
-            neighbor_order = self.select_neighbor(best_order)
+            regret_matching_operator = []# 要使用后悔修复算子的元素组成的列表
+            similarity = self.calculate_similarity(best_order)  # 存储订单相似值的列表
+            num_instruction =int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
+            # 找到最大的部分元素
+            max_values = heapq.nlargest(num_instruction, similarity)
 
-            """能量，时间计算"""
-            total_time, total_power = 0, 0
-            total_time_list = []
-            # 计算邻域解的总时间和总功率
-            """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-            for order in neighbor_order:
-                total_time_order, total_power_order = self.order_time_and_power(order)
-                total_time_list.append(total_time_order)
-                total_power += total_power_order
+            # 找到这些最大值的索引
+            indices = [i for i, value in enumerate(similarity) if value in max_values]
+            for index in indices:
+                regret_matching_operator.append(best_order[index])  # 将最大值添加到新列表
 
-            total_time = max(total_time_list)
-            # 如果邻域解的时间或功率更好，则更新最优解
-            if total_time < best_time and total_power < best_power:
-                best_order = neighbor_order
-                best_time = total_time
-                best_power = total_power
 
-                # 更新当前解
-                best_order = neighbor_order
-            if random.random() < 0.5:
-                # 概率使用贪婪破坏修复
-                best_order = self.greedy_destruction(total_time_list, neighbor_order)
+            # # 随机选择一个邻域操作
+            # neighbor_order = self.select_neighbor(best_order)
+            #
+            # """能量，时间计算"""
+            # total_time, total_power = 0, 0
+            # total_time_list = []
+            # # 计算邻域解的总时间和总功率
+            # """计算每个订单的消耗，功率应该累加，但是时间不应该"""
+            # for order in neighbor_order:
+            #     total_time_order, total_power_order = self.order_time_and_power(order)
+            #     total_time_list.append(total_time_order)
+            #     total_power += total_power_order
+            #
+            # total_time = max(total_time_list)
+            # # 如果邻域解的时间或功率更好，则更新最优解
+            # if total_time < best_time and total_power < best_power:
+            #     best_order = neighbor_order
+            #     best_time = total_time
+            #     best_power = total_power
+            #
+            #     # 更新当前解
+            #     best_order = neighbor_order
+            # if random.random() < 0.5:
+            #     # 概率使用贪婪破坏修复
+            #     best_order = self.greedy_destruction(total_time_list, neighbor_order)
 
         return best_order, best_time, best_power
