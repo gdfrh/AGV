@@ -27,14 +27,14 @@ class Order:
         - 后续的生产区可以从剩余的区中随机选择
         - 不一定使用所有的生产区，可以通过 max_zones 控制使用的车间数量
         """
-        # 确保从生产区 0 开始
-        zones = [0]
+        # 确保从生产区 0 开始，经过生产区 1
+        zones = [0, 1]
 
-        # 剩余的生产区（不包含0号区）
-        remaining_zones = list(range(1, len(all_zones)))
+        # 剩余的生产区（不包含0、1、6号区）[2,3,4,5]
+        remaining_zones = list(set(range(2, len(all_zones))) - {6})
         max_zones = random.randint(1,7)
 
-        num_zones_to_select = min(max_zones - 1, len(remaining_zones))  # 除了0号区外，最多选择的数量
+        num_zones_to_select = min(max_zones - 1, len(remaining_zones))  # 除了0、1号区外，最多选择的数量
 
         # 随机选择剩余的生产区
         random.shuffle(remaining_zones)
@@ -43,9 +43,12 @@ class Order:
         # 将选择的生产区加入订单的生产区顺序
         zones.extend(selected_zones)
 
+        # 添加最后必须经过的6号区
+        zones.append(6)
+
         # 使用字典转换数字为汉字
         zones = [work_name_order[zone] for zone in zones]  # 假设 work_name_order 是你定义的映射字典
-
+        """[0,1,x,x,x,x,6]"""
         return zones
 
     def get_order_details(self):

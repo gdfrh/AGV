@@ -7,6 +7,7 @@ from Util import *
 import numpy as np
 import math
 import heapq
+import itertools
 
 
 class Arm:
@@ -423,14 +424,10 @@ class Arm:
     #     else:
     #         return self.reverse(orders)
     def calculate_similarity(self, orders):
-        """相似性指标计算"""
+        """进行订单顺序的ALNS时，相似性指标计算"""
         """我想存在矩阵里面"""
         similarity_matrix = np.zeros((len(orders), len(orders)))
-        # for order in orders:
-        #     # 找出需要进行相似性目标
-        #     obj_order = order
-        #     for search_order in orders
-        #     for index, element in enumerate(obj_order):
+
         for i in range(len(orders)):
             for j in range(i + 1, len(orders)):  # 只比较后续的订单，避免重复比较
                 obj_order = orders[i]  # 查找这个列表中的元素是否在其他列表中
@@ -456,6 +453,28 @@ class Arm:
 
         return similarity_list
 
+    def insert_and_evaluate(self, order_sequence, new_order):
+        """插入并计算每一个排列组合插入到订单序列中的适配性，来选择如何插入"""
+        """new_order为单括号列表[],order_sequence为双括号列表[ [] ]"""
+        # 向量存储得分
+        scores_array = np.zeros(len(order_sequence) + 1)
+        # 遍历每个可能的插入点
+        for i in range(len(order_sequence) + 1):
+            # 在第i个订单后插入新订单
+            new_sequence = order_sequence[:i] + [new_order] + order_sequence[i:]
+            # 计算这个新序列的指标
+            metric = self.calculate_metric(new_sequence, i)
+            # 存储指标
+            scores_array[i] = metric
+
+        return scores_array  # 返回分数
+
+    def calculate_metric(self, sequences, index):
+        """负责计算排列组合后的单个订单后悔算子的各个位置的指标"""
+        """通过调用之前的相似性计算，直接选择需要求的订单索引处的值，即为所求"""
+        metric_list = self.calculate_similarity(sequences)
+        metric = metric_list[index]
+        return metric
 
     def apply_ALNS(self, iterations=100):
         """
@@ -467,25 +486,50 @@ class Arm:
         for _ in range(iterations):
             regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
             similarity = self.calculate_similarity(best_order)  # 存储订单相似值的列表
-            num_instruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
+            num_destruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
             # 找到最大的部分元素
-            max_values = heapq.nlargest(num_instruction, similarity)
+            max_values = heapq.nlargest(num_destruction, similarity)
 
             # 找到这些最大值的索引
             indices = [i for i, value in enumerate(similarity) if value in max_values]
             for index in indices:
                 regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
             """接下来我要来破坏订单内部的工艺流程"""
-
-
+            """决定将工艺流程暂定为[0,1,xxxx,6],所以所有的情况是xxxx的内部组合"""
+            # 定义字典来存储所有排列组合的情况
+            permutations_dict = {}
+            # total_permutations = 0  # 存储所有排列的数量
+            for idx, lst in enumerate(regret_matching_operator):
+                # 从索引2到倒数第二个元素（不包括最后的6）
+                disruption = lst[2:-1]
+                # 生成xxxx的所有排列
+                permutations = list(itertools.permutations(disruption))
+                # total_permutations += len(permutations)
+                permutations = [[0, 1] + list(perm) + [6] for perm in permutations]
+                # 存储排列,现在所有的排列情况都存在了字典中
+                permutations_dict[idx] = permutations
 
             """这里准备进行后悔修复"""
-            new_order = best_order
+            new_order = best_order  # 列表存储着订单，之后进行删除指标较高的订单
             for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
                 del new_order[index]
+            # """定义一个矩阵来存储所有的相似性值"""
+            # matrix = np.zeros((total_permutations, len(new_order) + 1))
+            # 遍历字典，并对每个排列列表进行操作
+            for key, permutations in permutations_dict.items():
+                """对每一个订单的排列组合进行判断"""
+                row_vectors = []  # 存储每个key的permutations对应的行向量
+                for perm in permutations:
+                    # 得到了相似性的值的数组
+                    array = self.insert_and_evaluate(new_order, perm)
+                    # 添加到列表中
+                    row_vectors.append(array)
+                # 将所有行向量拼接成矩阵
+                matrix = np.vstack(row_vectors)
+                """接下来将矩阵拼接，然后找到最大值索引，然后迭代就可以完成"""
 
 
-            # # 随机选择一个邻域操作
+            # 随机选择一个邻域操作
             # neighbor_order = self.select_neighbor(best_order)
             #
             # """能量，时间计算"""
