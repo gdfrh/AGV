@@ -358,71 +358,26 @@ class Arm:
                     sequence_idx += 1
 
         """ALNS计算能量，时间"""
-        best_order, best_time, best_power = self.apply_ALNS(iterations=30)
+        best_order = self.apply_ALNS(iterations)
+        """计算最终所需时间和能耗"""
+
+        total_time, total_power = 0, 0
+        total_time_list = []
+
+        """计算每个订单的消耗，功率应该累加，但是时间不应该"""
+        for order in best_order:
+            total_time_order, total_power_order = self.order_time_and_power(order)
+            total_time_list.append(total_time_order)
+            total_power += total_power_order
+
+        best_time = max(total_time_list)
+
+        best_power = total_power
 
         return best_power, best_time
 
     """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""
 
-    """这里要使用破坏修复算子"""
-    # def random_destruction_fix(self, orders):
-    #     """
-    #     随机交换两个订单的位置，随机破坏，随机修复
-    #     """
-    #     new_orders = orders[:]
-    #     i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
-    #     new_orders[i], new_orders[j] = new_orders[j], new_orders[i]  # 交换
-    #     return new_orders
-    #
-    # def reverse(self, orders):
-    #     """
-    #     随机反转一段订单顺序
-    #     """
-    #     new_orders = orders[:]
-    #     i, j = random.sample(range(len(orders)), 2)  # 随机选两个索引
-    #     if i > j:
-    #         i, j = j, i  # 保证 i < j
-    #     new_orders[i:j+1] = reversed(new_orders[i:j+1])  # 反转区间
-    #     return new_orders
-    #
-    # def greedy_destruction(self, list1, list2):
-    #     """破坏时间最长的"""
-    #     # 计算需要获取的前 % 的元素数量
-    #     top_percent_count = int(len(list1) * greedy_percent)
-    #
-    #     # 获取总时间列表中每个元素的索引和对应的值
-    #     indexed_list = list(enumerate(list1))
-    #
-    #     # 按照总时间的值降序排序
-    #     indexed_list.sort(key=lambda x: x[1], reverse=True)
-    #
-    #     # 取前 % 最大值的索引
-    #     top_percent_indices = [index for index, _ in indexed_list[:top_percent_count]]
-    #
-    #     # 存储删除的元素
-    #     removed_elements = []
-    #
-    #     # 按照从大的索引到小的索引删除元素
-    #     for index in sorted(top_percent_indices, reverse=True):
-    #         removed_elements.append(list2[index])  # 存储删除的元素
-    #         del list2[index]  # 删除元素
-    #
-    #     # 随机顺序将删除的元素插入到列表尾部
-    #     random.shuffle(removed_elements)  # 随机打乱删除的元素
-    #
-    #     # 将删除的元素插入到列表尾部
-    #     list2.extend(removed_elements)
-    #
-    #     return list2
-    # def select_neighbor(self, orders):
-    #     """
-    #     随机选择一个邻域操作（比如交换或反转）来改变订单顺序
-    #     """
-    #     # 随机选择操作：50%概率进行交换，50%概率进行反转
-    #     if random.random() < 0.5:
-    #         return self.random_destruction_fix(orders)
-    #     else:
-    #         return self.reverse(orders)
     def calculate_similarity(self, orders):
         """进行订单顺序的ALNS时，相似性指标计算"""
         """我想存在矩阵里面"""
@@ -476,12 +431,11 @@ class Arm:
         metric = metric_list[index]
         return metric
 
-    def apply_ALNS(self, iterations=100):
+    def apply_ALNS(self, iterations):
         """
         使用ALNS算法优化订单顺序
         """
         """初始化最佳时间和能耗"""
-        best_time, best_power = float('inf'), float('inf')
         best_order = self.orders  # 初始订单
         for _ in range(iterations):
             regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
@@ -548,5 +502,5 @@ class Arm:
 
             """将插入好的列表返回为最好列表，进行迭代"""
             best_order = new_order
-            """将插入好的列表返回为最好列表，进行迭代"""
-        return best_order, best_time, best_power
+
+        return best_order
