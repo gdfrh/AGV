@@ -101,6 +101,6 @@ max_gen = 100
 
 # ------------------------
 # 订单数
-num_orders = 5
+num_orders = 20
 # 订单相似破坏率
 similarity_percent = 0.2

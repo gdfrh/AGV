@@ -494,65 +494,59 @@ class Arm:
             indices = [i for i, value in enumerate(similarity) if value in max_values]
             for index in indices:
                 regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
-            """接下来我要来破坏订单内部的工艺流程"""
-            """决定将工艺流程暂定为[0,1,xxxx,6],所以所有的情况是xxxx的内部组合"""
-            # 定义字典来存储所有排列组合的情况
-            permutations_dict = {}
-            # total_permutations = 0  # 存储所有排列的数量
-            for idx, lst in enumerate(regret_matching_operator):
-                # 从索引2到倒数第二个元素（不包括最后的6）
-                disruption = lst[2:-1]
-                # 生成xxxx的所有排列
-                permutations = list(itertools.permutations(disruption))
-                # total_permutations += len(permutations)
-                permutations = [[0, 1] + list(perm) + [6] for perm in permutations]
-                # 存储排列,现在所有的排列情况都存在了字典中
-                permutations_dict[idx] = permutations
 
-            """这里准备进行后悔修复"""
+            """这里准备进行后悔修复，先在原先订单中删除待破坏的订单"""
             new_order = best_order  # 列表存储着订单，之后进行删除指标较高的订单
             for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
                 del new_order[index]
-            # """定义一个矩阵来存储所有的相似性值"""
-            # matrix = np.zeros((total_permutations, len(new_order) + 1))
-            # 遍历字典，并对每个排列列表进行操作
-            for key, permutations in permutations_dict.items():
-                """对每一个订单的排列组合进行判断"""
-                row_vectors = []  # 存储每个key的permutations对应的行向量
-                for perm in permutations:
-                    # 得到了相似性的值的数组
-                    array = self.insert_and_evaluate(new_order, perm)
-                    # 添加到列表中
-                    row_vectors.append(array)
-                # 将所有行向量拼接成矩阵
-                matrix = np.vstack(row_vectors)
-                """接下来将矩阵拼接，然后找到最大值索引，然后迭代就可以完成"""
 
+            """接下来我要来破坏订单内部的工艺流程"""
+            """决定将工艺流程暂定为[0,1,xxxx,6],所以所有的情况是xxxx的内部组合"""
+            while regret_matching_operator:  # 如果待插入列表为空，即完成插入
+                # 定义字典来存储所有排列组合的情况
+                permutations_dict = {}
+                # total_permutations = 0  # 存储所有排列的数量
+                for idx, lst in enumerate(regret_matching_operator):
+                    # 从索引2到倒数第二个元素（不包括最后的6）
+                    disruption = lst[2:-1]
+                    # 生成xxxx的所有排列
+                    permutations = list(itertools.permutations(disruption))
+                    # total_permutations += len(permutations)
+                    permutations = [[regret_matching_operator[idx][0]] + [regret_matching_operator[idx][1]]
+                                    + list(perm) + [regret_matching_operator[idx][-1]] for perm in permutations]
+                    # 存储排列,现在所有的排列情况都存在了字典中
+                    permutations_dict[idx] = permutations
+                # """定义一个矩阵来存储所有的相似性值"""
+                # matrix = np.zeros((total_permutations, len(new_order) + 1))
+                # 遍历字典，并对每个排列列表进行操作
+                total_max_value = []  # 用来存储每个排列的最大适应值，方便后续比较
+                total_max_value_index = []  # 用来存储每个排列的最大适应值的索引，方便后续比较
+                for key, permutations in permutations_dict.items():
+                    """对每一个订单的排列组合进行判断"""
+                    row_vectors = []  # 存储每个key的permutations对应的行向量
+                    for perm in permutations:
+                        # 得到了相似性的值的数组
+                        array = self.insert_and_evaluate(new_order, perm)
+                        # 添加到列表中
+                        row_vectors.append(array)
+                    matrix = np.vstack(row_vectors)
+                    """接下来是对矩阵进行最大值及其索引的寻找与储存"""
+                    max_value = np.max(matrix)  # 找到矩阵中的最大值
+                    total_max_value.append(max_value)  # 存入列表，方便之后比较
+                    max_positions = np.where(matrix == max_value)  # 寻找最大值位置
+                    total_max_value_index.append(list(zip(max_positions[0], max_positions[1])))
 
-            # 随机选择一个邻域操作
-            # neighbor_order = self.select_neighbor(best_order)
-            #
-            # """能量，时间计算"""
-            # total_time, total_power = 0, 0
-            # total_time_list = []
-            # # 计算邻域解的总时间和总功率
-            # """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-            # for order in neighbor_order:
-            #     total_time_order, total_power_order = self.order_time_and_power(order)
-            #     total_time_list.append(total_time_order)
-            #     total_power += total_power_order
-            #
-            # total_time = max(total_time_list)
-            # # 如果邻域解的时间或功率更好，则更新最优解
-            # if total_time < best_time and total_power < best_power:
-            #     best_order = neighbor_order
-            #     best_time = total_time
-            #     best_power = total_power
-            #
-            #     # 更新当前解
-            #     best_order = neighbor_order
-            # if random.random() < 0.5:
-            #     # 概率使用贪婪破坏修复
-            #     best_order = self.greedy_destruction(total_time_list, neighbor_order)
+                    """这样比较每个最大值得到插入点，然后迭代就可以完成"""
+                max_value = max(total_max_value)  # 找到每段排列组合之后的插入最大值的最大值
+                max_index = total_max_value.index(max_value)
+                next_insert_position = total_max_value_index[max_index]  # 存储了所有适应值中的最大值在其矩阵中所在位置
+                # 找到了下一个应该插入的订单的样式
+                next_insert_order = permutations_dict[max_index][next_insert_position[0][0]]
+                """完成插入，并修改regret_matching_operator"""
+                new_order.insert(next_insert_position[0][1], next_insert_order)
+                del regret_matching_operator[max_index]
 
+            """将插入好的列表返回为最好列表，进行迭代"""
+            best_order = new_order
+            """将插入好的列表返回为最好列表，进行迭代"""
         return best_order, best_time, best_power
