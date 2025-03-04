@@ -358,9 +358,9 @@ class Arm:
                     sequence_idx += 1
 
         """ALNS计算能量，时间"""
-        best_order = self.apply_ALNS(iterations)
+        best_order = self.apply_ALNS()
         """计算最终所需时间和能耗"""
-
+        self.orders = best_order
         total_time, total_power = 0, 0
         total_time_list = []
 
@@ -387,22 +387,22 @@ class Arm:
             for j in range(i + 1, len(orders)):  # 只比较后续的订单，避免重复比较
                 obj_order = orders[i]  # 查找这个列表中的元素是否在其他列表中
                 search_order = orders[j]  # 被查找的其他元素
-                # 在这里进行比较操作
-                if obj_order == search_order:  # 如果订单完全相同，相似值设为最大
-                    """越近越相似"""
-                    similarity_matrix[i, j] = 10000 / (j - i)
-                    similarity_matrix[j, i] = 10000 / (j - i)
-                else:
-                    similarity = 0  # 临时相似值
-                    for index, element in enumerate(obj_order):
-                        if element in search_order:  # 检查该元素是否在 search_order 中
-                            position_unit = work_name.index(element)  # 找到该生产区的生产单元的数量
-                            num_unit = self.unit_states[-1][position_unit]
-                            position = search_order.index(element)  # 获取该元素在 search_order 中的位置
-                            similarity += math.exp(abs(position - index)) / num_unit  # e^|poi - poj|/number_生产单元
-                    similarity = similarity / (j - i)
-                    similarity_matrix[i, j] = similarity
-                    similarity_matrix[j, i] = similarity
+                # # 在这里进行比较操作
+                # if obj_order == search_order:  # 如果订单完全相同，相似值设为最大
+                #     """越近越相似"""
+                #     similarity_matrix[i, j] = 10000 / (j - i)
+                #     similarity_matrix[j, i] = 10000 / (j - i)
+                # else:
+                similarity = 0  # 临时相似值
+                for index, element in enumerate(obj_order):
+                    if element in search_order:  # 检查该元素是否在 search_order 中
+                        position_unit = work_name.index(element)  # 找到该生产区的生产单元的数量
+                        num_unit = self.unit_states[-1][position_unit]
+                        position = search_order.index(element)  # 获取该元素在 search_order 中的位置
+                        similarity += math.exp(- abs(position - index)) / num_unit  # e^|poi - poj|/number_生产单元
+                similarity = similarity / (j - i)
+                similarity_matrix[i, j] = similarity
+                similarity_matrix[j, i] = similarity
         """将矩阵的每一行加起来就是某个订单的总体相似值"""
         similarity_list = similarity_matrix.sum(axis=1)
 
@@ -431,7 +431,7 @@ class Arm:
         metric = metric_list[index]
         return metric
 
-    def apply_ALNS(self, iterations):
+    def apply_ALNS(self):
         """
         使用ALNS算法优化订单顺序
         """
@@ -473,8 +473,8 @@ class Arm:
                 # """定义一个矩阵来存储所有的相似性值"""
                 # matrix = np.zeros((total_permutations, len(new_order) + 1))
                 # 遍历字典，并对每个排列列表进行操作
-                total_max_value = []  # 用来存储每个排列的最大适应值，方便后续比较
-                total_max_value_index = []  # 用来存储每个排列的最大适应值的索引，方便后续比较
+                total_min_value = []  # 用来存储每个排列的最小适应值，方便后续比较
+                total_min_value_index = []  # 用来存储每个排列的最小适应值的索引，方便后续比较
                 for key, permutations in permutations_dict.items():
                     """对每一个订单的排列组合进行判断"""
                     row_vectors = []  # 存储每个key的permutations对应的行向量
@@ -484,21 +484,21 @@ class Arm:
                         # 添加到列表中
                         row_vectors.append(array)
                     matrix = np.vstack(row_vectors)
-                    """接下来是对矩阵进行最大值及其索引的寻找与储存"""
-                    max_value = np.max(matrix)  # 找到矩阵中的最大值
-                    total_max_value.append(max_value)  # 存入列表，方便之后比较
-                    max_positions = np.where(matrix == max_value)  # 寻找最大值位置
-                    total_max_value_index.append(list(zip(max_positions[0], max_positions[1])))
+                    """接下来是对矩阵进行最小值及其索引的寻找与储存"""
+                    min_value = np.min(matrix)  # 找到矩阵中的最小值
+                    total_min_value.append(min_value)  # 存入列表，方便之后比较
+                    min_positions = np.where(matrix == min_value)  # 寻找最小值位置
+                    total_min_value_index.append(list(zip(min_positions[0], min_positions[1])))
 
-                    """这样比较每个最大值得到插入点，然后迭代就可以完成"""
-                max_value = max(total_max_value)  # 找到每段排列组合之后的插入最大值的最大值
-                max_index = total_max_value.index(max_value)
-                next_insert_position = total_max_value_index[max_index]  # 存储了所有适应值中的最大值在其矩阵中所在位置
+                    """这样比较每个最小值得到插入点，然后迭代就可以完成"""
+                min_value = min(total_min_value)  # 找到每段排列组合之后的插入最小值的最小值
+                min_index = total_min_value.index(min_value)
+                next_insert_position = total_min_value_index[min_index]  # 存储了所有适应值中的最小值在其矩阵中所在位置
                 # 找到了下一个应该插入的订单的样式
-                next_insert_order = permutations_dict[max_index][next_insert_position[0][0]]
+                next_insert_order = permutations_dict[min_index][next_insert_position[0][0]]
                 """完成插入，并修改regret_matching_operator"""
                 new_order.insert(next_insert_position[0][1], next_insert_order)
-                del regret_matching_operator[max_index]
+                del regret_matching_operator[min_index]
 
             """将插入好的列表返回为最好列表，进行迭代"""
             best_order = new_order
