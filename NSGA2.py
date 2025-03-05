@@ -5,6 +5,7 @@ from Config import *
 from robot_arm import Arm
 import copy
 import bisect
+import time
 
 
 # 快速非支配排序
@@ -213,6 +214,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
     gen_no = 0
     population_P = init_population.copy()
     while gen_no <= max_gen:
+        loop_start_time = time.time()
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         # 计算每个解的目标函数值
@@ -363,14 +365,16 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 best_obj2.append(round(total_time,2))  # 将 total_time 添加到 best_obj2
             f = fast_non_dominated_sort(best_obj1, best_obj2)
             # 打印第一前沿中的目标值
-            print(f"Generation {gen_no}, first front:")
+            # print(f"Generation {gen_no}, first front:")
+            cope_time = time.time() - loop_start_time
+            print(f"Generation {gen_no}, time:{cope_time}")
             energy_pic=[]
             time_pic=[]
             for s in f[0]:
-                print((population_P[s], 2), end=' ')
-                print()
-                print(f"Individual {s}: Energy = {best_obj1[s]}, Time = {best_obj2[s]}")
-                print('\n')
+                # print((population_P[s], 2), end=' ')
+                # print()
+                # print(f"Individual {s}: Energy = {best_obj1[s]}, Time = {best_obj2[s]}")
+                # print('\n')
                 energy_pic.append(best_obj1[s])
                 time_pic.append(best_obj2[s])
             plt.scatter(energy_pic, time_pic)
