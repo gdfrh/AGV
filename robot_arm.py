@@ -35,7 +35,6 @@ class Arm:
         # ------------------------
         self._initialize_cells()  # 初始化生产区的机器数
 
-
     def _initialize_cells(self):
         """初始化生产区及其对应的机器数"""
         for zone, unit_count in zip(self.work_name, self.unit_numbers):
@@ -86,7 +85,6 @@ class Arm:
             elif self.machines_count[zone][unit_index] != 0:
                 self.machines_count[zone][unit_index] += 1
                 remaining_machines -= 1
-
 
         """根据生产区机器臂分配比例来分配小车数量"""
         # 1. 计算每个生产区机器臂不为零的生产单元数量
@@ -139,7 +137,7 @@ class Arm:
         float: 调整后的运行时间
         """
 
-        reduction_factor_time = 0  #初始化
+        reduction_factor_time = 0  # 初始化
         reduction_factor_power = 0
         temp_idx = 0
         for zone in self.work_name:

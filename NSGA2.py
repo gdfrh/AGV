@@ -150,42 +150,20 @@ def mutate(individual, init_arm, unit_state, agv_count):
 
     """对小车进行变异"""
     # 先随机选择一个生产区
-    object_zone_agv = random.choice(work_name)
+    object_zone_agv = random.choice(work_name[ :-1])
     # 找到对应的生产区的索引
-    zone_index_agv = work_name.index(object_zone)
+    zone_index_agv = work_name.index(object_zone_agv)
     # 先记录一下选到的小车的数量
     target_agv_count = agv_count[zone_index_agv]
-    # 从小到大排序所有的生产区的小车数量
-    sorted_list = sorted(agv_count)
-    # 找到可以变化的范围
-    # 找到比 target 小的最大值
-    pos = bisect.bisect_left(sorted_list, target_agv_count)
-    if pos > 0:
-        smaller_value = sorted_list[pos - 1]
-    else:
-        smaller_value = None  # 如果 target 是最小值，则没有比它小的值
-
-    # 找到比 target 大的最小值
-    pos = bisect.bisect_right(sorted_list, target_agv_count)
-    if pos < len(sorted_list):
-        larger_value = sorted_list[pos]
-    else:
-        larger_value = None  # 如果 target 是最大值，则没有比它大的值
-    """如果最大值最小值都存在"""
-    if smaller_value is not None and larger_value is not None:
-        new_agv_count = random.randint(smaller_value, larger_value)
-    elif smaller_value is not None and larger_value is None:
-        new_agv_count = random.randint(smaller_value, target_agv_count + 1)
-    elif smaller_value is None and larger_value is not None:
-        new_agv_count = random.randint(max(target_agv_count - 1, 1), larger_value)
-    elif smaller_value is None and larger_value is None:
-        new_agv_count = target_agv_count
-        """小车小车数量不能为0，所以这样可以保证没有0个小车的情况"""
-    agv_count[zone_index_agv] = new_agv_count
+    if target_agv_count > 1:
+        # 随机减少的数量，保证最少剩下一个小车
+        reduction = random.randint(1, target_agv_count - 1)
+        # 更新小车数量
+        agv_count[zone_index_agv] -= reduction
+        agv_count[zone_index_agv + 1] += reduction
 
     # 返回重新组合后的结果,是一个列表,以及分布状态
     return new_individual, new_state, agv_count
-
 
 def anti_mapping(sequence, unit_state):
     """反映射:将序列填充到 machines_count 内部"""
