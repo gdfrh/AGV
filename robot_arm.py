@@ -208,35 +208,31 @@ class Arm:
         else:
             return None  # 如果没有空闲单元
 
-    def find_true_min_time(self, zone):
-        """找出某个生产区中状态为 True 的生产单元中，所需等待时间最短的"""
+    def find_min_wait_time(self, zone, obj_type):
+        """找出某个生产区中所需等待时间最短的单元或小车
+        :param zone: 生产区域
+        :param obj_type: 'unit表示生产单元，'agv表示小车
+        """
         min_wait_time = float('inf')
         min_unit_index = -1  # 记录等待时间最短的生产单元的索引
 
-        for i, status in enumerate(self.work_status[zone]):
-            if status:  # 如果当前生产单元处于忙碌状态
-                if self.end_time[zone][i] - time.time() < min_wait_time:
-                    min_wait_time = self.end_time[zone][i] - time.time()
-                    min_unit_index = i
-
-        # 返回等待时间最短的生产单元索引及其等待时间
-        if min_unit_index != -1:
-            return min_unit_index, min_wait_time
+        if obj_type == 'unit':
+            status_list = self.work_status[zone]
+            end_time_list = self.end_time[zone]
+        elif obj_type == 'agv':
+            status_list = self.agv_states[zone]
+            end_time_list = self.agv_end_time[zone]
         else:
-            return None  # 如果没有空闲单元
+            raise ValueError("Type must be 'unit' or 'agv'")
 
-    def find_true_min_time_agv(self, zone):
-        """找出某个生产区中状态为 True 所需等待时间最短的小车"""
-        min_wait_time = float('inf')
-        min_unit_index = -1  # 记录等待时间最短的生产单元的索引
-
-        for i, status in enumerate(self.agv_states[zone]):
-            if status:  # 如果当前小车处于忙碌状态
-                if self.agv_end_time[zone][i] - time.time() < min_wait_time:
-                    min_wait_time = self.agv_end_time[zone][i] - time.time()
+        for i, status in enumerate(status_list):
+            if status:  # 如果当前单元或小车处于忙碌状态
+                remaining_time = end_time_list[i] - time.time()
+                if remaining_time < min_wait_time:
+                    min_wait_time = remaining_time
                     min_unit_index = i
 
-        # 返回等待时间最短的生产单元索引及其等待时间
+        # 返回等待时间最短的单元索引及其等待时间
         if min_unit_index != -1:
             return min_unit_index, min_wait_time
         else:
@@ -256,13 +252,7 @@ class Arm:
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_total_time = 0  # 一个订单完成所需时间
         order_total_power = 0  # 一个订单完成所需功率
-        # 遍历订单的每个生产区，计算总时间
-        # for i in order:
-        #     units = self.machines_count[i]
-        #
-        #     """这里我们先找到最多机器臂的生产单元和机器臂数量，再根据数量对时间和功率的影响修改时间和功率"""
-        #     max_machines.append(max(units))  # 找到最大的机器臂数量
-        #     #max_index = units.index(max_machines)  # 找到最大值的索引
+
         """遍历所有生产区和单元，将机器臂数量为 0 的生产单元的状态改为忙碌，避免出现选择0个机器臂的生产单元进行操作"""
         for zone in self.machines_count:
             for i in range(len(self.machines_count[zone])):
@@ -277,7 +267,7 @@ class Arm:
 
             if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
                 """需要获得等待时间再加上工作时间"""
-                min_unit_index, min_wait_time = self.find_true_min_time(start_zone)
+                min_unit_index, min_wait_time = self.find_min_wait_time(start_zone,'unit')
                 self.work_status[start_zone][min_unit_index] = False
 
             if False in self.work_status[start_zone]:
@@ -298,7 +288,7 @@ class Arm:
                 # 2. 计算运输时间
                 if False not in self.agv_states[start_zone]:  # 该生产区的小车全部忙碌
                     """如果该生产区不存在空闲小车"""
-                    min_unit_index_agv, min_wait_time_agv = self.find_true_min_time_agv(start_zone)
+                    min_unit_index_agv, min_wait_time_agv = self.find_min_wait_time(start_zone, 'agv')
                     self.agv_states[start_zone][min_unit_index] = False
 
                 if False in self.work_status[start_zone]:
