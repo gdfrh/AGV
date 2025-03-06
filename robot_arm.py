@@ -8,6 +8,7 @@ import numpy as np
 import math
 import heapq
 import itertools
+import copy
 
 
 class Arm:
@@ -332,8 +333,7 @@ class Arm:
 
         return order_total_time, order_total_power
 
-    def object_function(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
-        """初始化"""
+    def _initialize_function(self, idx):
         for zone, unit_count in zip(self.work_name, self.unit_states[idx]):
             self.machines_count[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
             self.work_status[zone] = [False] * unit_count  # 初始时，生产区是空闲的
@@ -345,6 +345,7 @@ class Arm:
             self.agv_start_time[zone] = [0] * agv_count  # 初始时，没有开始时间
             self.agv_end_time[zone] = [0] * agv_count  # 初始时，没有结束时间
 
+    def padding(self, sequence):
         """序列反填充"""
         sequence_idx = 0  # 追踪当前序列中的索引
         # 使用序列填充机器臂数量
@@ -357,10 +358,34 @@ class Arm:
                     self.machines_count[zone][i] = int(machines[sequence_idx])  # 给当前生产单元赋值机器数量
                     sequence_idx += 1
 
+    def object_function_1(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+        """初始化"""
+        self._initialize_function(idx)
+        self.padding(sequence)
+
+        """计算最终所需时间和能耗"""
+        total_time, total_power = 0, 0
+        total_time_list = []
+
+        """计算每个订单的消耗，功率应该累加，但是时间不应该"""
+        for order in self.orders:
+            total_time_order, total_power_order = self.order_time_and_power(order)
+            total_time_list.append(total_time_order)
+            total_power += total_power_order
+
+        best_time = max(total_time_list)
+        best_power = total_power
+
+        return best_power, best_time
+
+    def object_function_2(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+        """初始化"""
+        self._initialize_function(idx)
+        self.padding(sequence)
+
         """ALNS计算能量，时间"""
         best_order = self.apply_ALNS()
         """计算最终所需时间和能耗"""
-        self.orders = best_order
         total_time, total_power = 0, 0
         total_time_list = []
 
@@ -436,7 +461,7 @@ class Arm:
         使用ALNS算法优化订单顺序
         """
         """初始化最佳时间和能耗"""
-        best_order = self.orders  # 初始订单
+        best_order = copy.deepcopy(self.orders)  # 初始订单
         for _ in range(iterations):
             regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
             similarity = self.calculate_similarity(best_order)  # 存储订单相似值的列表

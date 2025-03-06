@@ -101,8 +101,8 @@ max_gen = 100
 
 # ------------------------
 # 订单数
-num_orders = 20
+num_orders = 10
 # 订单相似破坏率
-similarity_percent = 0.2
+similarity_percent = 0.1
 # ALNS迭代
-iterations = 20
+iterations = 10

@@ -213,15 +213,15 @@ def anti_mapping(sequence, unit_state):
 def main_loop(pop_size, max_gen, init_population,init_arm):
     gen_no = 0
     population_P = init_population.copy()
+    loop_start_time = time.time()
     while gen_no <= max_gen:
-        loop_start_time = time.time()
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         # 计算每个解的目标函数值
         objective1 = []
         objective2 = []
         for i in range(len(population_R)):
-            total_energy, total_time = init_arm.object_function(population_R[i], i)
+            total_energy, total_time = init_arm.object_function_1(population_R[i], i)
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))  # 将 total_time 添加到 objective2
 
@@ -322,11 +322,12 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         """此时len(population_R)>=2 * pop_size"""
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-            total_energy, total_time = init_arm.object_function(population_R[i], i)
+            total_energy, total_time = init_arm.object_function_2(population_R[i], i)
 
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))    # 将 total_time 添加到 objective2
         fronts = fast_non_dominated_sort(objective1, objective2)
+
         # 获取P(t+1)，先从等级高的fronts复制，然后在同一层front根据拥挤距离选择
         population_P_next = []
         choose_solution = []
@@ -359,7 +360,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             best_obj2 = []
             for i in range(pop_size):
                 # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-                total_energy, total_time = init_arm.object_function(population_P[i], i)
+                total_energy, total_time = init_arm.object_function_2(population_P[i], i)
 
                 best_obj1.append(round(total_energy,2))  # 将 total_energy 添加到 best_obj1
                 best_obj2.append(round(total_time,2))  # 将 total_time 添加到 best_obj2
@@ -367,6 +368,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             # 打印第一前沿中的目标值
             # print(f"Generation {gen_no}, first front:")
             cope_time = time.time() - loop_start_time
+
             print(f"Generation {gen_no}, time:{cope_time}")
             energy_pic=[]
             time_pic=[]
@@ -379,8 +381,9 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 time_pic.append(best_obj2[s])
             plt.scatter(energy_pic, time_pic)
             plt.show()
-            """我感觉是点覆盖了，结果重复，所以需要对时间和功率进行调整
-            至于s的问题，应该是之前排序过了，所以最优的已经往前放了，就会顺序执行"""
+
+            loop_start_time = time.time()
+
         gen_no += 1
 
     return energy_pic, time_pic
