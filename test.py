@@ -335,20 +335,24 @@
 #         # 这里可以进行你需要的任何操作
 #         print(perm)  # 打印排列
 #
-import numpy as np
-array = [1,3,5]
-brrby = [1,5,9]
-row_vectors = []
-row_vectors.append(array)
-row_vectors.append(brrby)
-print(row_vectors)
-# 将所有行向量拼接成矩阵
-matrix = np.vstack(row_vectors)
-print(matrix)
-# i = 2
-# new_order = [1,2,3]
-# order_sequence = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
-# new_sequence = order_sequence[:i] + [new_order] + order_sequence[i:]
-# print(new_sequence)
-# scores_array = np.zeros(len(order_sequence) + 1)
-# print(scores_array)
+# import numpy as np
+# array = [1,3,5]
+# brrby = [1,5,9]
+# row_vectors = []
+# row_vectors.append(array)
+# row_vectors.append(brrby)
+# print(row_vectors)
+# # 将所有行向量拼接成矩阵
+# matrix = np.vstack(row_vectors)
+# print(matrix)
+# # i = 2
+# # new_order = [1,2,3]
+# # order_sequence = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
+# # new_sequence = order_sequence[:i] + [new_order] + order_sequence[i:]
+# # print(new_sequence)
+# # scores_array = np.zeros(len(order_sequence) + 1)
+# # print(scores_array)
+work_name_up = ['组装区', '铸造区', '清洗区', '包装区']
+work_name_down = ['焊接区', '喷漆区', '配置区']
+work_name = work_name_up + work_name_down
+print(work_name[-1])

@@ -150,7 +150,7 @@ def mutate(individual, init_arm, unit_state, agv_count):
 
     """对小车进行变异"""
     # 先随机选择一个生产区
-    object_zone_agv = random.choice(work_name[ :-1])
+    object_zone_agv = random.choice(work_name)
     # 找到对应的生产区的索引
     zone_index_agv = work_name.index(object_zone_agv)
     # 先记录一下选到的小车的数量
@@ -160,7 +160,10 @@ def mutate(individual, init_arm, unit_state, agv_count):
         reduction = random.randint(1, target_agv_count - 1)
         # 更新小车数量
         agv_count[zone_index_agv] -= reduction
-        agv_count[zone_index_agv + 1] += reduction
+        if object_zone_agv == work_name[-1]:
+            agv_count[0] += reduction
+        else:
+            agv_count[zone_index_agv + 1] += reduction
 
     # 返回重新组合后的结果,是一个列表,以及分布状态
     return new_individual, new_state, agv_count
