@@ -105,4 +105,5 @@ num_orders = 10
 # 订单相似破坏率
 similarity_percent = 0.1
 # ALNS迭代
-iterations = 10
+iterations = 1
+

@@ -352,7 +352,27 @@
 # # print(new_sequence)
 # # scores_array = np.zeros(len(order_sequence) + 1)
 # # print(scores_array)
-work_name_up = ['组装区', '铸造区', '清洗区', '包装区']
-work_name_down = ['焊接区', '喷漆区', '配置区']
-work_name = work_name_up + work_name_down
-print(work_name[-1])
+# work_name_up = ['组装区', '铸造区', '清洗区', '包装区']
+# work_name_down = ['焊接区', '喷漆区', '配置区']
+# work_name = work_name_up + work_name_down
+# print(work_name[-1])
+def find_key_and_list_for_index(data_dict, index):
+    current_index = 0
+    for key, lists in data_dict.items():
+        for lst in lists:
+            if current_index == index:
+                return key, lst  # 返回找到的键和列表
+            current_index += 1
+    return None, None  # 如果没有找到，返回None
+
+# 示例使用
+data_dict = {
+    'key1': [['list1'], ['list2'], ['list3']],
+    'key2': [['list4'], ['list5'], ['list6'], ['list7']],
+    'key3': [['list8'], ['list9'], ['list10'], ['list11'], ['list12']]
+}
+
+index_to_find = 11
+found_key, found_list = find_key_and_list_for_index(data_dict, index_to_find)
+print(f"索引 {index_to_find} 对应的键是：{found_key}")
+print(f"该键对应的列表是：{found_list}")
