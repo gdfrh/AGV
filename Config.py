@@ -66,13 +66,13 @@ distance_matrix = [
 暂定功率保持不变
 修改一下吧，为了保证样本丰富性，我为每个生产区设定参数
 """
-reduction_factor_time_list = [0.30, 0.30, 0.50, 0.65, 0.12, 0.35, 0.10]
-reduction_factor_power_list = [0.25, 0.20, 0.45, 0.70, 0.10, 0.30, 0.05]
+reduction_factor_time_list = [0.32, 0.37, 0.51, 0.63, 0.17, 0.33, 0.15]
+reduction_factor_power_list = [0.26, 0.21, 0.47, 0.71, 0.11, 0.31, 0.15]
 
 # ------------------------
 # 机器臂配置
 total_machines = 50  # 总机器数
-machine_power = 100  # 每台机器的功率（单位：W）
+machine_power = 30  # 每台机器的功率（单位：W）
 
 # 存储机器臂的分配
 machine_count_list = []  # 列表
@@ -96,14 +96,14 @@ agv_speed = 5000
 
 # ------------------------
 # NSGA2参数
-pop_size = 50
-max_gen = 100
+pop_size = 80
+max_gen = 500
 
 # ------------------------
 # 订单数
-num_orders = 10
+num_orders = 20
 # 订单相似破坏率
 similarity_percent = 0.1
 # ALNS迭代
-iterations = 1
+iterations = 0
 

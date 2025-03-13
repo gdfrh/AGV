@@ -6,6 +6,8 @@ from robot_arm import Arm
 import copy
 import bisect
 import time
+import plotly.express as px
+import pandas as pd
 
 
 # 快速非支配排序
@@ -298,20 +300,23 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
 
         objective1 = []
         objective2 = []
+        obj_order = []
 
         # for i in range(2 * pop_size):
         """此时len(population_R)>=2 * pop_size"""
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-            total_energy, total_time = init_arm.object_function_2(population_R[i], i)
+            total_energy, total_time, total_order = init_arm.object_function_2(population_R[i], i)
 
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))    # 将 total_time 添加到 objective2
+            obj_order.append(total_order)
         fronts = fast_non_dominated_sort(objective1, objective2)
 
         # 获取P(t+1)，先从等级高的fronts复制，然后在同一层front根据拥挤距离选择
         population_P_next = []
         choose_solution = []
+        obj_order_next = []
         # 存储新一代的分布状态
         new_state = []
         new_agv_count = []
@@ -322,6 +327,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 new_state.append(init_arm.unit_states[s])
                 new_agv_count.append(init_arm.agv_count[s])
                 population_P_next.append(population_R[s])
+                obj_order_next.append(obj_order[s])
             level += 1
         if len(population_P_next) != pop_size:
             level_distance = crowed_distance_assignment(objective1, objective2, fronts[level])
@@ -331,38 +337,77 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 new_state.append(init_arm.unit_states[sort_solution[i]])
                 new_agv_count.append(init_arm.agv_count[sort_solution[i]])
                 population_P_next.append(population_R[sort_solution[i]])
+                obj_order_next.append(obj_order[sort_solution[i]])
+
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
         """新一代分布状态"""
         init_arm.unit_states = new_state.copy()
         init_arm.agv_count = new_agv_count.copy()
-        if gen_no % 10 == 0:
+        if gen_no % 50 == 0:
             best_obj1 = []
             best_obj2 = []
+
             for i in range(pop_size):
                 # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-                total_energy, total_time = init_arm.object_function_2(population_P[i], i)
+                total_energy, total_time,total_order = init_arm.object_function_2(population_P[i], i)
 
                 best_obj1.append(round(total_energy,2))  # 将 total_energy 添加到 best_obj1
                 best_obj2.append(round(total_time,2))  # 将 total_time 添加到 best_obj2
+
             f = fast_non_dominated_sort(best_obj1, best_obj2)
             # 打印第一前沿中的目标值
             # print(f"Generation {gen_no}, first front:")
             cope_time = time.time() - loop_start_time
 
             print(f"Generation {gen_no}, time:{cope_time}")
-            energy_pic=[]
-            time_pic=[]
+            energy_pic = []
+            time_pic = []
+            agv_distributions = []
+            order_distributions = []
+            distributions_dicts = []
             for s in f[0]:
+                """值可视化"""
                 # print((population_P[s], 2), end=' ')
                 # print()
                 # print(f"Individual {s}: Energy = {best_obj1[s]}, Time = {best_obj2[s]}")
                 # print('\n')
                 energy_pic.append(best_obj1[s])
                 time_pic.append(best_obj2[s])
-            plt.scatter(energy_pic, time_pic)
-            plt.show()
+                agv_distributions.append(new_agv_count[s])  # 小车分配
+                order_distributions.append(obj_order_next[s])   # 订单分配
+                distributions_dicts.append(anti_mapping(population_P[s], new_state[s])) # 生产单元机器臂分配（字典）
+            """python图片可视化"""
+            # plt.scatter(energy_pic, time_pic)
+            # plt.show()
+            """plotly图片可视化"""
+            # 数据字典
+            data = {
+                'energy': energy_pic,
+                'time': time_pic,
+                'agv_distribution':agv_distributions,
+                'order':order_distributions
+            }
 
+            # 计算最大长度
+            max_length = max(len(lst) for lst in data.values())
+
+            # 调整所有列表到相同的长度
+            for key in data:
+                current_length = len(data[key])
+                if current_length < max_length:
+                    # 补全列表
+                    data[key].extend([None] * (max_length - current_length))
+            # 将字典转换为 DataFrame
+            df = pd.DataFrame(data)
+            df_dicts = pd.DataFrame(distributions_dicts)
+            # 合并 DataFrame
+            df_final = pd.concat([df, df_dicts], axis=1)
+            # 使用 Plotly Express 创建散点图
+            fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
+                             hover_data=['agv_distribution','组装区', '铸造区', '清洗区', '包装区','焊接区', '喷漆区', '配置区'])
+            # 显示图表
+            fig.show()
             loop_start_time = time.time()
 
         gen_no += 1

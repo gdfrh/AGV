@@ -387,7 +387,7 @@ class Arm:
 
         best_power = total_power
 
-        return best_power, best_time
+        return best_power, best_time, best_order
 
     """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""
 
