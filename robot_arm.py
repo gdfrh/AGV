@@ -1,9 +1,7 @@
 from Config import *
 from order import *
 import random
-import threading
 import time
-from Util import *
 import numpy as np
 import math
 import heapq

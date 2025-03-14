@@ -91,3 +91,5 @@ BUG：在NSGA2算法中有时会出现种群不足以更新下一种群
 File "D:\AGV\robot_arm.py", line 268, in order_time_and_power
     min_unit_index, min_wait_time = self.find_min_wait_time(start_zone,'unit')
 TypeError: cannot unpack non-iterable NoneType object，函数返回None，可能是time.time()的问题
+
+空闲生产区的选择问题
