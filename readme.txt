@@ -84,3 +84,10 @@ BUG：在NSGA2算法中有时会出现种群不足以更新下一种群
           现在使用了3个function，第一个是对代种群进行交叉变异前扩充种群：：：我想只计算不ALNS优化这开始的填充种群
                               第二个是对扩充完的种群获取下一代的排序
                               第三个是每十代的输出：：：这里面是否可以直接用2里面的输出来，不用再算一遍了
+
+
+3.13还是要解决一下解的多样性问题，经常跑不出来
+3.14:
+File "D:\AGV\robot_arm.py", line 268, in order_time_and_power
+    min_unit_index, min_wait_time = self.find_min_wait_time(start_zone,'unit')
+TypeError: cannot unpack non-iterable NoneType object，函数返回None，可能是time.time()的问题

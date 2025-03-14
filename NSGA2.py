@@ -8,6 +8,7 @@ import bisect
 import time
 import plotly.express as px
 import pandas as pd
+import re
 
 
 # 快速非支配排序
@@ -64,33 +65,49 @@ def crowed_distance_assignment(values1, values2, front):
     return distance
 
 
-def crossover(individual1, individual2, idx, unit_number1, unit_number2):
-    # 确保 individual1 和 individual2 不是同一个解
-
+def crossover(individual1, individual2, unit_state_list1, unit_state_list2):
     # 将列表中的数字转换为字符串
     individual1_str = str(individual1)  # 不考虑括号
     individual2_str = str(individual2)
+    # 使用正则表达式查找连续的非零数字和后面跟随的所有零
+    parts1 = re.findall(r'[1-9]+0*', individual1_str)
+    parts2 = re.findall(r'[1-9]+0*', individual2_str)
+    new_parts1 = []
+    new_parts2 = []
 
-    # 将字符串中的每个字符转换为整数，存入新列表
-    expanded1_list = [int(digit) for digit in individual1_str]
-    expanded2_list = [int(digit) for digit in individual2_str]
-    """如果选择的2个位置都是0或者是相同的数字，那么交换之后解是不变的，我们可以在之后进行判断"""
-    # 交换两个位置的元素
-    expanded1_list[idx], expanded2_list[idx] = expanded2_list[idx], expanded1_list[idx]
+    for i in range(len(parts1)):    # 0到6
+        # 将字符串中的每个字符转换为整数，存入新列表
+        expanded1_list = [int(digit) for digit in parts1[i]]
+        expanded2_list = [int(digit) for digit in parts2[i]]
+        """如果选择的2个位置都是0或者是相同的数字，那么交换之后解是不变的，我们可以在之后进行判断"""
+        # 交换两个位置的元素
+        # 找出两个列表中非零元素的索引
+        non_zero_indices1 = [i for i, x in enumerate(expanded1_list) if x != 0]
+        non_zero_indices2 = [i for i, x in enumerate(expanded2_list) if x != 0]
+        idx1 = random.choice(non_zero_indices1)
+        idx2 = random.choice(non_zero_indices2)
+        idx =random.choice([idx1, idx2])
+        expanded1_list[idx], expanded2_list[idx] = expanded2_list[idx], expanded1_list[idx]
 
-    # 将 expanded_list 中的数字重新组合成一个新的字符串
-    new_str1 = ''.join(map(str, expanded1_list))
-    new_str2 = ''.join(map(str, expanded2_list))
+        # 排序列表，从大到小
+        expanded1_list = sorted(expanded1_list, reverse=True)
+        expanded2_list = sorted(expanded2_list, reverse=True)
 
-    # # 计算 individual1 和 individual2 每一位数字的和
-    # sum1 = sum(expanded1_list)  # 计算 individual1 每一位的和
-    # sum2 = sum(expanded2_list)  # 计算 individual2 每一位的和
+        # 将 expanded_list 中的数字重新组合成一个新的字符串
+        new_str1 = ''.join(map(str, expanded1_list))
+        new_str2 = ''.join(map(str, expanded2_list))
+
+        # 添加到新列表
+        new_parts1.append(new_str1)
+        new_parts2.append(new_str2)
+    new_parts1 = ''.join(map(str, new_parts1))
+    new_parts2 = ''.join(map(str, new_parts2))
+
     # # 将组合后的字符串转换为一个整数
     """前导0？如果从大到小排序，对应交换，第一个就不会是零,否则规定一下位数"""
-    new_individual1 = int(new_str1)
-    new_individual2 = int(new_str2)
-    new_individual1 = f"{new_individual1:0{unit_number1}d}"
-    new_individual2 = f"{new_individual2:0{unit_number2}d}"
+    new_individual1 = int(new_parts1)
+    new_individual2 = int(new_parts2)
+
     """不能超过总机器臂数量，否则重新交叉，我觉得不需要在这里管这个约束，直接在变异之后再判断就行"""
     # if sum1 <= total_machines and sum2 <= total_machines:
     # 返回重新组合后的结果,是一个数字
@@ -126,7 +143,7 @@ def mutate(individual, init_arm, unit_state, agv_count):
     """新的分布状态暂时和交叉的时候的分布状态一致"""
     new_state = copy.deepcopy(unit_state)
     if total_machines - sum_of_digits < required_machines:
-        """机器臂不够新增一个生产单元，随机选择一个生产区减少一个生产单元"""
+        """机器臂不够新增一个生产单元，随机选择一个生产单元删除它"""
         # 随机选择一个生产单元并删除
         unit_to_remove = random.choice(zone_units)
         zone_units.remove(unit_to_remove)
@@ -138,9 +155,9 @@ def mutate(individual, init_arm, unit_state, agv_count):
         """机器臂可以新增一个生产单元，随机选择一个生产区，增加1个生产单元"""
         zone_units.append(required_machines)
         expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
+        expanded_list = sorted(expanded_list, reverse=True)
         """对应拷贝分布状态加一，避免影响之前的状态"""
         new_state[zone_index] += 1
-
 
     # 将 expanded_list 中的数字重新组合成一个新的字符串
     new_str = ''.join(map(str, expanded_list))
@@ -148,7 +165,6 @@ def mutate(individual, init_arm, unit_state, agv_count):
     total_units = sum(new_state)
     # 将组合后的字符串转换为一个整数
     new_individual = int(new_str)
-    new_individual = f"{new_individual:0{total_units}d}"
 
     """对小车进行变异"""
     # 先随机选择一个生产区
@@ -212,19 +228,23 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         fronts = fast_non_dominated_sort(objective1, objective2)
         """如果全是第一前沿呢？加判断条件"""
         # 获取非第一前沿的解，进行交叉和变异
-        non_front_1 = []  # 非第一前沿的解的索引
+        not_front_1 = []  # 非第一前沿的解的索引
         for level in range(1, len(fronts)):  # 从第二前沿开始
             for s in fronts[level]:
-                non_front_1.append(s)
+                not_front_1.append(s)
         front_1 = []  # 第一前沿的解的索引
         for s in fronts[0]:  # 从第一前沿开始
                 front_1.append(s)
-        if non_front_1:
-            """non_front_1不为空，则使用它（如果数量太少呢）"""
-            use_list = non_front_1
-        else:
-            """non_front_1为空，则使用第一前沿解"""
+        if not not_front_1:
+            """not_front_1为空，则使用第一前沿解"""
             use_list = front_1
+        elif len(not_front_1) >= number_limits*pop_size:
+            """not_front_1数量不少于x倍总种群，则使用它"""
+            use_list = not_front_1
+        else:
+            """如果not_front_1数量太少,则全局使用"""
+            use_list = front_1 + not_front_1
+
         # 每一次迭代之后解数量不足2 * pop_size
         while len(population_R) < 2 * pop_size:
             machine_counts1 = {}
@@ -233,17 +253,12 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             is_zero1 = False
             is_zero2 = False
             # 随机选择2个不同的非第一前沿的个体进行交叉
-            """如果use_list过于少呢？是否应该选择部分的第一前沿？（未解决）"""
             x = random.choice(use_list)
             y = random.choice(use_list)
             if x != y:#虽然应该不止一个
 
-                # 再找到交叉的位置
-                """这里选择需要判断一下，选取最短的序列的任意一位"""
-                idx = random.randint(0, min(len(str(population_R[x])) - 1, len(str(population_R[y])) - 1))
-                """如果变异改变生产单元数，这里修改为判断unit_states,但是有个问题，对应交换是否达不到预期，因为序列长度不同？（未解决）"""
-                new_member1, new_member2 = crossover(population_R[x], population_R[y], idx,
-                                                     sum(init_arm.unit_states[x]), sum(init_arm.unit_states[y]))
+                new_member1, new_member2 = crossover(population_R[x], population_R[y],
+                                                     init_arm.unit_states[x], init_arm.unit_states[y])
                 """下一个可能的生产单元分布状态"""
                 new_state1 = init_arm.unit_states[x]
                 new_state2 = init_arm.unit_states[y]
@@ -253,7 +268,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 new_agv_count2 = init_arm.agv_count[y]
 
                 # 变异操作
-                if random.random() < 0.2:  # 假设变异概率为20%
+                if random.random() < mutation_probability:  # 变异概率
                     new_member1, new_state1,new_agv_count1= mutate(new_member1, init_arm, init_arm.unit_states[x], init_arm.agv_count[x])  # 对新个体进行变异
                     new_member2, new_state2,new_agv_count2= mutate(new_member2, init_arm, init_arm.unit_states[y], init_arm.agv_count[y])
 

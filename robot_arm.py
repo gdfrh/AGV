@@ -102,10 +102,10 @@ class Arm:
             agv_distribute.append(car_count_for_zone)
         self.agv_count.append(agv_distribute)
 
-        # # 3. 对每个生产区的生产单元按机器数量从大到小排序
-        # for zone in self.machines_count:
-        #     # 排序每个生产区的单元，按机器数量从大到小
-        #     self.machines_count[zone] = sorted(self.machines_count[zone], reverse=True)
+        # 3. 对每个生产区的生产单元按机器数量从大到小排序
+        for zone in self.machines_count:
+            # 排序每个生产区的单元，按机器数量从大到小
+            self.machines_count[zone] = sorted(self.machines_count[zone], reverse=True)
 
     def display_machine_count(self):
         """返回每个生产区中各单元的机器数，并存储到列表中"""
