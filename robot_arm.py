@@ -115,11 +115,7 @@ class Arm:
         merged_str = ''.join(map(str, machine_count_list))
         # 将连接后的字符串转换为整数
         merged_number = int(merged_str)
-        """前导0的问题，不足位数补0"""
-        # 先计算总单元数
-        total_units = sum(self.unit_numbers)
-        machine_count_list_renew = f"{merged_number:0{total_units}d}"
-        # machine_count_list_renew = merged_number
+        machine_count_list_renew = merged_number
         return machine_count_list_renew
 
     def calculate_reduction(self, initial_time, initial_power, zone_name, machine_count):
@@ -263,7 +259,7 @@ class Arm:
 
             if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
                 """需要获得等待时间再加上工作时间"""
-                min_unit_index, min_wait_time = self.find_min_wait_time(start_zone,'unit')
+                min_unit_index, min_wait_time = self.find_min_wait_time(start_zone, 'unit')
                 self.work_status[start_zone][min_unit_index] = False
 
             if False in self.work_status[start_zone]:
