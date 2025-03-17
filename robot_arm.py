@@ -303,7 +303,7 @@ class Arm:
                         # 标记此行已找到非 None 值
                         row_found[row] = True
 
-                        if False in self.work_status[start_zone] and time_line.current_time == time_line.timeline[row]:   # 存在空闲生产单元并且订单不处于忙碌
+                        if False in self.work_status[start_zone] and time_line.current_time >= time_line.timeline[row]:   # 存在空闲生产单元并且订单不处于忙碌
                             # 并且所找到的生产区变为None
                             order_matrix[row, col] = None
                             max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 暂时选择机器臂最多的单元
