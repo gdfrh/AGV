@@ -245,10 +245,21 @@ class Arm:
 
         return idle_cars
 
+    def find_last_none_index(self, matrix, idx):
+        # 获取指定行
+        row = matrix[idx]
+        # 从后向前查找 None 的索引
+        for i in range(len(row) - 1, -1, -1):
+            if row[i] is None:
+                return i
+        return -1  # 如果没有找到 None，则返回 -1
+
     def order_time_and_power(self, orders):
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
-        order_total_time = 0  # 一个订单完成所需时间
-        order_total_power = 0  # 一个订单完成所需功率
+        order_time = 0  # 订单步骤完成所需时间
+        order_power = 0  # 订单步骤完成所需功率
+        use_time = []   # 每个订单所用时间的列表
+        use_power = 0   # 总共消耗的功率
         """遍历所有生产区和单元，将机器臂数量为 0 的生产单元的状态改为忙碌，避免出现选择0个机器臂的生产单元进行操作"""
         for zone in self.machines_count:
             for i in range(len(self.machines_count[zone])):
@@ -256,51 +267,62 @@ class Arm:
                     self.work_status[zone][i] = True  # 将该生产单元状态设为忙碌
                     self.end_time[zone][i] = float('inf')  # 设置一个很大的结束时间，确保不会被选中
 
-        time_line = Timeline(orders)  # 引入时间轴
+        time_line = Timeline()  # 引入时间轴
 
         # 找到最长的订单长度
         max_steps = max(len(order) for order in orders)
 
-        # 创建矩阵，并填充 None 占位
-        order_matrix = np.full((len(orders), max_steps), None, dtype=object)
+        # 创建矩阵，并填充 0 占位
+        order_matrix = np.full((len(orders), max_steps), 0, dtype=object)
         # 获取矩阵的维度
         num_rows, num_cols = order_matrix.shape
         # 填充订单数据
         for i, order in enumerate(orders):
             order_matrix[i, :len(order)] = order  # 只填充有效的订单步骤
-        # 记录每一行是否已经找到了非 None 值
-        row_found = [False] * num_rows
+
         # 初始化条件或一个标志来确保至少进入循环一次
         first_iteration = True
+        idx = None  # 记录时间节点的索引
         while first_iteration or time_line.timeline:
+            # 记录每一行是否已经找到了非 None 值，每一次都需要重置
+            row_found = [False] * num_rows
             if first_iteration:
                 first_iteration = False
+            if idx is not None:  # 不是第一次迭代，idx代表第idx个订单的时间节点到了，即完成了操作
+                zone_idx = self.find_last_none_index(order_matrix, idx)  # 找到最后一个None的索引位置，即是对应生产区的位置
+                obj_zone = orders[idx][zone_idx]    # 目标生产区
+                self.work_status[obj_zone][time_line.step[idx]] = False  # 生产单元变为空闲
 
             for col in range(num_cols):
                 for row in range(num_rows):
-                    # 检查当前行是否已经找到非 None 值，即每一个非None值可以进行一个节点的添加
-                    if not row_found[row]:
-                        if order_matrix[row, col] is not None:
-                            # 找到目标生产区
-                            start_zone = orders[row][col]
-                            end_zone = orders[row][col + 1]
-                            # 标记此行已找到非 None 值
-                            row_found[row] = True
+                    # 检查当前行是否已经找到非 None 0 值，即每一个非None值可以进行一个节点的添加，如果已经找到就不需要管后续列
+                    if not row_found[row] and order_matrix[row, col] is not None and order_matrix[row, col] is not 0:
+                        # 找到目标生产区
+                        start_zone = orders[row][col]
+                        end_zone = orders[row][col + 1]
+                        # 标记此行已找到非 None 值
+                        row_found[row] = True
+
+                        if False in self.work_status[start_zone] and time_line.current_time == time_line.timeline[row]:   # 存在空闲生产单元并且订单不处于忙碌
                             # 并且所找到的生产区变为None
                             order_matrix[row, col] = None
-                            if False in self.work_status[start_zone]:   # 存在空闲生产单元
-                                max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 暂时选择机器臂最多的单元
-                                order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
-                                order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
-                                # 记录使用时间
-                                use_time = order_total_time_renew + processing_time['sleep_time']
-                                time_line.timeline.append(use_time + time_line.current_time)    # 添加时间节点
-                                self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
+                            max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 暂时选择机器臂最多的单元
+                            order_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
+                            order_power += self.calculate_task_energy(order_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
+                            # 记录使用时间和功率
+                            use_time = order_time_renew + processing_time['sleep_time']
+                            use_power += order_power
+                            time_line.add_timeline((use_time + time_line.current_time), row, max_unit_index)   # 添加时间节点，可以知道对应的订单
+                            self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
 
+                        # 如果不存在空闲生产单元，因此该订单后续的操作都不需要管
+                    # 如果下一步为0或者整行为None，即完成了该订单,记录时间
+                    if order_matrix[row, col] is 0 or self.find_last_none_index(order_matrix, row) == num_cols - 1:
+                        use_time[row] = time_line.timeline[row]
                 # 如果所有行都找到了非 None 值，提前结束遍历
                 if all(row_found):
                     break
-            time_line.get_next_point()
+            idx = time_line.get_next_point()
 
         # for i in range(len(order)):
         #     start_zone = order[i]
