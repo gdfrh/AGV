@@ -7,6 +7,7 @@ import math
 import heapq
 import itertools
 import copy
+from dispatch import Timeline
 
 
 class Arm:
@@ -32,6 +33,7 @@ class Arm:
         self.agv_end_time = {}  # 用来记录生产区小车工作的结束时间
         # ------------------------
         self._initialize_cells()  # 初始化生产区的机器数
+
 
     def _initialize_cells(self):
         """初始化生产区及其对应的机器数"""
@@ -203,10 +205,13 @@ class Arm:
     def find_min_wait_time(self, zone, obj_type):
         """找出某个生产区中所需等待时间最短的单元或小车
         :param zone: 生产区域
-        :param obj_type: 'unit表示生产单元，'agv表示小车
+        :param obj_type: 'unit' 表示生产单元，'agv' 表示小车
         """
         min_wait_time = float('inf')
         min_unit_index = -1  # 记录等待时间最短的生产单元的索引
+
+        # 获取当前时间一次，避免在循环中多次调用
+        current_time = time.time()
 
         if obj_type == 'unit':
             status_list = self.work_status[zone]
@@ -219,7 +224,7 @@ class Arm:
 
         for i, status in enumerate(status_list):
             if status:  # 如果当前单元或小车处于忙碌状态
-                remaining_time = end_time_list[i] - time.time()
+                remaining_time = end_time_list[i] - current_time
                 if remaining_time < min_wait_time:
                     min_wait_time = remaining_time
                     min_unit_index = i
@@ -240,11 +245,10 @@ class Arm:
 
         return idle_cars
 
-    def order_time_and_power(self, order):
+    def order_time_and_power(self, orders):
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_total_time = 0  # 一个订单完成所需时间
         order_total_power = 0  # 一个订单完成所需功率
-
         """遍历所有生产区和单元，将机器臂数量为 0 的生产单元的状态改为忙碌，避免出现选择0个机器臂的生产单元进行操作"""
         for zone in self.machines_count:
             for i in range(len(self.machines_count[zone])):
@@ -252,66 +256,112 @@ class Arm:
                     self.work_status[zone][i] = True  # 将该生产单元状态设为忙碌
                     self.end_time[zone][i] = float('inf')  # 设置一个很大的结束时间，确保不会被选中
 
-        for i in range(len(order)):
-            start_zone = order[i]
-            min_unit_index, min_wait_time = 0, 0
-            min_unit_index_agv, min_wait_time_agv = 0, 0
+        time_line = Timeline(orders)  # 引入时间轴
 
-            if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
-                """需要获得等待时间再加上工作时间"""
-                min_unit_index, min_wait_time = self.find_min_wait_time(start_zone, 'unit')
-                self.work_status[start_zone][min_unit_index] = False
+        # 找到最长的订单长度
+        max_steps = max(len(order) for order in orders)
 
-            if False in self.work_status[start_zone]:
-                """如果该生产区存在空闲单元,暂时寻找最大机器臂数量的生产单元"""
-                """"""
-                """"""
-                """这里要改成找到加权之后的最低的生产单元"""
-                max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
-                self.work_status[start_zone][max_unit_index] = True  # 占据了这个生产单元
-                self.start_time[start_zone][max_unit_index] = time.time()  # 将开始时间记录下来
-                # print(self.work_status)
-                order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
-                order_total_time += order_total_time_renew + processing_time['sleep_time']
-                order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
-                # 记录任务结束时间
-                self.end_time[start_zone][max_unit_index] = self.start_time[start_zone][max_unit_index] + order_total_time_renew + processing_time['sleep_time']
+        # 创建矩阵，并填充 None 占位
+        order_matrix = np.full((len(orders), max_steps), None, dtype=object)
+        # 获取矩阵的维度
+        num_rows, num_cols = order_matrix.shape
+        # 填充订单数据
+        for i, order in enumerate(orders):
+            order_matrix[i, :len(order)] = order  # 只填充有效的订单步骤
+        # 记录每一行是否已经找到了非 None 值
+        row_found = [False] * num_rows
+        # 初始化条件或一个标志来确保至少进入循环一次
+        first_iteration = True
+        while first_iteration or time_line.timeline:
+            if first_iteration:
+                first_iteration = False
 
-                # 2. 计算运输时间
-                if False not in self.agv_states[start_zone]:  # 该生产区的小车全部忙碌
-                    """如果该生产区不存在空闲小车"""
-                    min_unit_index_agv, min_wait_time_agv = self.find_min_wait_time(start_zone, 'agv')
-                    self.agv_states[start_zone][min_unit_index] = False
+            for col in range(num_cols):
+                for row in range(num_rows):
+                    # 检查当前行是否已经找到非 None 值，即每一个非None值可以进行一个节点的添加
+                    if not row_found[row]:
+                        if order_matrix[row, col] is not None:
+                            # 找到目标生产区
+                            start_zone = orders[row][col]
+                            end_zone = orders[row][col + 1]
+                            # 标记此行已找到非 None 值
+                            row_found[row] = True
+                            # 并且所找到的生产区变为None
+                            order_matrix[row, col] = None
+                            if False in self.work_status[start_zone]:   # 存在空闲生产单元
+                                max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 暂时选择机器臂最多的单元
+                                order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
+                                order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
+                                # 记录使用时间
+                                use_time = order_total_time_renew + processing_time['sleep_time']
+                                time_line.timeline.append(use_time + time_line.current_time)    # 添加时间节点
+                                self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
 
-                if False in self.work_status[start_zone]:
-                    """如果该生产区存在空闲小车"""
-                    agv_index = self.find_random_idle_agv(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
-                    self.agv_states[start_zone][agv_index[0]] = True  # 占据了这个生产单元
-                    self.agv_start_time[start_zone][agv_index[0]] = time.time()  # 将开始时间记录下来
-                    transport_time = 0
-                    if i < len(order) - 1:
-                        end_zone = order[i + 1]
-                        transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, agv_speed)
-                        order_total_time += transport_time  # 加上运输时间
-                        """离开车间"""
-                    if i == len(order) - 1:
-                        # Step 1: 创建一个反向字典，将生产区汉字名称映射到数字索引
-                        zone_to_index = {name: index for index, name in work_name_order.items()}
-                        # Step 2: 使用反向字典，将汉字生产区转换为数字索引
-                        start_index = zone_to_index[start_zone]
-                        # Step 3: 使用转换后的数字索引从距离矩阵中获取距离
-                        distance = distance_matrix[start_index][-1]
-                        # Step 4: 计算运输时间（假设速度是已知的，单位为距离/时间）
-                        transport_time = distance / agv_speed  # 时间 = 距离 / 速度
-                        order_total_time += transport_time  # 加上运输时间
+                # 如果所有行都找到了非 None 值，提前结束遍历
+                if all(row_found):
+                    break
+            time_line.get_next_point()
 
-                    self.agv_end_time[start_zone][agv_index[0]] = self.agv_start_time[start_zone][agv_index[0]] + transport_time * 2
-
-                # 3. 工作区生产单元等待时间
-                order_total_time += min_wait_time
-
-                # 4. 工作区小车等待时间
-                order_total_time += min_wait_time_agv
+        # for i in range(len(order)):
+        #     start_zone = order[i]
+        #     min_unit_index, min_wait_time = 0, 0
+        #     min_unit_index_agv, min_wait_time_agv = 0, 0
+        #
+        #     if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
+        #         """需要获得等待时间再加上工作时间"""
+        #         min_unit_index, min_wait_time = self.find_min_wait_time(start_zone, 'unit')
+        #         self.work_status[start_zone][min_unit_index] = False
+        #
+        #     if False in self.work_status[start_zone]:
+        #         """如果该生产区存在空闲单元,暂时寻找最大机器臂数量的生产单元"""
+        #         """"""
+        #         """"""
+        #         """这里要改成找到加权之后的最低的生产单元"""
+        #         max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
+        #         self.work_status[start_zone][max_unit_index] = True  # 占据了这个生产单元
+        #         self.start_time[start_zone][max_unit_index] = time.time()  # 将开始时间记录下来
+        #         # print(self.work_status)
+        #         order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
+        #         order_total_time += order_total_time_renew + processing_time['sleep_time']
+        #         order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
+        #         # 记录任务结束时间
+        #         self.end_time[start_zone][max_unit_index] = self.start_time[start_zone][max_unit_index] + order_total_time_renew + processing_time['sleep_time']
+        #
+        #         # 2. 计算运输时间
+        #         if False not in self.agv_states[start_zone]:  # 该生产区的小车全部忙碌
+        #             """如果该生产区不存在空闲小车"""
+        #             min_unit_index_agv, min_wait_time_agv = self.find_min_wait_time(start_zone, 'agv')
+        #             self.agv_states[start_zone][min_unit_index] = False
+        #
+        #         if False in self.work_status[start_zone]:
+        #             """如果该生产区存在空闲小车"""
+        #             agv_index = self.find_random_idle_agv(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
+        #             self.agv_states[start_zone][agv_index[0]] = True  # 占据了这个生产单元
+        #             self.agv_start_time[start_zone][agv_index[0]] = time.time()  # 将开始时间记录下来
+        #             transport_time = 0
+        #             if i < len(order) - 1:
+        #                 end_zone = order[i + 1]
+        #                 transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, agv_speed)
+        #                 order_total_time += transport_time  # 加上运输时间
+        #                 """离开车间"""
+        #             if i == len(order) - 1:
+        #                 # Step 1: 创建一个反向字典，将生产区汉字名称映射到数字索引
+        #                 zone_to_index = {name: index for index, name in work_name_order.items()}
+        #                 # Step 2: 使用反向字典，将汉字生产区转换为数字索引
+        #                 start_index = zone_to_index[start_zone]
+        #                 # Step 3: 使用转换后的数字索引从距离矩阵中获取距离
+        #                 distance = distance_matrix[start_index][-1]
+        #                 # Step 4: 计算运输时间（假设速度是已知的，单位为距离/时间）
+        #                 transport_time = distance / agv_speed  # 时间 = 距离 / 速度
+        #                 order_total_time += transport_time  # 加上运输时间
+        #
+        #             self.agv_end_time[start_zone][agv_index[0]] = self.agv_start_time[start_zone][agv_index[0]] + transport_time * 2
+        #
+        #         # 3. 工作区生产单元等待时间
+        #         order_total_time += min_wait_time
+        #
+        #         # 4. 工作区小车等待时间
+        #         order_total_time += min_wait_time_agv
 
         return order_total_time, order_total_power
 

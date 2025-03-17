@@ -28,9 +28,9 @@ work_name_order = {  # 用来处理订单对应输出
 """生产区处理时间"""
 # 我想试一试固定处理时间，即订单经过某生产区的停留时间
 processing_time = {
-'run_time' : 10,  # 运行时间（秒），
+'run_time' : 30,  # 运行时间（秒），
 'run_power' : 33.70,  # 运行功率（瓦特），
-'sleep_time' : 5,  # 休眠时间（秒），
+'sleep_time' : 15,  # 休眠时间（秒），
 'sleep_power' : 19.1  # 休眠功率（瓦特），
 }
 

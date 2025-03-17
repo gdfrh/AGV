@@ -6,8 +6,6 @@ from NSGA2 import main_loop
 from robot_arm import Arm
 from car import Car
 
-"""我将整体的整合代码"""
-
 
 class Schedule:
     def __init__(self, work_name, total_machines, machine_power, num_orders, zone_requirements):

@@ -64,14 +64,45 @@ def crowed_distance_assignment(values1, values2, front):
     distance = [dis_table[a] for a in front]
     return distance
 
+def number_departure(number, splits):
+    # 将数字转换为字符串
+    number_str = str(number)
+
+    # 存储结果的列表
+    parts = []
+
+    # 当前处理的起始索引
+    start_index = 0
+
+    # 遍历splits数组，按每个元素指定的数量分割字符串
+    for count in splits:
+        # 计算结束索引
+        end_index = start_index + count
+
+        # 检查是否超出字符串长度
+        if end_index > len(number_str):
+            break
+
+        # 提取子字符串
+        part = number_str[start_index:end_index]
+        parts.append(part)
+
+        # 更新起始索引为下一次迭代
+        start_index = end_index
+    return parts
+
 
 def crossover(individual1, individual2, unit_state_list1, unit_state_list2):
     # 将列表中的数字转换为字符串
     individual1_str = str(individual1)  # 不考虑括号
     individual2_str = str(individual2)
-    # 使用正则表达式查找连续的非零数字和后面跟随的所有零
-    parts1 = re.findall(r'[1-9]+0*', individual1_str)
-    parts2 = re.findall(r'[1-9]+0*', individual2_str)
+
+    # # 使用正则表达式查找连续的非零数字和后面跟随的所有零
+    # parts1 = re.findall(r'[1-9]+0*', individual1_str)
+    # parts2 = re.findall(r'[1-9]+0*', individual2_str)
+    parts1 = number_departure(individual1_str, unit_state_list1)
+    parts2 = number_departure(individual2_str, unit_state_list2)
+
     new_parts1 = []
     new_parts2 = []
 
@@ -86,7 +117,7 @@ def crossover(individual1, individual2, unit_state_list1, unit_state_list2):
         non_zero_indices2 = [i for i, x in enumerate(expanded2_list) if x != 0]
         idx1 = random.choice(non_zero_indices1)
         idx2 = random.choice(non_zero_indices2)
-        idx =random.choice([idx1, idx2])
+        idx =random.randint(0, min(idx1, idx2))
         expanded1_list[idx], expanded2_list[idx] = expanded2_list[idx], expanded1_list[idx]
 
         # 排序列表，从大到小
@@ -144,12 +175,13 @@ def mutate(individual, init_arm, unit_state, agv_count):
     new_state = copy.deepcopy(unit_state)
     if total_machines - sum_of_digits < required_machines:
         """机器臂不够新增一个生产单元，随机选择一个生产单元删除它"""
-        # 随机选择一个生产单元并删除
+        # 随机选择一个生产单元并删除,但是得保证每一个生产区都有生产单元和机器臂
         unit_to_remove = random.choice(zone_units)
         zone_units.remove(unit_to_remove)
-        expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
-        """对应拷贝分布状态减一，避免影响之前的状态"""
-        new_state[zone_index] -= 1
+        if sum(zone_units) != 0:
+            expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
+            """对应拷贝分布状态减一，避免影响之前的状态"""
+            new_state[zone_index] -= 1
 
     elif total_machines - sum_of_digits >= required_machines:
         """机器臂可以新增一个生产单元，随机选择一个生产区，增加1个生产单元"""
