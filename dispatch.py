@@ -17,6 +17,12 @@ class Timeline:
         self.timeline.remove(time_point)
 
     def get_next_point(self):
-        # 到达该时间节点
-        self.current_time = min(time for time in self.timeline if time != 0)
-        return self.timeline.index(self.current_time)
+        # 找到时间轴中最小的非零时间节点
+        self.current_time = min(time for time in self.timeline if (time != 0 and time is not None))
+
+        # 找到该时间节点的位置
+        min_indices = [index for index, time in enumerate(self.timeline) if time == self.current_time]
+
+        # 返回该时间节点的索引
+        return min_indices
+

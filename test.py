@@ -520,6 +520,6 @@
 # last_none_index = find_last_none_index(order_matrix, idx)
 # print(f"Last None in row {idx} is at index {last_none_index}")
 # print(len(order_matrix[0]))
-timeline = [float('inf'),1]   # 定义时间轴，不断移动它
+timeline = [float('inf'),1,None]   # 定义时间轴，不断移动它
 print(timeline)
 print(min(timeline))

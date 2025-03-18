@@ -282,16 +282,23 @@ class Arm:
 
         # 初始化条件或一个标志来确保至少进入循环一次
         first_iteration = True
-        idx = None  # 记录时间节点的索引
+        idx = []  # 记录时间节点的索引
         while first_iteration or time_line.timeline:
+            if all(point == float('inf') for point in time_line.timeline):
+                break  # 跳出循环，停止处理，或者根据需要进行其他操作
             # 记录每一行是否已经找到了非 None 值，每一次都需要重置
             row_found = [False] * num_rows
             if first_iteration:
                 first_iteration = False
-            if idx is not None:  # 不是第一次迭代，idx代表第idx个订单的时间节点到了，即完成了操作
-                zone_idx = self.find_last_none_index(order_matrix, idx)  # 找到最后一个None的索引位置，即是对应生产区的位置
-                obj_zone = orders[idx][zone_idx]    # 目标生产区
-                self.work_status[obj_zone][time_line.step[idx]] = False  # 生产单元变为空闲
+            if idx:  # 不是第一次迭代，idx列表不为空，存在时间节点最小值，即完成了操作
+                for index in idx:
+                    zone_idx = self.find_last_none_index(order_matrix, index)  # 找到最后一个None的索引位置，即是对应生产区的位置
+                    if zone_idx == num_cols - 1 or (zone_idx + 1 < num_cols and order_matrix[index][zone_idx + 1] == 0):
+                        # 如果None为订单最后一步或者None后面是0，即完成了该订单,记录时间,并将时间节点置为无穷大
+                        use_time[index] = time_line.timeline[index]
+                        time_line.timeline[index] = float('inf')
+                    obj_zone = orders[index][zone_idx]    # 目标生产区
+                    self.work_status[obj_zone][time_line.step[index]] = False  # 生产单元变为空闲
 
             for row in range(num_rows):
                 for col in range(num_cols):
@@ -302,7 +309,7 @@ class Arm:
                         # 标记此行已找到非 None 值
                         row_found[row] = True
 
-                        if False in self.work_status[start_zone] and time_line.current_time >= time_line.timeline[row]:   # 存在空闲生产单元并且订单不处于忙碌
+                        if False in self.work_status[start_zone] and ((time_line.current_time == time_line.timeline[row]) or time_line.timeline[row] is None):   # 存在空闲生产单元并且订单不处于忙碌,（有一个问题多个订单）
                             # 并且所找到的生产区变为None
                             order_matrix[row, col] = None
                             max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 暂时选择机器臂最多的单元
@@ -314,13 +321,11 @@ class Arm:
                             time_line.add_timeline((order_time + time_line.current_time), row, max_unit_index)   # 添加时间节点，可以知道对应的订单
                             self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
 
-                        # 如果不存在空闲生产单元，因此该订单后续的操作都不需要管
-                    # 如果下一步为0或者整行为None，即完成了该订单,记录时间
-                    if order_matrix[row, col] == 0 or self.find_last_none_index(order_matrix, row) == num_cols - 1:
-                        use_time[row] = time_line.timeline[row]
-                # 如果所有行都找到了非 None 值，提前结束遍历
-                if all(row_found):
-                    break
+                        # 如果不存在空闲生产单元，因此该订单后续的操作都不需要管,但是此时你的这个订单空闲下来了，如果不对时间节点进行修改会一直是这个时间
+                        elif False not in self.work_status[start_zone] and (time_line.current_time == time_line.timeline[row]):
+                            time_line.timeline[row] = None  # 赋值None表示空闲
+
+
             # 如果有多个相同的时间节点，会一轮一轮执行，从前往后符合优先级
             idx = time_line.get_next_point()
 
