@@ -47,8 +47,6 @@ distance_matrix = [
     [70, 50, 60, 30, 20, 90, 10,  0],  # 离开区 -> [组装区, 铸造区, 清洗区, ...,离开车间]
 ]
 
-
-
 # # 每个生产区的单元数
 # unit_numbers_up = [2, 2, 1, 3]  # 对应 work_name_up 每个区的单元数
 # unit_numbers_down = [2, 1, 3]    # 对应 work_name_down 每个区的单元数
@@ -57,8 +55,6 @@ distance_matrix = [
 # cell_number = {}
 # for zone, units in zip(work_name, unit_numbers):
 #     cell_number[zone] = units
-
-
 
 """
 我们进行假设，较为简单的生产区的生产单元增加机器臂后所需要的时间会显著下降
@@ -96,8 +92,8 @@ agv_speed = 5000    # 小车速度
 
 # ------------------------
 # NSGA2参数
-pop_size = 100  # 每一代种群数量
-max_gen = 500   # 最高代数
+pop_size = 50 # 每一代种群数量
+max_gen = 300   # 最高代数
 number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------

@@ -18,5 +18,5 @@ class Timeline:
 
     def get_next_point(self):
         # 到达该时间节点
-        self.current_time = min(self.timeline)
+        self.current_time = min(time for time in self.timeline if time != 0)
         return self.timeline.index(self.current_time)

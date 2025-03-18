@@ -258,7 +258,7 @@ class Arm:
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_time = 0  # 订单步骤完成所需时间
         order_power = 0  # 订单步骤完成所需功率
-        use_time = []   # 每个订单所用时间的列表
+        use_time = [0] * num_orders   # 每个订单所用时间的列表
         use_power = 0   # 总共消耗的功率
         """遍历所有生产区和单元，将机器臂数量为 0 的生产单元的状态改为忙碌，避免出现选择0个机器臂的生产单元进行操作"""
         for zone in self.machines_count:
@@ -293,13 +293,12 @@ class Arm:
                 obj_zone = orders[idx][zone_idx]    # 目标生产区
                 self.work_status[obj_zone][time_line.step[idx]] = False  # 生产单元变为空闲
 
-            for col in range(num_cols):
-                for row in range(num_rows):
+            for row in range(num_rows):
+                for col in range(num_cols):
                     # 检查当前行是否已经找到非 None 0 值，即每一个非None值可以进行一个节点的添加，如果已经找到就不需要管后续列
-                    if not row_found[row] and order_matrix[row, col] is not None and order_matrix[row, col] is not 0:
+                    if not row_found[row] and order_matrix[row, col] is not None and order_matrix[row, col] != 0:
                         # 找到目标生产区
                         start_zone = orders[row][col]
-                        end_zone = orders[row][col + 1]
                         # 标记此行已找到非 None 值
                         row_found[row] = True
 
@@ -310,20 +309,23 @@ class Arm:
                             order_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
                             order_power += self.calculate_task_energy(order_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
                             # 记录使用时间和功率
-                            use_time = order_time_renew + processing_time['sleep_time']
+                            order_time = order_time_renew + processing_time['sleep_time']
                             use_power += order_power
-                            time_line.add_timeline((use_time + time_line.current_time), row, max_unit_index)   # 添加时间节点，可以知道对应的订单
+                            time_line.add_timeline((order_time + time_line.current_time), row, max_unit_index)   # 添加时间节点，可以知道对应的订单
                             self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
 
                         # 如果不存在空闲生产单元，因此该订单后续的操作都不需要管
                     # 如果下一步为0或者整行为None，即完成了该订单,记录时间
-                    if order_matrix[row, col] is 0 or self.find_last_none_index(order_matrix, row) == num_cols - 1:
+                    if order_matrix[row, col] == 0 or self.find_last_none_index(order_matrix, row) == num_cols - 1:
                         use_time[row] = time_line.timeline[row]
                 # 如果所有行都找到了非 None 值，提前结束遍历
                 if all(row_found):
                     break
+            # 如果有多个相同的时间节点，会一轮一轮执行，从前往后符合优先级
             idx = time_line.get_next_point()
 
+        order_time = max(use_time)
+        return order_time, use_power
         # for i in range(len(order)):
         #     start_zone = order[i]
         #     min_unit_index, min_wait_time = 0, 0
@@ -417,20 +419,11 @@ class Arm:
         self._initialize_function(idx)
         self.padding(sequence)
 
-        """计算最终所需时间和能耗"""
-        total_time, total_power = 0, 0
-        total_time_list = []
-
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-        for order in self.orders:
-            total_time_order, total_power_order = self.order_time_and_power(order)
-            total_time_list.append(total_time_order)
-            total_power += total_power_order
 
-        best_time = max(total_time_list)
-        best_power = total_power
+        total_time_order, total_power_order = self.order_time_and_power(self.orders)
 
-        return best_power, best_time
+        return total_power_order, total_time_order
 
     def object_function_2(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
@@ -439,21 +432,11 @@ class Arm:
 
         """ALNS计算能量，时间"""
         best_order = self.apply_ALNS()
-        """计算最终所需时间和能耗"""
-        total_time, total_power = 0, 0
-        total_time_list = []
 
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-        for order in best_order:
-            total_time_order, total_power_order = self.order_time_and_power(order)
-            total_time_list.append(total_time_order)
-            total_power += total_power_order
+        total_time_order, total_power_order = self.order_time_and_power(best_order)
 
-        best_time = max(total_time_list)
-
-        best_power = total_power
-
-        return best_power, best_time, best_order
+        return total_power_order, total_time_order, best_order
 
     """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""
 
