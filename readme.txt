@@ -108,5 +108,7 @@ TypeError: cannot unpack non-iterable NoneType object，函数返回None，可�
 1.参数设计
 2.生产单元选择的权重设计
 3.机器臂多位数
-4.小车时间节点构造
+4.小车时间节点构造:
+你得考虑起始点和结束点之间的小车的运送问题
+
 5.交叉变异逻辑修改

@@ -520,6 +520,62 @@
 # last_none_index = find_last_none_index(order_matrix, idx)
 # print(f"Last None in row {idx} is at index {last_none_index}")
 # print(len(order_matrix[0]))
-timeline = [float('inf'),1,None]   # 定义时间轴，不断移动它
-print(timeline)
-print(min(timeline))
+# timeline = [float('inf'),1,None]   # 定义时间轴，不断移动它
+# print(timeline)
+# print(min(timeline))
+# from Config import *
+# agv_states = {
+#     '组装区': [False],  # 小车1空闲
+#     '铸造区': [True, False],  # 小车4忙碌，小车5空闲
+#     '清洗区': [False, False, True],  # 小车6空闲，小车7空闲，小车8忙碌
+#     # 其他生产区的数据...
+# }
+#
+# # 生产区小车数量
+# list = [1, 2, 3]  # 3个生产区，每个生产区的小车数量
+#
+# # 生成所有小车的索引列表，按生产区顺序排列
+# all_agvs = []
+# for zone_idx, count in enumerate(list):
+#     zone_name = work_name[zone_idx + 1]  # 假设生产区名称为 zone_1, zone_2, zone_3
+#     all_agvs.extend([zone_name] * count)  # 生成每个生产区的小车标记
+# print(all_agvs)
+# 示例列表
+# list1 = [10, 20, 5, 5, 15]
+# list2 = [(7, 'a'), (25, 'b'), (3, 'c'), (3, 'd')]
+#
+# # 获取 list1 中所有最小时间和索引
+# min_time1 = min(list1)
+# min_time1_indices = [i for i, time in enumerate(list1) if time == min_time1]
+#
+# # 获取 list2 中所有最小时间（元组的第一位）和索引
+# min_time2 = min(list2, key=lambda x: x[0])[0]  # 获取元组的第一位作为时间
+# min_time2_indices = [i for i, tup in enumerate(list2) if tup[0] == min_time2]
+#
+# # 比较两个最小时间并返回结果
+# if min_time1 <= min_time2:
+#     print(f"最小时间是 {min_time1}，来自 list1，索引为 {min_time1_indices}")
+# else:
+#     print(f"最小时间是 {min_time2}，来自 list2，索引为 {min_time2_indices}")
+# 生产区对应的小车数量
+a = [1, 2, 3]
+
+# 目标索引
+idx = 5
+
+# 累加已遍历的小车数量，用于找到目标生产区
+car_count = 0
+
+# 遍历生产区
+for zone_index, cars in enumerate(a):
+    # 检查当前生产区是否包含目标索引
+    if idx < car_count + cars:
+        # 找到目标生产区
+        production_zone = zone_index  # 生产区从1开始
+        car_in_zone = idx - car_count  # 生产区内的小车编号，从1开始
+        break
+    # 更新已遍历的小车数量
+    car_count += cars
+
+print(f"索引 {idx} 对应的是第 {production_zone} 个生产区的第 {car_in_zone} 辆车")
+
