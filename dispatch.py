@@ -3,7 +3,7 @@ from Config import *
 
 class Timeline:
     def __init__(self):
-        self.timeline = [0] * num_orders  # 定义时间轴，不断移动它
+        self.timeline = [-3] * num_orders  # 定义时间轴，不断移动它，用-3代表最开始订单已到达生产区但是没有生产单元空闲
         self.agv_timeline = [0] * total_agv  # 小车时间轴
         self.current_time = 0  # 当前时间
         self.step = [0] * num_orders  # 定义生产单元索引，方便储存
@@ -19,7 +19,7 @@ class Timeline:
 
     def get_next_point(self):
         # 找到时间轴中最小的非零时间节点,-1是忙碌(在运输过程中），None是空闲（完成了订单但没有小车）
-        min_time_order = min(time for time in self.timeline if (time != 0 and time is not None and time != -1))
+        min_time_order = min(time for time in self.timeline if time not in {None, 0, -1, -2, -3})
         # 找到该时间节点的位置
         min_indices_order = [index for index, time in enumerate(self.timeline) if time == min_time_order]
 
