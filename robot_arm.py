@@ -300,7 +300,7 @@ class Arm:
         # 初始化条件或一个标志来确保至少进入循环一次
         first_iteration = True
         idx = []  # 记录时间节点的索引
-        point_type = ''  # 初始化断点类型
+        point_type = 'start'  # 初始化断点类型
         while first_iteration or time_line.timeline:
             if all(point == float('inf') for point in time_line.timeline):
                 break  # 跳出循环，停止处理，或者根据需要进行其他操作
@@ -343,19 +343,21 @@ class Arm:
                                 time_line.timeline[index] = -1
                             if False not in self.agv_states[obj_zone]:  # 不存在空闲小车:-2
                                 time_line.timeline[index] = -2
-                            这里释放了生产单元的后续是是否有人需要生产单元
+                            这里释放了生产单元的后续是是否有人需要生产单元√
                             不存在小车的后续是在其他断点出现小车空闲时，需要有判断找车的地方
                 if point_type == 'agv':  # 是小车断点，此时要区分是哪一种断点，送到还是返回
                     for index in idx:
                         if time_line.agv_timeline[index][2] == 1:
-                            # 如果小车送达了订单，先读取是哪一个订单，将order时间节点变为None，表示空闲
+                            # 如果小车送达了订单，先读取是哪一个订单，将order时间节点变为-3送达生产区，表示空闲
                             order_idx = time_line.agv_timeline[index][3]
-                            time_line.timeline[order_idx] = None
+                            time_line.timeline[order_idx] = -3
+                            point_type = 'agv_get'
                             至于这里断点的操作会在下面的矩阵里面进行，这里不能给小车断点，不知道有没有空闲生产单元
                             这里的后续是是否存在空闲生产单元与之相关的处理,按照矩阵遍历顺序对所有处于这一状态的判断是否空闲生产区None_unit
 
                         if time_line.agv_timeline[index][2] == -1:
                             # 如果小车返回了出发点，将agv时间节点变为None，表示空闲,并且将states变为False
+                            point_type = 'agv_return'
                             time_line.agv_timeline[index][0] = None
                             obj_zone = time_line.agv_timeline[index][1]  #找到目的地，即出发地
                             # 找到了是生产区的第几辆车
@@ -373,7 +375,7 @@ class Arm:
                         start_zone = orders[row][col]
                         # 标记此行已找到非 None 值
                         row_found[row] = True
-                        if point_type == 'order' or '':
+                        if point_type == 'order' or 'start' or 'agv_get':
                             # 存在空闲生产单元并且订单位于小车之上并且完成了自己的工作处于等待时间
                             #-3代表小车已送达订单但是没有生产单元
                             if False in self.work_status[start_zone] and (time_line.timeline[row] == -3):
@@ -398,6 +400,25 @@ class Arm:
                                     transport_time = self.calculate_transport_time(start_zone,order_matrix[row, col - 1],distance_matrix, work_name_order, agv_speed)
                                     """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单）"""
                                     time_line.agv_timeline[小车的全局索引] = (time_line.current_time + transport_time, order_matrix[row, col - 1], -1, row)
+                        if point_type == 'agv_return':
+                            # 如果是小车断点，得判断出现了哪些情况
+                            #现在由于生产区小车开始空闲，需要寻找是否有地方需要小车，即寻找存在order节点为-2:
+                            if False in self.agv_states[start_zone] and (time_line.timeline[row] == -2):
+                                self.work_status[orders[row][col - 1]][time_line.step[index]] = False  # 生产单元变为空闲
+                                agv_idx = self.find_random_idle_agv(obj_zone, self.agv_count[step_idx])  # 找到小车全局索引
+                                _, idx_of_states = self.find_index_of_agv(self.agv_count[step_idx], agv_idx)
+                                self.agv_states[obj_zone][idx_of_states] = True  # 占据空闲小车
+                                transport_time = self.calculate_transport_time(obj_zone, orders[index][zone_idx + 1],
+                                                                               distance_matrix, work_name_order,
+                                                                               agv_speed)
+                                """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单）"""
+                                time_line.agv_timeline[agv_idx] = (
+                                time_line.current_time + transport_time, orders[index][zone_idx + 1], 1, index)
+                                # 此时要将时间轴的时间改为忙碌:-1
+                                time_line.timeline[index] = -1
+
+
+
 
                             # 如果不存在空闲生产单元，但是小车运输订单到达了目的地，此时订单变为None，表示现在处于空闲状态，小车变为inf
                             elif False not in self.work_status[start_zone] and (time_line.current_time == time_line.agv_timeline[][0]) and (time_line.agv_timeline[][2] == 1):
