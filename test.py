@@ -558,24 +558,31 @@
 # else:
 #     print(f"最小时间是 {min_time2}，来自 list2，索引为 {min_time2_indices}")
 # 生产区对应的小车数量
-a = [1, 2, 3]
-
-# 目标索引
-idx = 5
-
-# 累加已遍历的小车数量，用于找到目标生产区
-car_count = 0
-
-# 遍历生产区
-for zone_index, cars in enumerate(a):
-    # 检查当前生产区是否包含目标索引
-    if idx < car_count + cars:
-        # 找到目标生产区
-        production_zone = zone_index  # 生产区从1开始
-        car_in_zone = idx - car_count  # 生产区内的小车编号，从1开始
-        break
-    # 更新已遍历的小车数量
-    car_count += cars
-
-print(f"索引 {idx} 对应的是第 {production_zone} 个生产区的第 {car_in_zone} 辆车")
-
+# a = [1, 2, 3]
+#
+# # 目标索引
+# idx = 5
+#
+# # 累加已遍历的小车数量，用于找到目标生产区
+# car_count = 0
+#
+# # 遍历生产区
+# for zone_index, cars in enumerate(a):
+#     # 检查当前生产区是否包含目标索引
+#     if idx < car_count + cars:
+#         # 找到目标生产区
+#         production_zone = zone_index  # 生产区从1开始
+#         car_in_zone = idx - car_count  # 生产区内的小车编号，从1开始
+#         break
+#     # 更新已遍历的小车数量
+#     car_count += cars
+#
+# print(f"索引 {idx} 对应的是第 {production_zone} 个生产区的第 {car_in_zone} 辆车")
+agv_timeline = [None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,1]
+min_time_agv = min(
+    (x[0] for x in agv_timeline if x and x[0] not in {None, 0}),  # 确保元素不是 None 且时间不为 0
+    default=None  # 如果没有有效时间，返回 None
+)
+# 如果 min_time_agv 是有效的，可以继续处理
+if min_time_agv is not None:
+    min_indices_agv = [i for i, tup in enumerate(agv_timeline) if tup[0] == min_time_agv]

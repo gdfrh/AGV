@@ -110,5 +110,9 @@ TypeError: cannot unpack non-iterable NoneType object，函数返回None，可�
 3.机器臂多位数
 4.小车时间节点构造:
 你得考虑起始点和结束点之间的小车的运送问题
-
+    point_type, idx = time_line.get_next_point()
+TypeError: cannot unpack non-iterable NoneType object
+[inf, inf, inf, inf, inf, inf, inf, inf, -1, inf]
 5.交叉变异逻辑修改
+
+
