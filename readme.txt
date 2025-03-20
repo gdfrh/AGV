@@ -112,7 +112,20 @@ TypeError: cannot unpack non-iterable NoneType object，函数返回None，可�
 你得考虑起始点和结束点之间的小车的运送问题
     point_type, idx = time_line.get_next_point()
 TypeError: cannot unpack non-iterable NoneType object
-[inf, inf, inf, inf, inf, inf, inf, inf, -1, inf]
+[-3, inf, -2, inf, inf, inf, -2, -3, -3, -3]
+[(None, None, None, None), (None, None, None, None),
+ (inf, '包装区', 1, 9, 2), (None, None, None, None),
+ (None, None, None, None), (None, None, None, None),
+ (inf, '喷漆区', 1, 7, 6), (inf, '包装区', 1, 8, 7),
+ (None, None, None, None), (inf, '包装区', 1, 0, 9),
+ (None, None, None, None), (None, None, None, None),
+ (None, None, None, None), (None, None, None, None),
+ (None, None, None, None)]
+ 相互死锁
+ [inf, -3, inf, inf, inf, inf, inf, inf, inf, inf]
+ 决定简化车送到就走
+    self.agv_states[obj_zone][idx_of_states] = False
+IndexError: list assignment index out of range
 5.交叉变异逻辑修改
 
 

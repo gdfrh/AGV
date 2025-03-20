@@ -391,7 +391,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         """新一代分布状态"""
         init_arm.unit_states = new_state.copy()
         init_arm.agv_count = new_agv_count.copy()
-        if gen_no % 50 == 0:
+        if gen_no % 10 == 0:
             best_obj1 = []
             best_obj2 = []
 

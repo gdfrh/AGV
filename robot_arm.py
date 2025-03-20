@@ -99,6 +99,16 @@ class Arm:
             proportion = non_zero_count / total_non_zero
             car_count_for_zone = round(proportion * total_agv)  # 根据比例计算，并取整
             agv_distribute.append(car_count_for_zone)
+        # 确保分配的小车总数为 total_agv
+        total_distributed_agv = sum(agv_distribute)
+        if total_distributed_agv != total_agv:
+            # 计算差额
+            difference = total_agv - total_distributed_agv
+            # 找到小车最多的生产区
+            max_agv_zone = agv_distribute.index(max(agv_distribute))
+            # 将差额加到小车最多的生产区
+            agv_distribute[max_agv_zone] += difference
+
         self.agv_count.append(agv_distribute)
 
         # 3. 对每个生产区的生产单元按机器数量从大到小排序
@@ -309,7 +319,6 @@ class Arm:
             if first_iteration:
                 first_iteration = False
 
-
             """这里需要判断是车的断点还是订单的断点
             如果是车的断点，就要判断是车回来的断点还是送到的断点
             如果是回来的断点，需要将目标生产区对应的小车状态置为False表示空闲
@@ -333,9 +342,11 @@ class Arm:
                             """现在的情况就是有车就进，就不会出现存在车时新的order断点出现，还要遍历寻找的情况"""
                             if False in self.agv_states[obj_zone]:  # 存在空闲小车
                                 self.work_status[obj_zone][time_line.step[index]] = False  # 生产单元变为空闲
-                                agv_idx = self.find_random_idle_agv(obj_zone, self.agv_count[step_idx])  #找到小车全局索引
+                                agv_idx = self.find_random_idle_agv(obj_zone, self.agv_count[step_idx])  # 找到小车全局索引
                                 _, idx_of_states = self.find_index_of_agv(self.agv_count[step_idx], agv_idx)
                                 self.agv_states[obj_zone][idx_of_states] = True  # 占据空闲小车
+                                # 这一个订单完成了操作，这一个订单在该断点不用操作了
+                                row_found[index] = True
                                 transport_time = self.calculate_transport_time(obj_zone,orders[index][zone_idx + 1],distance_matrix, work_name_order, agv_speed)
                                 """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单,小车全局索引）"""
                                 time_line.agv_timeline[agv_idx] = (time_line.current_time + transport_time,orders[index][zone_idx + 1], 1, index, agv_idx)
@@ -365,18 +376,19 @@ class Arm:
                         if time_line.agv_timeline[index][2] == -1:
                             # 如果小车返回了出发点，将agv时间节点变为None，表示空闲,并且将states变为False
                             point_type = 'agv_return'
+                            obj_zone = time_line.agv_timeline[index][1]  # 找到目的地，即出发地
+                            # 找到了是生产区的第几辆车
+                            _, idx_of_states = self.find_index_of_agv(self.agv_count[step_idx], index)
+                            self.agv_states[obj_zone][idx_of_states] = False
                             # 元组不能直接修改
                             # time_line.agv_timeline[index][0] = None
                             # 将元组转换为列表
                             temp_list = list(time_line.agv_timeline[index])
-                            # 修改第一位
-                            temp_list[0] = None
+                            # 修改元组
+                            for i in range(len(temp_list)):
+                                temp_list[i] = None
                             # 将列表转换回元组
                             time_line.agv_timeline[index] = tuple(temp_list)
-                            obj_zone = time_line.agv_timeline[index][1]  #找到目的地，即出发地
-                            # 找到了是生产区的第几辆车
-                            _, idx_of_states =self.find_index_of_agv(self.agv_count[step_idx], index)
-                            self.agv_states[obj_zone][idx_of_states] = False
                             """这里生产区小车空闲，但是还没设置在哪里处理小车寻找
                             这里的后续是是否有空闲的订单需要找车与之相关的处理，对矩阵遍历，对所有的相同状态的需要小车的订单寻找小车"""
 
@@ -390,7 +402,7 @@ class Arm:
                         row_found[row] = True
                         if point_type == 'order' or 'start' or 'agv_get':
                             # 存在空闲生产单元并且订单位于小车之上并且完成了自己的工作处于等待时间
-                            #-3代表小车已送达订单但是没有生产单元
+                            # -3代表小车已送达订单但是没有生产单元
                             if False in self.work_status[start_zone] and (time_line.timeline[row] == -3):
 
                                 # 所找到的生产区变为None
@@ -427,9 +439,51 @@ class Arm:
                                                                                agv_speed)
                                 """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单）"""
                                 time_line.agv_timeline[agv_idx] = (
-                                time_line.current_time + transport_time, start_zone, 1, row, agv_idx)
+                                time_line.current_time + transport_time, start_zone, 1, row)
                                 # 此时要将时间轴的时间改为忙碌:-1
                                 time_line.timeline[row] = -1
+                                # 如果订单被小车送走了，此时要判断是否存在小车在等
+                                for rows in range(num_rows):
+                                    for cols in range(num_cols):
+                                        # 检查当前行是否已经找到非 None 0 值，即每一个非None值可以进行一个节点的添加，如果已经找到就不需要管该订单后续部分
+                                        if not row_found[rows] and order_matrix[rows, cols] is not None and order_matrix[
+                                            rows, cols] != 0:
+                                            # 找到目标生产区
+                                            start_zone = orders[rows][cols]
+                                            # 标记此行已找到非 None 值
+                                            row_found[rows] = True
+                                            if False in self.work_status[start_zone] and (time_line.timeline[rows] == -3):
+                                                # 所找到的生产区变为None
+                                                order_matrix[rows, cols] = None
+                                                max_unit_index, max_machines = self.find_false_max_machines(
+                                                    start_zone)  # 暂时选择机器臂最多的单元
+
+                                                order_time_renew, order_total_power_renew = self.calculate_reduction(
+                                                    processing_time['run_time'], processing_time['run_power'],
+                                                    start_zone, max_machines)
+                                                order_power += self.calculate_task_energy(order_time_renew,
+                                                                                          order_total_power_renew,
+                                                                                          processing_time['sleep_time'],
+                                                                                          processing_time[
+                                                                                              'sleep_power']) * max_machines
+                                                # 记录使用时间和功率
+                                                order_time = order_time_renew + processing_time['sleep_time']
+                                                use_power += order_power
+                                                time_line.add_timeline((order_time + time_line.current_time), rows,
+                                                                       max_unit_index)  # 添加订单时间节点，可以知道对应的订单
+                                                self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
+
+                                                if start_zone != work_name[0]:
+                                                    # 如果是第一个生产区，不需要返回小车
+                                                    transport_time = self.calculate_transport_time(start_zone,
+                                                                                                   orders[rows][cols - 1],
+                                                                                                   distance_matrix,
+                                                                                                   work_name_order,
+                                                                                                   agv_speed)
+                                                    """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单）"""
+                                                    time_line.agv_timeline[time_line.agv_step[rows]] = (
+                                                    time_line.current_time + transport_time, orders[rows][cols - 1], -1,
+                                                    rows)
 
 
                             # # 如果不存在空闲生产单元，但是小车运输订单到达了目的地，此时订单变为None，表示现在处于空闲状态，小车变为inf
@@ -552,7 +606,7 @@ class Arm:
         """ALNS计算能量，时间"""
         best_order = self.apply_ALNS()
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-        total_time_order, total_power_order = self.order_time_and_power(best_order ,idx)
+        total_time_order, total_power_order = self.order_time_and_power(best_order, idx)
 
         return total_power_order, total_time_order, best_order
 

@@ -578,11 +578,29 @@
 #     car_count += cars
 #
 # print(f"索引 {idx} 对应的是第 {production_zone} 个生产区的第 {car_in_zone} 辆车")
-agv_timeline = [None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,1]
-min_time_agv = min(
-    (x[0] for x in agv_timeline if x and x[0] not in {None, 0}),  # 确保元素不是 None 且时间不为 0
-    default=None  # 如果没有有效时间，返回 None
-)
-# 如果 min_time_agv 是有效的，可以继续处理
-if min_time_agv is not None:
-    min_indices_agv = [i for i, tup in enumerate(agv_timeline) if tup[0] == min_time_agv]
+# agv_timeline = [None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,None,1]
+# min_time_agv = min(
+#     (x[0] for x in agv_timeline if x and x[0] not in {None, 0}),  # 确保元素不是 None 且时间不为 0
+#     default=None  # 如果没有有效时间，返回 None
+# )
+# # 如果 min_time_agv 是有效的，可以继续处理
+# if min_time_agv is not None:
+#     min_indices_agv = [i for i, tup in enumerate(agv_timeline) if tup[0] == min_time_agv]
+def find_index_of_agv(agv_count, idx):
+    # 根据全局小车索引找生产区小车索引
+    car_count = 0
+    # 遍历生产区
+    for zone_index, cars in enumerate(agv_count):
+        # 检查当前生产区是否包含目标索引
+        if idx < car_count + cars:
+            # 找到目标生产区
+            production_zone = zone_index  # 生产区从0开始
+            car_in_zone = idx - car_count  # 生产区内的小车编号，从0开始
+            break
+        # 更新已遍历的小车数量
+        car_count += cars
+    return production_zone, car_in_zone
+a = [2,1,3,2,1,2,2]
+b = 14
+zone, unit = find_index_of_agv(a, b)
+print(zone, unit)

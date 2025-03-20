@@ -4,10 +4,10 @@ from Config import *
 class Timeline:
     def __init__(self):
         self.timeline = [-3] * num_orders  # 定义时间轴，不断移动它，用-3代表最开始订单已到达生产区但是没有生产单元空闲
-        self.agv_timeline = [None] * total_agv  # 小车时间轴
+        self.agv_timeline = [(None, None, None, None)] * total_agv  # 小车时间轴
         self.current_time = 0  # 当前时间
         self.step = [None] * num_orders  # 定义生产单元索引，方便储存,初始为None表示没有生产单元索引
-        self.agv_step = [(None, None, None, None)] * num_orders  # 定义小车全局索引，方便储存,初始为None表示没有小车索引
+        self.agv_step = [None] * num_orders  # 定义小车全局索引，方便储存,初始为None表示没有小车索引
 
     def add_timeline(self, time_point, idx, unit_idx):
         # 添加时间节点
@@ -20,6 +20,8 @@ class Timeline:
 
     def get_next_point(self):
         # 找到时间轴中最小的非零时间节点,-1是忙碌(在运输过程中），-2订单空闲不存在空闲小车（订单在生产单元完成了工作），-3订单空闲不存在空闲单元（小车将订单送达生产区）
+        # if all(point == float('inf') for point in self.timeline):
+        #     return 1, 1
         min_time_order = min(
             (time for time in self.timeline if time not in {None, 0, -1, -2, -3, float('inf')}),
             default=None)
@@ -55,5 +57,7 @@ class Timeline:
                                tup is not None and tup[0] == min_time_agv]
             return 'agv', min_indices_agv
 
-        if min_time_agv is None and min_time_order is None:
+        elif min_time_order is None and min_time_agv is None:
+            print(self.timeline)
+            print(self.agv_timeline)
             return None, None
