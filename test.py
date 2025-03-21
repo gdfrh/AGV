@@ -600,7 +600,7 @@ def find_index_of_agv(agv_count, idx):
         # 更新已遍历的小车数量
         car_count += cars
     return production_zone, car_in_zone
-a = [2,1,3,2,1,2,2]
-b = 14
+a = [1, 2, 2, 1, 4, 1, 4]
+b = 10
 zone, unit = find_index_of_agv(a, b)
 print(zone, unit)

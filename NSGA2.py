@@ -252,6 +252,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         objective1 = []
         objective2 = []
         for i in range(len(population_R)):
+            #print(len(init_arm.agv_count),len(population_R),len(init_arm.unit_states))
             total_energy, total_time = init_arm.object_function_1(population_R[i], i)
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))  # 将 total_time 添加到 objective2
@@ -454,7 +455,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
                              hover_data=['agv_distribution','组装区', '铸造区', '清洗区', '包装区','焊接区', '喷漆区', '配置区'])
             # 显示图表
-            fig.show()
+            #fig.show()
             loop_start_time = time.time()
 
         gen_no += 1

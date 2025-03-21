@@ -109,13 +109,12 @@ class Arm:
             # 将差额加到小车最多的生产区
             agv_distribute[max_agv_zone] += difference
 
-        self.agv_count.append(agv_distribute)
-
         # 3. 对每个生产区的生产单元按机器数量从大到小排序
         for zone in self.machines_count:
             # 排序每个生产区的单元，按机器数量从大到小
             self.machines_count[zone] = sorted(self.machines_count[zone], reverse=True)
 
+        return agv_distribute
     def display_machine_count(self):
         """返回每个生产区中各单元的机器数，并存储到列表中"""
         machine_count_list = []  # 列表
@@ -250,7 +249,7 @@ class Arm:
         agv_work_status = self.agv_states[start_zone]
         # 找到所有空闲的小车的索引（状态为 False）
         idle_cars = [index for index, status in enumerate(agv_work_status) if not status]
-        idx =  random.choice(idle_cars)
+        idx = random.choice(idle_cars)
         # 计算该小车在所有小车列表中的全局索引
         zone_idx = work_name.index(start_zone)
         global_agv_index = sum(agv_list[:zone_idx]) + idx
@@ -347,9 +346,9 @@ class Arm:
                                 self.agv_states[obj_zone][idx_of_states] = True  # 占据空闲小车
                                 # 这一个订单完成了操作，这一个订单在该断点不用操作了
                                 row_found[index] = True
-                                transport_time = self.calculate_transport_time(obj_zone,orders[index][zone_idx + 1],distance_matrix, work_name_order, agv_speed)
-                                """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单,小车全局索引）"""
-                                time_line.agv_timeline[agv_idx] = (time_line.current_time + transport_time,orders[index][zone_idx + 1], 1, index, agv_idx)
+                                transport_time = self.calculate_transport_time(obj_zone,orders[index][zone_idx + 1], distance_matrix, work_name_order, agv_speed)
+                                """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单）"""
+                                time_line.agv_timeline[agv_idx] = (time_line.current_time + transport_time,orders[index][zone_idx + 1], 1, index)
                                 # 此时要将时间轴的时间改为忙碌:-1
                                 time_line.timeline[index] = -1
                             if False not in self.agv_states[obj_zone]:  # 不存在空闲小车:-2
@@ -378,8 +377,10 @@ class Arm:
                             point_type = 'agv_return'
                             obj_zone = time_line.agv_timeline[index][1]  # 找到目的地，即出发地
                             # 找到了是生产区的第几辆车
-                            _, idx_of_states = self.find_index_of_agv(self.agv_count[step_idx], index)
-                            self.agv_states[obj_zone][idx_of_states] = False
+                            zone_idx, idx_of_states = self.find_index_of_agv(self.agv_count[step_idx], index)
+                            print(obj_zone, _, idx_of_states)
+                            print(self.agv_count[step_idx])
+                            self.agv_states[work_name[zone_idx]][idx_of_states] = False
                             # 元组不能直接修改
                             # time_line.agv_timeline[index][0] = None
                             # 将元组转换为列表
@@ -446,8 +447,7 @@ class Arm:
                                 for rows in range(num_rows):
                                     for cols in range(num_cols):
                                         # 检查当前行是否已经找到非 None 0 值，即每一个非None值可以进行一个节点的添加，如果已经找到就不需要管该订单后续部分
-                                        if not row_found[rows] and order_matrix[rows, cols] is not None and order_matrix[
-                                            rows, cols] != 0:
+                                        if not row_found[rows] and order_matrix[rows, cols] is not None and order_matrix[rows, cols] != 0:
                                             # 找到目标生产区
                                             start_zone = orders[rows][cols]
                                             # 标记此行已找到非 None 值
@@ -604,7 +604,7 @@ class Arm:
         self.padding(sequence)
 
         """ALNS计算能量，时间"""
-        best_order = self.apply_ALNS()
+        best_order = self.apply_ALNS(idx)
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
         total_time_order, total_power_order = self.order_time_and_power(best_order, idx)
 
@@ -612,7 +612,7 @@ class Arm:
 
     """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""
 
-    def calculate_similarity(self, orders):
+    def calculate_similarity(self, orders, idx):
         """进行订单顺序的ALNS时，相似性指标计算"""
         """我想存在矩阵里面"""
         similarity_matrix = np.zeros((len(orders), len(orders)))
@@ -631,7 +631,7 @@ class Arm:
                 for index, element in enumerate(obj_order):
                     if element in search_order:  # 检查该元素是否在 search_order 中
                         position_unit = work_name.index(element)  # 找到该生产区的生产单元的数量
-                        num_unit = self.unit_states[-1][position_unit]
+                        num_unit = self.unit_states[idx][position_unit]
                         position = search_order.index(element)  # 获取该元素在 search_order 中的位置
                         similarity += math.exp(- abs(position - index)) / num_unit  # e^|poi - poj|/number_生产单元
                 similarity = similarity / (j - i)
@@ -642,7 +642,7 @@ class Arm:
 
         return similarity_list
 
-    def insert_and_evaluate(self, order_sequence, new_order):
+    def insert_and_evaluate(self, order_sequence, new_order, idx):
         """插入并计算每一个排列组合插入到订单序列中的适配性，来选择如何插入"""
         """new_order为单括号列表[],order_sequence为双括号列表[ [] ]"""
         # 创建一个得分数组，初始化所有值为0
@@ -652,16 +652,16 @@ class Arm:
             # 在第i个订单后插入新订单
             new_sequence = order_sequence[:i] + [new_order] + order_sequence[i:]
             # 计算这个新序列的指标
-            metric = self.calculate_metric(new_sequence, i)
+            metric = self.calculate_metric(new_sequence, i, idx)
             # 存储指标
             scores_array[i] = metric
 
         return scores_array  # 返回分数
 
-    def calculate_metric(self, sequences, index):
+    def calculate_metric(self, sequences, index, idx):
         """负责计算排列组合后的单个订单后悔算子的各个位置的指标"""
         """通过调用之前的相似性计算，直接选择需要求的订单索引处的值，即为所求"""
-        metric_list = self.calculate_similarity(sequences)
+        metric_list = self.calculate_similarity(sequences, idx)
         metric = metric_list[index]
         return metric
 
@@ -674,7 +674,7 @@ class Arm:
                 current_index += 1
         return None, None  # 如果没有找到，返回None
 
-    def apply_ALNS(self):
+    def apply_ALNS(self, idx):
         """
         使用ALNS算法优化订单顺序
         """
@@ -682,7 +682,7 @@ class Arm:
         best_order = copy.deepcopy(self.orders)  # 初始订单
         for _ in range(iterations):
             regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
-            similarity = self.calculate_similarity(best_order)  # 存储订单相似值的列表
+            similarity = self.calculate_similarity(best_order, idx)  # 存储订单相似值的列表
             num_destruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
             # 找到最大的部分元素
             max_values = heapq.nlargest(num_destruction, similarity)
@@ -721,7 +721,7 @@ class Arm:
                     rh_value = 0  # 计算后悔值
                     for perm in permutations:
                         # 得到了相似性的值的数组
-                        array = self.insert_and_evaluate(new_order, perm)
+                        array = self.insert_and_evaluate(new_order, perm, idx)
                         # 使用 sorted() 函数对列表进行排序
                         sorted_array = sorted(array)
                         # 后悔修复算子次优解个数,为待插入个数

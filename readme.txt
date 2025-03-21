@@ -127,5 +127,8 @@ TypeError: cannot unpack non-iterable NoneType object
     self.agv_states[obj_zone][idx_of_states] = False
 IndexError: list assignment index out of range
 5.交叉变异逻辑修改
+6.把点画在一张图上
 
 
+简化可以解决死锁
+但是索引超出没找到原因

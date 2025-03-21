@@ -44,23 +44,14 @@ class Schedule:
 
         while len(machine_counts) < pop_size:
             """当目前的解数量小于种群代规模"""
-            self.arm.distribute_machines_randomly()
-            """添加初始分布状态"""
-            self.arm.unit_states.append(self.unit_numbers)
+            agv_counts = self.arm.distribute_machines_randomly()
             new_list = copy.deepcopy(self.arm.display_machine_count())
-
-            """还没用到这个"""
-            # energy_count, time_count = init_arm.object_function(new_list)
-            #
-            # # 保留两位小数
-            # energy_count = round(energy_count, 2)
-            # time_count = round(time_count, 2)
-            #
-            # energy_counts.append(energy_count)
-            # time_counts.append(time_count)
-            """还没用到上面"""
             if new_list not in machine_counts:
+                """添加初始分布状态"""
+                self.arm.agv_count.append(agv_counts)
+                self.arm.unit_states.append(self.unit_numbers)
                 machine_counts.append(new_list)  # 列表形式记录机器臂数量
+
     def arm_loop(self):
         """实现机器臂的 NSGA-II算法来优化机器臂数量"""
         v1, v2 = main_loop(pop_size, max_gen, machine_counts, self.arm)

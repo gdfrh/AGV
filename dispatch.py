@@ -58,6 +58,6 @@ class Timeline:
             return 'agv', min_indices_agv
 
         elif min_time_order is None and min_time_agv is None:
-            print(self.timeline)
-            print(self.agv_timeline)
+            # print(self.timeline)
+            # print(self.agv_timeline)
             return None, None
