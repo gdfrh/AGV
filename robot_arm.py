@@ -378,8 +378,8 @@ class Arm:
                             obj_zone = time_line.agv_timeline[index][1]  # 找到目的地，即出发地
                             # 找到了是生产区的第几辆车
                             zone_idx, idx_of_states = self.find_index_of_agv(self.agv_count[step_idx], index)
-                            print(obj_zone, _, idx_of_states)
-                            print(self.agv_count[step_idx])
+                            # print(obj_zone, _, idx_of_states)
+                            # print(self.agv_count[step_idx])
                             self.agv_states[work_name[zone_idx]][idx_of_states] = False
                             # 元组不能直接修改
                             # time_line.agv_timeline[index][0] = None

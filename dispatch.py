@@ -42,8 +42,10 @@ class Timeline:
             # 返回该时间节点的索引
             if min_time_order < min_time_agv:
                 return 'order', min_indices_order
-            if min_time_order > min_time_agv:
+            elif min_time_order > min_time_agv:
                 return 'agv', min_indices_agv
+            else:
+                return 'order', min_indices_order
 
         elif min_time_agv is None and min_time_order is not None:
             self.current_time = min_time_order
