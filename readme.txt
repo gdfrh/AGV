@@ -130,5 +130,6 @@ IndexError: list assignment index out of range
 6.把点画在一张图上
 
 
-简化可以解决死锁
-但是索引超出没找到原因
+简化可以解决死锁?
+[inf, -2, inf, inf, inf, inf, inf, inf, inf, inf]
+[(None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None)]

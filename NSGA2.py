@@ -455,7 +455,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
                              hover_data=['agv_distribution','组装区', '铸造区', '清洗区', '包装区','焊接区', '喷漆区', '配置区'])
             # 显示图表
-            #fig.show()
+            fig.show()
             loop_start_time = time.time()
 
         gen_no += 1
