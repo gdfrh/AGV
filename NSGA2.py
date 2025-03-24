@@ -9,6 +9,8 @@ import time
 import plotly.express as px
 import pandas as pd
 import re
+import plotly.graph_objects as go
+from scipy.stats import linregress
 
 
 # 快速非支配排序
@@ -454,6 +456,22 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             # 使用 Plotly Express 创建散点图
             fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
                              hover_data=['agv_distribution','组装区', '铸造区', '清洗区', '包装区','焊接区', '喷漆区', '配置区'])
+
+            # 获取 energy 和 time 数据
+            x_data = df_final['energy'].dropna()  # 删除 NaN 值
+            y_data = df_final['time'].dropna()  # 删除 NaN 值
+
+            # 使用 numpy.polyfit 进行三次曲线拟合 (deg=3 表示三次多项式拟合)
+            coefficients = np.polyfit(x_data, y_data, 3)
+
+            # 创建拟合线
+            x_fit = np.linspace(min(x_data), max(x_data), 100)
+            y_fit = coefficients[0] * x_fit ** 3 + coefficients[1] * x_fit ** 2 + coefficients[2] * x_fit + \
+                    coefficients[3]
+
+            # 将拟合线添加到图中
+            fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Cubic Fit Line', line=dict(color='red')))
+
             # 显示图表
             fig.show()
             loop_start_time = time.time()

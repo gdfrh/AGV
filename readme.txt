@@ -133,3 +133,5 @@ IndexError: list assignment index out of range
 简化可以解决死锁?
 [inf, -2, inf, inf, inf, inf, inf, inf, inf, inf]
 [(None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None)]
+
+问题似乎是因为point的判定，没有考虑到多个相同的时间断点，所以现在似乎没有问题了
