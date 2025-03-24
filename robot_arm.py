@@ -314,6 +314,10 @@ class Arm:
             if all(point == float('inf') for point in time_line.timeline):
                 break  # 跳出循环，停止处理，或者根据需要进行其他操作
             # 记录每一行是否已经找到了非 None 值，每一次都需要重置
+            if point_type is None and idx is None:
+                print('死锁')
+                break
+
             row_found = [False] * num_rows
             if first_iteration:
                 first_iteration = False
