@@ -246,6 +246,9 @@ def anti_mapping(sequence, unit_state):
 # NSGA2主循环
 def main_loop(pop_size, max_gen, init_population, init_arm):
     gen_no = 0
+    best_solution_1 = []
+    best_solution_2 = [] # 用于存储每一代的最优解
+    best_solutions_info = []  # 用于存储最优解对应的分布信息
     population_P = init_population.copy()
     loop_start_time = time.time()
     while gen_no <= max_gen:
@@ -363,7 +366,6 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
             total_energy, total_time, total_order = init_arm.object_function_2(population_R[i], i)
-            print(init_arm.orders_list[i])
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))    # 将 total_time 添加到 objective2
             obj_order.append(total_order)
@@ -395,6 +397,20 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 population_P_next.append(population_R[sort_solution[i]])
                 obj_order_next.append(obj_order[sort_solution[i]])
 
+        # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
+        """保留最优解"""
+        for i in fronts[0]:
+            # 获取最优解对应的生产单元分布、订单分布和小车分布
+            best_solution_1.append(objective1[i])
+            best_solution_2.append(objective2[i])
+            best_solution_info = {
+                'distributions':anti_mapping(population_R[i], init_arm.unit_states[i]),  # 生产单元分配
+                'agv_count': init_arm.agv_count[i],      # 小车分布
+                'orders_list': init_arm.orders_list[i]   # 订单顺序
+            }
+            # 保存最优解和其分布信息
+            best_solutions_info.append(best_solution_info)
+        # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
         # 得到P(t+1)重复上述过程
         population_P = population_P_next.copy()
         """新一代分布状态"""
@@ -403,48 +419,30 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         init_arm.orders_list = obj_order_next.copy()
 
         if gen_no % 10 == 0:
-            best_obj1 = []
-            best_obj2 = []
-
-            for i in range(pop_size):
-                # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-                total_energy, total_time,total_order = init_arm.object_function_2(population_P[i], i)
-
-                best_obj1.append(round(total_energy,2))  # 将 total_energy 添加到 best_obj1
-                best_obj2.append(round(total_time,2))  # 将 total_time 添加到 best_obj2
-
-            f = fast_non_dominated_sort(best_obj1, best_obj2)
-            # 打印第一前沿中的目标值
-            # print(f"Generation {gen_no}, first front:")
             cope_time = time.time() - loop_start_time
-
             print(f"Generation {gen_no}, time:{cope_time}")
+
+        if gen_no == max_gen:
+            # 从历史最优解中取得全局最优解
+            fronts = fast_non_dominated_sort(best_solution_1, best_solution_2)
+
             energy_pic = []
             time_pic = []
             agv_distributions = []
             order_distributions = []
             distributions_dicts = []
-            for s in f[0]:
-                """值可视化"""
-                # print((population_P[s], 2), end=' ')
-                # print()
-                # print(f"Individual {s}: Energy = {best_obj1[s]}, Time = {best_obj2[s]}")
-                # print('\n')
-                energy_pic.append(best_obj1[s])
-                time_pic.append(best_obj2[s])
-                agv_distributions.append(new_agv_count[s])  # 小车分配
-                order_distributions.append(obj_order_next[s])   # 订单分配
-                distributions_dicts.append(anti_mapping(population_P[s], new_state[s])) # 生产单元机器臂分配（字典）
-            """python图片可视化"""
-            # plt.scatter(energy_pic, time_pic)
-            # plt.show()
-            """plotly图片可视化"""
-            # 数据字典
+            for s in fronts[0]:
+                    energy_pic.append(best_solution_1[s])
+                    time_pic.append(best_solution_2[s])
+                    agv_distributions.append(best_solutions_info[s]['agv_count'])  # 小车分配
+                    order_distributions.append(best_solutions_info[s]['orders_list'])   # 订单分配
+                    distributions_dicts.append(best_solutions_info[s]['distributions']) # 生产单元机器臂分配（字典）
+                    # 数据字典
             data = {
                 'energy': energy_pic,
                 'time': time_pic,
-                'agv_distribution':agv_distributions,
-                'order':order_distributions
+                'agv_distribution': agv_distributions,
+                'order': order_distributions
             }
 
             # 计算最大长度
@@ -463,7 +461,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             df_final = pd.concat([df, df_dicts], axis=1)
             # 使用 Plotly Express 创建散点图
             fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
-                             hover_data=['agv_distribution','组装区', '铸造区', '清洗区', '包装区','焊接区', '喷漆区', '配置区'])
+                             hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
+                                         '配置区'])
 
             # 获取 energy 和 time 数据
             x_data = df_final['energy'].dropna()  # 删除 NaN 值
@@ -486,11 +485,102 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Inverse Fit Line', line=dict(color='red')))
 
             # 显示图表
-            # fig.show()
-            loop_start_time = time.time()
+            fig.show()
 
         gen_no += 1
 
     return energy_pic, time_pic
+
+        # if gen_no % 10 ==0:
+        #     best_obj1 = []
+        #     best_obj2 = []
+        #
+        #     for i in range(pop_size):
+        #         # 通过调用 function_1，解包返回的元组（total_energy, total_time）
+        #         total_energy, total_time,total_order = init_arm.object_function_2(population_P[i], i)
+        #
+        #         best_obj1.append(round(total_energy,2))  # 将 total_energy 添加到 best_obj1
+        #         best_obj2.append(round(total_time,2))  # 将 total_time 添加到 best_obj2
+        #
+        #     f = fast_non_dominated_sort(best_obj1, best_obj2)
+        #     # 打印第一前沿中的目标值
+        #     # print(f"Generation {gen_no}, first front:")
+        #     cope_time = time.time() - loop_start_time
+        #
+        #     print(f"Generation {gen_no}, time:{cope_time}")
+        #     energy_pic = []
+        #     time_pic = []
+        #     agv_distributions = []
+        #     order_distributions = []
+        #     distributions_dicts = []
+        #     for s in f[0]:
+        #         """值可视化"""
+        #         # print((population_P[s], 2), end=' ')
+        #         # print()
+        #         # print(f"Individual {s}: Energy = {best_obj1[s]}, Time = {best_obj2[s]}")
+        #         # print('\n')
+        #         energy_pic.append(best_obj1[s])
+        #         time_pic.append(best_obj2[s])
+        #         agv_distributions.append(new_agv_count[s])  # 小车分配
+        #         order_distributions.append(obj_order_next[s])   # 订单分配
+        #         distributions_dicts.append(anti_mapping(population_P[s], new_state[s])) # 生产单元机器臂分配（字典）
+        #     """python图片可视化"""
+        #     # plt.scatter(energy_pic, time_pic)
+        #     # plt.show()
+        #     """plotly图片可视化"""
+
+    #         # 数据字典
+    #         data = {
+    #             'energy': energy_pic,
+    #             'time': time_pic,
+    #             'agv_distribution':agv_distributions,
+    #             'order':order_distributions
+    #         }
+    #
+    #         # 计算最大长度
+    #         max_length = max(len(lst) for lst in data.values())
+    #
+    #         # 调整所有列表到相同的长度
+    #         for key in data:
+    #             current_length = len(data[key])
+    #             if current_length < max_length:
+    #                 # 补全列表
+    #                 data[key].extend([None] * (max_length - current_length))
+    #         # 将字典转换为 DataFrame
+    #         df = pd.DataFrame(data)
+    #         df_dicts = pd.DataFrame(distributions_dicts)
+    #         # 合并 DataFrame
+    #         df_final = pd.concat([df, df_dicts], axis=1)
+    #         # 使用 Plotly Express 创建散点图
+    #         fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
+    #                          hover_data=['agv_distribution','组装区', '铸造区', '清洗区', '包装区','焊接区', '喷漆区', '配置区'])
+    #
+    #         # 获取 energy 和 time 数据
+    #         x_data = df_final['energy'].dropna()  # 删除 NaN 值
+    #         y_data = df_final['time'].dropna()  # 删除 NaN 值
+    #
+    #         # 定义反比例函数模型
+    #         def inverse_model(x, a, b):
+    #             return a / (x + b)
+    #
+    #         # 使用 curve_fit 进行反比例函数拟合
+    #         params, params_covariance = curve_fit(inverse_model, x_data, y_data, p0=[1, 1])
+    #         # 拟合的参数 a 和 b
+    #         a, b = params
+    #
+    #         # 创建拟合曲线
+    #         x_fit = np.linspace(min(x_data), max(x_data), 100)
+    #         y_fit = inverse_model(x_fit, *params)
+    #
+    #         # 将拟合曲线添加到图中
+    #         fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Inverse Fit Line', line=dict(color='red')))
+    #
+    #         # 显示图表
+    #         fig.show()
+    #         loop_start_time = time.time()
+    #
+    #     gen_no += 1
+    #
+    # return energy_pic, time_pic
 
 

@@ -82,15 +82,15 @@ agv_speed = 5000    # 小车速度
 
 # ------------------------
 # NSGA2参数
-pop_size = 50  # 每一代种群数量
+pop_size = 80  # 每一代种群数量
 max_gen = 100   # 最高代数
 number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
 # 订单数
-num_orders = 5
+num_orders = 10
 # 订单相似破坏率
-similarity_percent = 0.6
+similarity_percent = 0.1
 # ALNS迭代
-iterations = 1
+iterations = 0
 
