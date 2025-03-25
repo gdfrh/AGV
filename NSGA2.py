@@ -11,6 +11,7 @@ import pandas as pd
 import re
 import plotly.graph_objects as go
 from scipy.stats import linregress
+from scipy.optimize import curve_fit
 
 
 # 快速非支配排序
@@ -243,7 +244,7 @@ def anti_mapping(sequence, unit_state):
 
 
 # NSGA2主循环
-def main_loop(pop_size, max_gen, init_population,init_arm):
+def main_loop(pop_size, max_gen, init_population, init_arm):
     gen_no = 0
     population_P = init_population.copy()
     loop_start_time = time.time()
@@ -254,7 +255,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         objective1 = []
         objective2 = []
         for i in range(len(population_R)):
-            #print(len(init_arm.agv_count),len(population_R),len(init_arm.unit_states))
+            # print(init_arm.orders_list[i])
             total_energy, total_time = init_arm.object_function_1(population_R[i], i)
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))  # 将 total_time 添加到 objective2
@@ -302,6 +303,9 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                 new_agv_count1 = init_arm.agv_count[x]
                 new_agv_count2 = init_arm.agv_count[y]
 
+                """下一个可能的订单排列"""
+                new_order1 = init_arm.orders_list[x]
+                new_order2 = init_arm.orders_list[y]
                 # 变异操作
                 if random.random() < mutation_probability:  # 变异概率
                     new_member1, new_state1,new_agv_count1= mutate(new_member1, init_arm, init_arm.unit_states[x], init_arm.agv_count[x])  # 对新个体进行变异
@@ -341,12 +345,14 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
                         population_R.append(new_member1)
                         init_arm.unit_states.append(new_state1)
                         init_arm.agv_count.append(new_agv_count1)
+                        init_arm.orders_list.append(new_order1)
 
                 if not is_zero2:
                     if new_member2 not in population_R:
                         population_R.append(new_member2)
                         init_arm.unit_states.append(new_state2)
                         init_arm.agv_count.append(new_agv_count2)
+                        init_arm.orders_list.append(new_order2)
 
         objective1 = []
         objective2 = []
@@ -357,7 +363,7 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
             total_energy, total_time, total_order = init_arm.object_function_2(population_R[i], i)
-
+            print(init_arm.orders_list[i])
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))    # 将 total_time 添加到 objective2
             obj_order.append(total_order)
@@ -394,6 +400,8 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
         """新一代分布状态"""
         init_arm.unit_states = new_state.copy()
         init_arm.agv_count = new_agv_count.copy()
+        init_arm.orders_list = obj_order_next.copy()
+
         if gen_no % 10 == 0:
             best_obj1 = []
             best_obj2 = []
@@ -461,19 +469,24 @@ def main_loop(pop_size, max_gen, init_population,init_arm):
             x_data = df_final['energy'].dropna()  # 删除 NaN 值
             y_data = df_final['time'].dropna()  # 删除 NaN 值
 
-            # 使用 numpy.polyfit 进行三次曲线拟合 (deg=3 表示三次多项式拟合)
-            coefficients = np.polyfit(x_data, y_data, 3)
+            # 定义反比例函数模型
+            def inverse_model(x, a, b):
+                return a / (x + b)
 
-            # 创建拟合线
+            # 使用 curve_fit 进行反比例函数拟合
+            params, params_covariance = curve_fit(inverse_model, x_data, y_data, p0=[1, 1])
+            # 拟合的参数 a 和 b
+            a, b = params
+
+            # 创建拟合曲线
             x_fit = np.linspace(min(x_data), max(x_data), 100)
-            y_fit = coefficients[0] * x_fit ** 3 + coefficients[1] * x_fit ** 2 + coefficients[2] * x_fit + \
-                    coefficients[3]
+            y_fit = inverse_model(x_fit, *params)
 
-            # 将拟合线添加到图中
-            fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Cubic Fit Line', line=dict(color='red')))
+            # 将拟合曲线添加到图中
+            fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Inverse Fit Line', line=dict(color='red')))
 
             # 显示图表
-            fig.show()
+            # fig.show()
             loop_start_time = time.time()
 
         gen_no += 1

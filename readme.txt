@@ -135,3 +135,5 @@ IndexError: list assignment index out of range
 [(None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None), (None, None, None, None)]
 
 问题似乎是因为point的判定，没有考虑到多个相同的时间断点，所以现在似乎没有问题了
+3.25
+1.ALNS的订单选取问题，每一次解要在原有的订单顺序中修改

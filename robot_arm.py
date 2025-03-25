@@ -11,16 +11,16 @@ from dispatch import Timeline
 
 
 class Arm:
-    def __init__(self, work_name, unit_numbers, total_machines, machine_power, num_orders):
+    def __init__(self, work_name, unit_numbers, total_machines, num_orders):
         # 初始化生产区名称和单元数
         self.work_name = work_name
         self.unit_numbers = unit_numbers  # 初始的生产单元个数
         self.unit_states = []  # 后续每个序列的生产单元个数
         self.total_machines = total_machines  # 总机器数量
-        self.machine_power = machine_power  # 每台机器的功率
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
         self.order_manager = OrderManager(work_name, num_orders)
         self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
+        self.orders_list = []   # 用来记录每一个解的订单顺序排列
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
@@ -603,7 +603,7 @@ class Arm:
         self.padding(sequence)
 
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-        total_time_order, total_power_order = self.order_time_and_power(self.orders, idx)
+        total_time_order, total_power_order = self.order_time_and_power(self.orders_list[idx], idx)
 
         return total_power_order, total_time_order
 
@@ -688,7 +688,9 @@ class Arm:
         使用ALNS算法优化订单顺序
         """
         """初始化最佳时间和能耗"""
-        best_order = copy.deepcopy(self.orders)  # 初始订单
+
+        # best_order = copy.deepcopy(self.orders)  # 初始订单
+        best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
         for _ in range(iterations):
             regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
             similarity = self.calculate_similarity(best_order, idx)  # 存储订单相似值的列表
@@ -733,7 +735,7 @@ class Arm:
                         array = self.insert_and_evaluate(new_order, perm, idx)
                         # 使用 sorted() 函数对列表进行排序
                         sorted_array = sorted(array)
-                        # 后悔修复算子次优解个数,为待插入个数
+                        # 后悔修复算子优解个数,为待插入个数
                         rh_number = len(regret_matching_operator)
 
                         """如果为1，后悔值就会为0"""

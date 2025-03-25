@@ -8,10 +8,10 @@ from car import Car
 
 
 class Schedule:
-    def __init__(self, work_name, total_machines, machine_power, num_orders, zone_requirements):
+    def __init__(self, work_name, total_machines, num_orders, zone_requirements):
         """初始化调度类"""
         self.unit_numbers = self.get_max_units(zone_requirements, total_machines)  # 获取最多生产单元数量
-        self.arm = Arm(work_name, self.unit_numbers, total_machines, machine_power, num_orders)  # 创建 Arm 类实例
+        self.arm = Arm(work_name, self.unit_numbers, total_machines, num_orders)  # 创建 Arm 类实例
         self.car = Car(work_name, self.unit_numbers, total_machines)  # 创建 Car 类实例
         self.orders = self.arm.orders  # 获取从 OrderManager 获取到的订单
 
@@ -50,6 +50,7 @@ class Schedule:
                 """添加初始分布状态"""
                 self.arm.agv_count.append(agv_counts)
                 self.arm.unit_states.append(self.unit_numbers)
+                self.arm.orders_list.append(self.orders)
                 machine_counts.append(new_list)  # 列表形式记录机器臂数量
 
     def arm_loop(self):

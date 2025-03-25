@@ -28,10 +28,10 @@ work_name_order = {  # 用来处理订单对应输出
 """生产区处理时间"""
 # 我想试一试固定处理时间，即订单经过某生产区的停留时间
 processing_time = {
-'run_time' : 30,  # 运行时间（秒），
-'run_power' : 33.70,  # 运行功率（瓦特），
-'sleep_time' : 15,  # 休眠时间（秒），
-'sleep_power' : 19.1  # 休眠功率（瓦特），
+'run_time' : 20,  # 运行时间（秒），
+'run_power' : 10,  # 运行功率（瓦特），
+'sleep_time' : 5,  # 休眠时间（秒），
+'sleep_power' : 2  # 休眠功率（瓦特），
 }
 
 # 生产区距离矩阵
@@ -47,15 +47,6 @@ distance_matrix = [
     [70, 50, 60, 30, 20, 90, 10,  0],  # 离开区 -> [组装区, 铸造区, 清洗区, ...,离开车间]
 ]
 
-# # 每个生产区的单元数
-# unit_numbers_up = [2, 2, 1, 3]  # 对应 work_name_up 每个区的单元数
-# unit_numbers_down = [2, 1, 3]    # 对应 work_name_down 每个区的单元数
-# unit_numbers = unit_numbers_up + unit_numbers_down
-# # 将生产区名称和单元数存储到字典中
-# cell_number = {}
-# for zone, units in zip(work_name, unit_numbers):
-#     cell_number[zone] = units
-
 """
 我们进行假设，较为简单的生产区的生产单元增加机器臂后所需要的时间会显著下降
 较为复杂的生产区的生产单元增加机器臂后所需要的工作时间会下降，但是下降幅度较小
@@ -63,12 +54,11 @@ distance_matrix = [
 修改一下吧，为了保证样本丰富性，我为每个生产区设定参数
 """
 reduction_factor_time_list = [0.32, 0.37, 0.51, 0.63, 0.17, 0.33, 0.15]
-reduction_factor_power_list = [0.26, 0.21, 0.47, 0.71, 0.11, 0.31, 0.15]
+reduction_factor_power_list = [0.30, 0.35, 0.50, 0.75, 0.15, 0.45, 0.30]
 
 # ------------------------
 # 机器臂配置
 total_machines = 50  # 总机器数
-machine_power = 30  # 每台机器的功率（单位：W）
 
 # 存储机器臂的分配
 machine_count_list = []  # 列表
@@ -92,15 +82,15 @@ agv_speed = 5000    # 小车速度
 
 # ------------------------
 # NSGA2参数
-pop_size = 100  # 每一代种群数量
+pop_size = 50  # 每一代种群数量
 max_gen = 100   # 最高代数
 number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
 # 订单数
-num_orders = 10
+num_orders = 5
 # 订单相似破坏率
-similarity_percent = 0.2
+similarity_percent = 0.6
 # ALNS迭代
-iterations = 0
+iterations = 1
 
