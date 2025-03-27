@@ -627,6 +627,8 @@ class Arm:
             """ALNS计算能量，时间"""
             best_order = self.apply_ALNS(idx)
         if compare == 1:
+            best_order = self.apply_ALNS(idx)
+        if compare == 2:
             best_order = self.apply_random(idx)
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
         total_time_order, total_power_order = self.order_time_and_power(best_order, idx)

@@ -95,11 +95,12 @@ similarity_percent = 0.1
 iterations = 0
 # ------------------------
 # 对比实验：
-compare = 1
+compare = 2
 # 0.default
-# 1.ALNS 与 随机修改订单
-# 2.NSGA2 与 随机修改部署
-# 3.ALNS、NSGA2 与 双重随机
-# 4.ALNS：后悔插入 与 贪心插入
-# 5.选择空闲生产单元：权重 与 贪心选择
+# 1.ALNS 0次迭代
+# 2.ALNS 与 随机修改订单
+# 3.NSGA2 与 随机修改部署
+# 4.ALNS、NSGA2 与 双重随机
+# 5.ALNS：后悔插入 与 贪心插入
+# 6.选择空闲生产单元：权重 与 贪心选择
 
