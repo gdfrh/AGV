@@ -1,6 +1,4 @@
-import time
 import copy
-import random
 from Config import *
 from NSGA2 import main_loop
 from robot_arm import Arm
@@ -55,4 +53,5 @@ class Schedule:
 
     def arm_loop(self):
         """实现机器臂的 NSGA-II算法来优化机器臂数量"""
-        v1, v2 = main_loop(pop_size, max_gen, machine_counts, self.arm)
+        main_loop(pop_size, max_gen, machine_counts, self.arm)
+

@@ -12,6 +12,7 @@ import re
 import plotly.graph_objects as go
 from scipy.stats import linregress
 from scipy.optimize import curve_fit
+import pickle
 
 
 # 快速非支配排序
@@ -365,7 +366,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         """此时len(population_R)>=2 * pop_size"""
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-            total_energy, total_time, total_order = init_arm.object_function_2(population_R[i], i)
+            total_energy, total_time, total_order = init_arm.object_function_compare(population_R[i], i)
             objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time,2))    # 将 total_time 添加到 objective2
             obj_order.append(total_order)
@@ -442,54 +443,57 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 'energy': energy_pic,
                 'time': time_pic,
                 'agv_distribution': agv_distributions,
-                'order': order_distributions
+                'order': order_distributions,
+                'distributions_dict': distributions_dicts
             }
+            # 存储在文件中，之后一起进行绘制
+            with open(f'{compare}.pkl', 'wb') as file:
+                pickle.dump(data, file)
 
-            # 计算最大长度
-            max_length = max(len(lst) for lst in data.values())
+            # # 计算最大长度
+            # max_length = max(len(lst) for lst in data.values())
+            #
+            # # 调整所有列表到相同的长度
+            # for key in data:
+            #     current_length = len(data[key])
+            #     if current_length < max_length:
+            #         # 补全列表
+            #         data[key].extend([None] * (max_length - current_length))
+            # # 将字典转换为 DataFrame
+            # df = pd.DataFrame(data)
+            # df_dicts = pd.DataFrame(distributions_dicts)
+            # # 合并 DataFrame
+            # df_final = pd.concat([df, df_dicts], axis=1)
+            # # 使用 Plotly Express 创建散点图
+            # fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
+            #                  hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
+            #                              '配置区'])
 
-            # 调整所有列表到相同的长度
-            for key in data:
-                current_length = len(data[key])
-                if current_length < max_length:
-                    # 补全列表
-                    data[key].extend([None] * (max_length - current_length))
-            # 将字典转换为 DataFrame
-            df = pd.DataFrame(data)
-            df_dicts = pd.DataFrame(distributions_dicts)
-            # 合并 DataFrame
-            df_final = pd.concat([df, df_dicts], axis=1)
-            # 使用 Plotly Express 创建散点图
-            fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
-                             hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
-                                         '配置区'])
-
-            # 获取 energy 和 time 数据
-            x_data = df_final['energy'].dropna()  # 删除 NaN 值
-            y_data = df_final['time'].dropna()  # 删除 NaN 值
-
-            # 定义反比例函数模型
-            def inverse_model(x, a, b):
-                return a / (x + b)
-
-            # 使用 curve_fit 进行反比例函数拟合
-            params, params_covariance = curve_fit(inverse_model, x_data, y_data, p0=[1, 1])
-            # 拟合的参数 a 和 b
-            a, b = params
-
-            # 创建拟合曲线
-            x_fit = np.linspace(min(x_data), max(x_data), 100)
-            y_fit = inverse_model(x_fit, *params)
-
-            # 将拟合曲线添加到图中
-            fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Inverse Fit Line', line=dict(color='red')))
+            # # 获取 energy 和 time 数据
+            # x_data = df_final['energy'].dropna()  # 删除 NaN 值
+            # y_data = df_final['time'].dropna()  # 删除 NaN 值
+            #
+            # # 定义反比例函数模型
+            # def inverse_model(x, a, b):
+            #     return a / (x + b)
+            #
+            # # 使用 curve_fit 进行反比例函数拟合
+            # params, params_covariance = curve_fit(inverse_model, x_data, y_data, p0=[1, 1])
+            # # 拟合的参数 a 和 b
+            # a, b = params
+            #
+            # # 创建拟合曲线
+            # x_fit = np.linspace(min(x_data), max(x_data), 100)
+            # y_fit = inverse_model(x_fit, *params)
+            #
+            # # 将拟合曲线添加到图中
+            # fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Inverse Fit Line', line=dict(color='red')))
 
             # 显示图表
-            fig.show()
+            # fig.show()
 
         gen_no += 1
 
-    return energy_pic, time_pic
 
         # if gen_no % 10 ==0:
         #     best_obj1 = []

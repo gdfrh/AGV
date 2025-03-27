@@ -29,9 +29,9 @@ work_name_order = {  # 用来处理订单对应输出
 # 我想试一试固定处理时间，即订单经过某生产区的停留时间
 processing_time = {
 'run_time' : 20,  # 运行时间（秒），
-'run_power' : 10,  # 运行功率（瓦特），
+'run_power' : 0.01,  # 运行功率（瓦特），
 'sleep_time' : 5,  # 休眠时间（秒），
-'sleep_power' : 2  # 休眠功率（瓦特），
+'sleep_power' : 0.0022  # 休眠功率（瓦特），
 }
 
 # 生产区距离矩阵
@@ -82,7 +82,7 @@ agv_speed = 5000    # 小车速度
 
 # ------------------------
 # NSGA2参数
-pop_size = 80  # 每一代种群数量
+pop_size = 50  # 每一代种群数量
 max_gen = 100   # 最高代数
 number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
@@ -93,4 +93,13 @@ num_orders = 10
 similarity_percent = 0.1
 # ALNS迭代
 iterations = 0
+# ------------------------
+# 对比实验：
+compare = 1
+# 0.default
+# 1.ALNS 与 随机修改订单
+# 2.NSGA2 与 随机修改部署
+# 3.ALNS、NSGA2 与 双重随机
+# 4.ALNS：后悔插入 与 贪心插入
+# 5.选择空闲生产单元：权重 与 贪心选择
 

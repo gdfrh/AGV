@@ -1,16 +1,5 @@
-"""
-我感觉来规划小车的分配需要用到订单，是否可以定义几种订单A B C，
-A：1-2-（345）-6-7
-B：1-3-（46）-2
-C:1-7
-像这种的订单随机的来几十个
-
-设定目标函数为时间t来判断小车的分配呢，这样小车的分配就与订单进行绑定了
-是否需要考虑路由时间？如何考虑？
-"""
 import random
 from Config import work_name_order
-
 
 
 class Order:
@@ -82,6 +71,4 @@ class OrderManager:
             details = order.get_order_details()
             orders.append(details['zones'])
 
-
         return orders
-

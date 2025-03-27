@@ -18,8 +18,20 @@ class Arm:
         self.unit_states = []  # 后续每个序列的生产单元个数
         self.total_machines = total_machines  # 总机器数量
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
-        self.order_manager = OrderManager(work_name, num_orders)
-        self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
+        # self.order_manager = OrderManager(work_name, num_orders)
+        # self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
+        self.orders = [
+    ['组装区', '铸造区', '清洗区', '焊接区', '包装区', '喷漆区', '配置区'],
+    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '配置区'],
+    ['组装区', '铸造区', '焊接区', '包装区', '喷漆区', '清洗区', '配置区'],
+    ['组装区', '铸造区', '焊接区', '喷漆区', '配置区'],
+    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '配置区'],
+    ['组装区', '铸造区', '清洗区', '配置区']
+]
         self.orders_list = []   # 用来记录每一个解的订单顺序排列
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
@@ -607,13 +619,15 @@ class Arm:
 
         return total_power_order, total_time_order
 
-    def object_function_2(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+    def object_function_compare(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
         self._initialize_function(idx)
         self.padding(sequence)
-
-        """ALNS计算能量，时间"""
-        best_order = self.apply_ALNS(idx)
+        if compare == 0:
+            """ALNS计算能量，时间"""
+            best_order = self.apply_ALNS(idx)
+        if compare == 1:
+            best_order = self.apply_random(idx)
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
         total_time_order, total_power_order = self.order_time_and_power(best_order, idx)
 
@@ -687,8 +701,6 @@ class Arm:
         """
         使用ALNS算法优化订单顺序
         """
-        """初始化最佳时间和能耗"""
-
         # best_order = copy.deepcopy(self.orders)  # 初始订单
         best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
         for _ in range(iterations):
@@ -768,3 +780,10 @@ class Arm:
             best_order = new_order
 
         return best_order
+
+    def apply_random(self, idx):
+        orders = copy.deepcopy(self.orders_list[idx])  # 初始订单
+        random.shuffle(orders)
+        return orders
+
+
