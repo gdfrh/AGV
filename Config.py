@@ -97,7 +97,7 @@ iterations = 0
 # 对比实验：
 compare = 2
 # 0.default
-# 1.ALNS 0次迭代
+# 1.ALNS 0次迭代：直接计算对订单没有修改
 # 2.ALNS 与 随机修改订单
 # 3.NSGA2 与 随机修改部署
 # 4.ALNS、NSGA2 与 双重随机

@@ -58,15 +58,19 @@ def crowed_distance_assignment(values1, values2, front):
     length = len(front)
     sorted_front1 = sorted(front, key=lambda x: values1[x])
     sorted_front2 = sorted(front, key=lambda x: values2[x])
-    dis_table = {sorted_front1[0]: np.inf, sorted_front1[-1]: np.inf, sorted_front2[0]: np.inf, sorted_front2[-1]: np.inf}
+    dis_table = {sorted_front1[0]: np.inf, sorted_front1[-1]: np.inf, sorted_front2[0]: np.inf,
+                 sorted_front2[-1]: np.inf}
     for i in range(1, length - 1):
         k = sorted_front1[i]
-        dis_table[k] = dis_table.get(k, 0)+(values1[sorted_front1[i+1]]-values1[sorted_front1[i-1]])/(max(values1)-min(values1))
+        dis_table[k] = dis_table.get(k, 0) + (values1[sorted_front1[i + 1]] - values1[sorted_front1[i - 1]]) / (
+                max(values1) - min(values1))
     for i in range(1, length - 1):
         k = sorted_front1[i]
-        dis_table[k] = dis_table[k]+(values2[sorted_front2[i+1]]-values2[sorted_front2[i-1]])/(max(values2)-min(values2))
+        dis_table[k] = dis_table[k] + (values2[sorted_front2[i + 1]] - values2[sorted_front2[i - 1]]) / (
+                max(values2) - min(values2))
     distance = [dis_table[a] for a in front]
     return distance
+
 
 def number_departure(number, splits):
     # 将数字转换为字符串
@@ -110,7 +114,7 @@ def crossover(individual1, individual2, unit_state_list1, unit_state_list2):
     new_parts1 = []
     new_parts2 = []
 
-    for i in range(len(parts1)):    # 0到6
+    for i in range(len(parts1)):  # 0到6
         # 将字符串中的每个字符转换为整数，存入新列表
         expanded1_list = [int(digit) for digit in parts1[i]]
         expanded2_list = [int(digit) for digit in parts2[i]]
@@ -121,7 +125,7 @@ def crossover(individual1, individual2, unit_state_list1, unit_state_list2):
         non_zero_indices2 = [i for i, x in enumerate(expanded2_list) if x != 0]
         idx1 = random.choice(non_zero_indices1)
         idx2 = random.choice(non_zero_indices2)
-        idx =random.randint(0, min(idx1, idx2))
+        idx = random.randint(0, min(idx1, idx2))
         expanded1_list[idx], expanded2_list[idx] = expanded2_list[idx], expanded1_list[idx]
 
         # 排序列表，从大到小
@@ -222,6 +226,7 @@ def mutate(individual, init_arm, unit_state, agv_count):
     # 返回重新组合后的结果,是一个列表,以及分布状态
     return new_individual, new_state, agv_count
 
+
 def anti_mapping(sequence, unit_state):
     """反映射:将序列填充到 machines_count 内部"""
     sequence_idx = 0  # 追踪当前序列中的索引
@@ -243,6 +248,7 @@ def anti_mapping(sequence, unit_state):
 
     return new_machines_count
 
+
 def select_front(fronts):
     # 选择使用的前沿
     not_front_1 = []  # 非第一前沿的解的索引
@@ -263,41 +269,39 @@ def select_front(fronts):
         use_list = front_1 + not_front_1
     return use_list
 
-def crossover_and_mutation():
 
-    machine_counts1 = {}
-    machine_counts2 = {}
-
+def crossover_and_mutation(use_list, population_R, init_arm):
     # 随机选择2个不同的非第一前沿的个体进行交叉
-    x = random.choice(use_list)
-    y = random.choice(use_list)
-    if x != y:  # 虽然应该不止一个
+    x, y = random.sample(use_list, 2)
 
-        new_member1, new_member2 = crossover(population_R[x], population_R[y],
-                                             init_arm.unit_states[x], init_arm.unit_states[y])
-        """下一个可能的生产单元分布状态"""
-        new_state1 = init_arm.unit_states[x]
-        new_state2 = init_arm.unit_states[y]
+    new_member1, new_member2 = crossover(population_R[x], population_R[y],
+                                         init_arm.unit_states[x], init_arm.unit_states[y])
+    """下一个可能的生产单元分布状态"""
+    new_state1 = init_arm.unit_states[x]
+    new_state2 = init_arm.unit_states[y]
 
-        """下一个可能的小车分布数量"""
-        new_agv_count1 = init_arm.agv_count[x]
-        new_agv_count2 = init_arm.agv_count[y]
+    """下一个可能的小车分布数量"""
+    new_agv_count1 = init_arm.agv_count[x]
+    new_agv_count2 = init_arm.agv_count[y]
 
-        """下一个可能的订单排列"""
-        new_order1 = init_arm.orders_list[x]
-        new_order2 = init_arm.orders_list[y]
-        # 变异操作
-        if random.random() < mutation_probability:  # 变异概率
-            new_member1, new_state1, new_agv_count1 = mutate(new_member1, init_arm, init_arm.unit_states[x],
-                                                             init_arm.agv_count[x])  # 对新个体进行变异
-            new_member2, new_state2, new_agv_count2 = mutate(new_member2, init_arm, init_arm.unit_states[y],
-                                                             init_arm.agv_count[y])
+    """下一个可能的订单排列"""
+    new_order1 = init_arm.orders_list[x]
+    new_order2 = init_arm.orders_list[y]
+    # 变异操作
+    if random.random() < mutation_probability:  # 变异概率
+        new_member1, new_state1, new_agv_count1 = mutate(new_member1, init_arm, init_arm.unit_states[x],
+                                                         init_arm.agv_count[x])  # 对新个体进行变异
+        new_member2, new_state2, new_agv_count2 = mutate(new_member2, init_arm, init_arm.unit_states[y],
+                                                         init_arm.agv_count[y])
+
+    return new_member1, new_member2, new_state1, new_state2, new_agv_count1, new_agv_count2, new_order1, new_order2
+
 
 # NSGA2主循环
 def main_loop(pop_size, max_gen, init_population, init_arm):
     gen_no = 0
     best_solution_1 = []
-    best_solution_2 = [] # 用于存储每一代的最优解
+    best_solution_2 = []  # 用于存储每一代的最优解
     best_solutions_info = []  # 用于存储最优解对应的分布信息
     population_P = init_population.copy()
     loop_start_time = time.time()
@@ -310,8 +314,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         for i in range(len(population_R)):
             # print(init_arm.orders_list[i])
             total_energy, total_time = init_arm.object_function_1(population_R[i], i)
-            objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
-            objective2.append(round(total_time,2))  # 将 total_time 添加到 objective2
+            objective1.append(round(total_energy, 2))  # 将 total_energy 添加到 objective1
+            objective2.append(round(total_time, 2))  # 将 total_time 添加到 objective2
 
         # 非支配排序，得到不同前沿
         fronts = fast_non_dominated_sort(objective1, objective2)
@@ -326,70 +330,49 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             is_zero1 = False
             is_zero2 = False
             # 随机选择2个不同的非第一前沿的个体进行交叉
-            x = random.choice(use_list)
-            y = random.choice(use_list)
-            if x != y:#虽然应该不止一个
 
-                new_member1, new_member2 = crossover(population_R[x], population_R[y],
-                                                     init_arm.unit_states[x], init_arm.unit_states[y])
-                """下一个可能的生产单元分布状态"""
-                new_state1 = init_arm.unit_states[x]
-                new_state2 = init_arm.unit_states[y]
-
-                """下一个可能的小车分布数量"""
-                new_agv_count1 = init_arm.agv_count[x]
-                new_agv_count2 = init_arm.agv_count[y]
-
-                """下一个可能的订单排列"""
-                new_order1 = init_arm.orders_list[x]
-                new_order2 = init_arm.orders_list[y]
-                # 变异操作
-                if random.random() < mutation_probability:  # 变异概率
-                    new_member1, new_state1,new_agv_count1= mutate(new_member1, init_arm, init_arm.unit_states[x], init_arm.agv_count[x])  # 对新个体进行变异
-                    new_member2, new_state2,new_agv_count2= mutate(new_member2, init_arm, init_arm.unit_states[y], init_arm.agv_count[y])
-
-                """首先得判断不能让某个生产区没有生产单元,我们可以使用反映射，来判断"""
-                """反映射，如果生产单元个数发生了变化如何判断,我直接新设了一个字典来判断，不影响machines_count"""
-                machine_counts1 = anti_mapping(new_member1, new_state1)
-                # 遍历每个生产区，检查该生产区的机器数量是否全为0
-                for zone, machines in machine_counts1.items():
-                    total_machines_in_zone = sum(machines)
-                    if total_machines_in_zone > total_machines:
-                        is_zero1 = True
-                    if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
-                        is_zero1 = True
-                # 对小车:数量不能超出约束
-                if sum(new_agv_count1) > total_agv:
+            """首先得判断不能让某个生产区没有生产单元,我们可以使用反映射，来判断"""
+            """反映射，如果生产单元个数发生了变化如何判断,我直接新设了一个字典来判断，不影响machines_count"""
+            machine_counts1 = anti_mapping(new_member1, new_state1)
+            # 遍历每个生产区，检查该生产区的机器数量是否全为0
+            for zone, machines in machine_counts1.items():
+                total_machines_in_zone = sum(machines)
+                if total_machines_in_zone > total_machines:
                     is_zero1 = True
+                if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
+                    is_zero1 = True
+            # 对小车:数量不能超出约束
+            if sum(new_agv_count1) > total_agv:
+                is_zero1 = True
 
-                machine_counts2 = anti_mapping(new_member2, new_state2)
-                # 遍历每个生产区，检查该生产区的机器数量是否全为0
-                for zone, machines in machine_counts2.items():
-                    total_machines_in_zone = sum(machines)
-                    if total_machines_in_zone > total_machines:
-                        is_zero1 = True
-                    if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
-                        is_zero2 = True
-
-                # 对小车:数量不能超出约束
-                if sum(new_agv_count2) > total_agv:
+            machine_counts2 = anti_mapping(new_member2, new_state2)
+            # 遍历每个生产区，检查该生产区的机器数量是否全为0
+            for zone, machines in machine_counts2.items():
+                total_machines_in_zone = sum(machines)
+                if total_machines_in_zone > total_machines:
+                    is_zero1 = True
+                if all(machine == 0 for machine in machines):  # 如果所有机器数都为0
                     is_zero2 = True
 
-                """不能有某个生产区机器臂为0，并且不能超过机器臂总数"""
-                if not is_zero1:
-                    """如果解存在了，就不考虑它"""
-                    if new_member1 not in population_R:
-                        population_R.append(new_member1)
-                        init_arm.unit_states.append(new_state1)
-                        init_arm.agv_count.append(new_agv_count1)
-                        init_arm.orders_list.append(new_order1)
+            # 对小车:数量不能超出约束
+            if sum(new_agv_count2) > total_agv:
+                is_zero2 = True
 
-                if not is_zero2:
-                    if new_member2 not in population_R:
-                        population_R.append(new_member2)
-                        init_arm.unit_states.append(new_state2)
-                        init_arm.agv_count.append(new_agv_count2)
-                        init_arm.orders_list.append(new_order2)
+            """不能有某个生产区机器臂为0，并且不能超过机器臂总数"""
+            if not is_zero1:
+                """如果解存在了，就不考虑它"""
+                if new_member1 not in population_R:
+                    population_R.append(new_member1)
+                    init_arm.unit_states.append(new_state1)
+                    init_arm.agv_count.append(new_agv_count1)
+                    init_arm.orders_list.append(new_order1)
+
+            if not is_zero2:
+                if new_member2 not in population_R:
+                    population_R.append(new_member2)
+                    init_arm.unit_states.append(new_state2)
+                    init_arm.agv_count.append(new_agv_count2)
+                    init_arm.orders_list.append(new_order2)
 
         objective1 = []
         objective2 = []
@@ -400,8 +383,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
             total_energy, total_time, total_order = init_arm.object_function_compare(population_R[i], i)
-            objective1.append(round(total_energy,2))  # 将 total_energy 添加到 objective1
-            objective2.append(round(total_time,2))    # 将 total_time 添加到 objective2
+            objective1.append(round(total_energy, 2))  # 将 total_energy 添加到 objective1
+            objective2.append(round(total_time, 2))  # 将 total_time 添加到 objective2
             obj_order.append(total_order)
         fronts = fast_non_dominated_sort(objective1, objective2)
 
@@ -438,9 +421,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             best_solution_1.append(objective1[i])
             best_solution_2.append(objective2[i])
             best_solution_info = {
-                'distributions':anti_mapping(population_R[i], init_arm.unit_states[i]),  # 生产单元分配
-                'agv_count': init_arm.agv_count[i],      # 小车分布
-                'orders_list': init_arm.orders_list[i]   # 订单顺序
+                'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),  # 生产单元分配
+                'agv_count': init_arm.agv_count[i],  # 小车分布
+                'orders_list': init_arm.orders_list[i]  # 订单顺序
             }
             # 保存最优解和其分布信息
             best_solutions_info.append(best_solution_info)
@@ -466,12 +449,12 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             order_distributions = []
             distributions_dicts = []
             for s in fronts[0]:
-                    energy_pic.append(best_solution_1[s])
-                    time_pic.append(best_solution_2[s])
-                    agv_distributions.append(best_solutions_info[s]['agv_count'])  # 小车分配
-                    order_distributions.append(best_solutions_info[s]['orders_list'])   # 订单分配
-                    distributions_dicts.append(best_solutions_info[s]['distributions']) # 生产单元机器臂分配（字典）
-                    # 数据字典
+                energy_pic.append(best_solution_1[s])
+                time_pic.append(best_solution_2[s])
+                agv_distributions.append(best_solutions_info[s]['agv_count'])  # 小车分配
+                order_distributions.append(best_solutions_info[s]['orders_list'])  # 订单分配
+                distributions_dicts.append(best_solutions_info[s]['distributions'])  # 生产单元机器臂分配（字典）
+                # 数据字典
             data = {
                 'energy': energy_pic,
                 'time': time_pic,
@@ -526,7 +509,6 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # fig.show()
 
         gen_no += 1
-
 
         # if gen_no % 10 ==0:
         #     best_obj1 = []
@@ -619,5 +601,3 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
     #     gen_no += 1
     #
     # return energy_pic, time_pic
-
-

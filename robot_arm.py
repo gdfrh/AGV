@@ -623,12 +623,14 @@ class Arm:
         """初始化"""
         self._initialize_function(idx)
         self.padding(sequence)
-        if compare == 0:
+        if compare in (0, 3):
             """ALNS计算能量，时间"""
             best_order = self.apply_ALNS(idx)
         if compare == 1:
+            """ALNS 0次迭代"""
             best_order = self.apply_ALNS(idx)
         if compare == 2:
+            """随机修改订单"""
             best_order = self.apply_random(idx)
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
         total_time_order, total_power_order = self.order_time_and_power(best_order, idx)
