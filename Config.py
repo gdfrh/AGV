@@ -83,7 +83,7 @@ agv_speed = 5000    # 小车速度
 # ------------------------
 # NSGA2参数
 pop_size = 50  # 每一代种群数量
-max_gen = 200   # 最高代数
+max_gen = 100   # 最高代数
 number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
@@ -95,7 +95,7 @@ similarity_percent = 0.1
 iterations = 1
 # ------------------------
 # 对比实验：
-compare = 0
+compare = 3
 # 0.default
 # 1.ALNS 0次迭代：直接计算对订单没有修改
 # 2.ALNS 与 随机修改订单

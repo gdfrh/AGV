@@ -183,26 +183,33 @@ def mutate(individual, init_arm, unit_state, agv_count):
                     zone_units[unit] += 1
         else:
             for unit in range(len(zone_units)):
-                if zone_units[unit] != 0:  # 减少机器臂
+                if zone_units[unit] >= required_machines + 1:  # 减少机器臂，但是不能少于需要的机器臂
                     zone_units[unit] -= 1
+        zone_units = sorted(zone_units, reverse=True)
+        expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
     else:
         if total_machines - sum_of_digits < required_machines:
             """机器臂不够新增一个生产单元，随机选择一个生产单元删除它"""
             # 随机选择一个生产单元并删除,但是得保证每一个生产区都有生产单元和机器臂
-            unit_to_remove = random.choice(zone_units)
-            zone_units.remove(unit_to_remove)
+            # 随机选择一个生产单元并将其机器臂数设为0
+            unit_to_remove_idx = random.choice([i for i, unit in enumerate(zone_units) if unit > 0])  # 只选择有机器臂的生产单元
+            zone_units[unit_to_remove_idx] = 0  # 将选择的生产单元的机器臂数设为0
+            zone_units = sorted(zone_units, reverse=True)
             if sum(zone_units) != 0:
                 expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
-                """对应拷贝分布状态减一，避免影响之前的状态"""
-                new_state[zone_index] -= 1
+                # """对应拷贝分布状态减一，避免影响之前的状态"""
+                # new_state[zone_index] -= 1
 
         elif total_machines - sum_of_digits >= required_machines:
             """机器臂可以新增一个生产单元，随机选择一个生产区，增加1个生产单元"""
-            zone_units.append(required_machines)
-            expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
-            expanded_list = sorted(expanded_list, reverse=True)
-            """对应拷贝分布状态加一，避免影响之前的状态"""
-            new_state[zone_index] += 1
+            unit_to_add_idx = random.choice([i for i, unit in enumerate(zone_units) if unit == 0])  # 只选择有机器臂的生产单元
+            if unit_to_add_idx:
+                zone_units[unit_to_add_idx] = required_machines
+                zone_units = sorted(zone_units, reverse=True)
+                expanded_list = expanded_list[0:start_idx] + zone_units + expanded_list[end_idx:]
+            # expanded_list = sorted(expanded_list, reverse=True)
+            # """对应拷贝分布状态加一，避免影响之前的状态"""
+            # new_state[zone_index] += 1
 
     # 将 expanded_list 中的数字重新组合成一个新的字符串
     new_str = ''.join(map(str, expanded_list))

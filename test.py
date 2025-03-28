@@ -33,10 +33,21 @@
 #     # 随机选择一个生产单元，增加机器臂
 #     random_index = random.choice(range(len(parts)))
 #     expanded_list[random_index] += 1
-import random
-
-list = [0,0,0]
-print(len(list))
-print(random.random(),random.random(),random.random())
-
-
+# import random
+#
+# list = [0,0,0]
+# print(len(list))
+# print(random.random(),random.random(),random.random())
+# import random
+# zone_units =[0,1,2,3,4,5]
+# unit_to_remove = random.choice(zone_units)
+# print(unit_to_remove)
+# zone_units.remove(unit_to_remove)
+# print(zone_units)
+zone_units =[0,1,2,3,4,5]
+zone_units.append(6)
+zone_units = sorted(zone_units, reverse=True)
+print(zone_units)
+expanded_list = [0] + zone_units + [1]
+expanded_list = sorted(expanded_list, reverse=True)
+print(expanded_list)
