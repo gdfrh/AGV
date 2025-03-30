@@ -121,7 +121,7 @@ class Arm:
             # 将差额加到小车最多的生产区
             agv_distribute[max_agv_zone] += difference
 
-        # 3. 对每个生产区的生产单元按机器数量从大到小排序
+        # 4. 对每个生产区的生产单元按机器数量从大到小排序
         for zone in self.machines_count:
             # 排序每个生产区的单元，按机器数量从大到小
             self.machines_count[zone] = sorted(self.machines_count[zone], reverse=True)
@@ -623,13 +623,10 @@ class Arm:
         """初始化"""
         self._initialize_function(idx)
         self.padding(sequence)
-        if compare in (0, 3):
+        if compare in (0, 1, 3):
             """ALNS计算能量，时间"""
             best_order = self.apply_ALNS(idx)
-        if compare == 1:
-            """ALNS 0次迭代"""
-            best_order = self.apply_ALNS(idx)
-        if compare == 2:
+        if compare in (2, 4):
             """随机修改订单"""
             best_order = self.apply_random(idx)
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""

@@ -334,6 +334,67 @@ def check_and_add_solution(new_member, new_state, new_agv_count, new_order, popu
         init_arm.agv_count.append(new_agv_count)
         init_arm.orders_list.append(new_order)
 
+def cope_with_random_solution(population_R, init_arm):
+    # 定义一个新字典
+    arm_distributions = {}
+    # 随机选择一个部署解
+    idx = random.choice(range(len(population_R)))
+    for zone, unit_count in zip(work_name, init_arm.unit_numbers):
+        arm_distributions[zone] = [0] * unit_count  # 为每个生产单元初始化机器数为 0
+        # 1. 根据需求给每个生产区分配机器
+    remaining_machines = total_machines  # 总机器数量
+    for zone, min_machines in zone_requirements:  # zone_requirements 中保存每个生产区需要的最小机器数量
+        # 获取该生产区的单元数
+        units = len(arm_distributions[zone])
+        obj_units = random.randint(0, units - 1)
+        # 先给每个生产单元分配最低机器臂数量
+        arm_distributions[zone][obj_units] = min_machines
+        remaining_machines -= min_machines
+    # 2. 随机分配机器
+    while remaining_machines > 0:
+        zone = random.choice(work_name)  # 随机选择一个生产区
+        unit_index = random.randint(0, len(arm_distributions[zone]) - 1)  # 随机选择一个生产单元
+        # 分配每个生产区需要的机器数，而不是逐个机器分配
+        """如果机器臂数量为0，则分配最低要求数"""
+        if arm_distributions[zone][unit_index] == 0:
+            min_required_machines = zone_requirements[work_name.index(zone)][1]  # 获取该生产区的最小机器需求
+            if remaining_machines >= min_required_machines:
+                arm_distributions[zone][unit_index] = min_required_machines
+                remaining_machines -= min_required_machines
+            """如果已分配机器臂，就多分配1个"""
+        elif arm_distributions[zone][unit_index] != 0:
+            arm_distributions[zone][unit_index] += 1
+            remaining_machines -= 1
+    # 3. 对每个生产区的生产单元按机器数量从大到小排序
+    for zone in arm_distributions:
+        # 排序每个生产区的单元，按机器数量从大到小
+        arm_distributions[zone] = sorted(arm_distributions[zone], reverse=True)
+    machine_count_list = []  # 列表
+    for zone, units in arm_distributions.items():
+        # 将每个生产区的机器数存储到字典中
+        machine_count_list += units  # 每个单元的机器数
+    merged_str = ''.join(map(str, machine_count_list))
+    # 将连接后的字符串转换为整数
+    merged_number = int(merged_str)
+    unit_state = init_arm.unit_states[idx]
+
+    # 小车分布
+    agv_count = init_arm.agv_count[idx]
+    total_agv_number = total_agv
+    # 将每个生产单元的机器臂数量设为0
+    agv_count = [1] * len(agv_count)
+    remaining_agv_number = total_agv_number - sum(agv_count)
+    # 随机分配剩余的小车数量
+    while remaining_agv_number > 0:
+        # 随机选择一个生产单元，并增加一个机器臂
+        random_index = random.choice(range(len(agv_count)))
+        agv_count[random_index] += 1
+        remaining_agv_number -= 1
+    if merged_number not in population_R:
+        population_R.append(merged_number)
+        init_arm.unit_states.append(unit_state)
+        init_arm.agv_count.append(agv_count)
+        init_arm.orders_list.append(init_arm.orders_list[idx])
 
 # NSGA2主循环
 def main_loop(pop_size, max_gen, init_population, init_arm):
@@ -369,55 +430,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 # 检查是否满足约束
                 check_and_add_solution(new_member1, new_state1, new_agv_count1, new_order1, population_R, init_arm, total_machines, total_agv)
                 check_and_add_solution(new_member2, new_state2, new_agv_count2, new_order2, population_R, init_arm, total_machines, total_agv)
-        if compare == 3:
+        if compare in (3, 4):
             while len(population_R) < 2 * pop_size:
-                # 随机选择一个部署解
-                idx = random.choice(range(len(population_R)))
-                # 生产单元分布
-                unit_state = init_arm.unit_states[idx]
-                obj_individual = population_R[idx]
-                # 按生产单元数量转换成对应数量的列表长度
-                parts = number_departure(obj_individual, unit_state)
-                new_parts = []
-                for i in range(len(parts)):  # 0到6
-                    # 将字符串中的每个字符转换为整数，存入新列表
-                    expanded_list = [int(digit) for digit in parts[i]]
-                    total_number = sum(expanded_list)
-                    # 将每个生产单元的机器臂数量设为0
-                    expanded_list = [0] * len(expanded_list)
-                    # 随机分配剩余的机器臂数量
-                    while total_number > 0:
-                        # 随机选择一个生产单元，并增加一个机器臂
-                        random_index = random.choice(range(len(expanded_list)))
-                        expanded_list[random_index] += 1
-                        total_number -= 1
-
-                    # 排序列表，从大到小
-                    expanded_list = sorted(expanded_list, reverse=True)
-                    # 将 expanded_list 中的数字重新组合成一个新的字符串
-                    new_str = ''.join(map(str, expanded_list))
-                    # 添加到新列表
-                    new_parts.append(new_str)
-                new_parts = ''.join(map(str, new_parts))
-                # # 将组合后的字符串转换为一个整数
-                new_individual = int(new_parts)
-
-                # 小车分布
-                agv_count = init_arm.agv_count[idx]
-                total_agv_number = total_agv
-                # 将每个生产单元的机器臂数量设为0
-                agv_count = [1] * len(agv_count)
-                remaining_agv_number = total_agv_number - sum(agv_count)
-                # 随机分配剩余的机器臂数量
-                while remaining_agv_number > 0:
-                    # 随机选择一个生产单元，并增加一个机器臂
-                    random_index = random.choice(range(len(agv_count)))
-                    agv_count[random_index] += 1
-                    remaining_agv_number -= 1
-                population_R.append(new_individual)
-                init_arm.unit_states.append(unit_state)
-                init_arm.agv_count.append(agv_count)
-                init_arm.orders_list.append(init_arm.orders_list[idx])
+                cope_with_random_solution(population_R,init_arm)
 
         objective1 = []
         objective2 = []
