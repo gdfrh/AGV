@@ -552,7 +552,12 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # 存储在文件中，之后一起进行绘制
             with open(f'{compare}.pkl', 'wb') as file:
                 pickle.dump(data, file)
-
+            # 存储在文件中，之后一起进行绘制
+            if compare == 0:
+                with open(f'num_orders{num_orders}.pkl', 'wb') as file:
+                    pickle.dump(data, file)
+                with open(f'total_machines{total_machines}.pkl', 'wb') as file:
+                    pickle.dump(data, file)
             # # 计算最大长度
             # max_length = max(len(lst) for lst in data.values())
             #

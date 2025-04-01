@@ -18,20 +18,20 @@ class Arm:
         self.unit_states = []  # 后续每个序列的生产单元个数
         self.total_machines = total_machines  # 总机器数量
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
-        # self.order_manager = OrderManager(work_name, num_orders)
-        # self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
-        self.orders = [
-    ['组装区', '铸造区', '清洗区', '焊接区', '包装区', '喷漆区', '配置区'],
-    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '配置区'],
-    ['组装区', '铸造区', '焊接区', '包装区', '喷漆区', '清洗区', '配置区'],
-    ['组装区', '铸造区', '焊接区', '喷漆区', '配置区'],
-    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '配置区'],
-    ['组装区', '铸造区', '清洗区', '配置区']
-]
+        self.order_manager = OrderManager(work_name, num_orders)
+        self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
+#         self.orders = [
+#     ['组装区', '铸造区', '清洗区', '焊接区', '包装区', '喷漆区', '配置区'],
+#     ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+#     ['组装区', '铸造区', '喷漆区', '焊接区', '配置区'],
+#     ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+#     ['组装区', '铸造区', '配置区'],
+#     ['组装区', '铸造区', '焊接区', '包装区', '喷漆区', '清洗区', '配置区'],
+#     ['组装区', '铸造区', '焊接区', '喷漆区', '配置区'],
+#     ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+#     ['组装区', '铸造区', '配置区'],
+#     ['组装区', '铸造区', '清洗区', '配置区']
+# ]
         self.orders_list = []   # 用来记录每一个解的订单顺序排列
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
@@ -558,7 +558,7 @@ class Arm:
                                                 self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
                                                 timeline_one[rows] = time_line.current_time
                                                 timeline_two[rows] = order_time + time_line.current_time
-                                timeline_history.append(timeline_one[:])  # 结束-3
+                                # timeline_history.append(timeline_one[:])  # 结束-3
                                 timeline_history.append(timeline_one[:])  # 开始处理
                                 timeline_history.append(timeline_two[:])  # 结束处理
 
@@ -569,17 +569,17 @@ class Arm:
             if point_type == 'order':
                 if not all(x == 0 for x in timeline_one[:]):
                     # -3占据生产单元,处理画图-3结束,处理生产单元开始
-                    timeline_history.append(timeline_one[:])  # -3结束
+                    # timeline_history.append(timeline_one[:])  # -3结束
                     timeline_history.append(timeline_one[:])  # 处理开始
                     timeline_history.append(timeline_two[:])  # 处理结束
             if point_type == 'agv':
                 # -3占据生产单元,处理画图-3结束,处理生产单元开始
                 if not all(x == 0 for x in timeline_one[:]):
-                    timeline_history.append(timeline_one[:])  # -3结束
+                    # timeline_history.append(timeline_one[:])  # -3结束
                     timeline_history.append(timeline_one[:])  # 处理开始
                     timeline_history.append(timeline_two[:])  # 处理结束
                 if not all(x == 0 for x in timeline_three[:]):
-                    timeline_history.append(timeline_three[:])  # -2结束
+                    # timeline_history.append(timeline_three[:])  # -2结束
                     timeline_history.append(timeline_three[:])  # 处理开始
                     timeline_history.append(timeline_four[:])  # 处理结束
                             # # 如果不存在空闲生产单元，但是小车运输订单到达了目的地，此时订单变为None，表示现在处于空闲状态，小车变为inf

@@ -17,25 +17,23 @@ def extract_values_with_first_zero(matrix, column_index):
 
     return values
 # length = len(loaded_matrix[0])
-# for i in range(len(loaded_matrix)):
-#     print(loaded_matrix[i])
+for i in range(len(loaded_matrix)):
+    print(loaded_matrix[i])
 # 调用函数并提取第二列的所有非零值
-column_index = 0  # 第二列
-nonzero_values = extract_values_with_first_zero(loaded_matrix, column_index)
-print("非零值列表:", nonzero_values)
-# 示例数据（多个生产单元）
-tasks = [
-    {"Order": "A1", "AGV": "AGV1", "Start": 10, "Finish": 20},
-    {"Order": "A1", "AGV": "AGV2", "Start": 20, "Finish": 35},
-    {"Order": "A2", "AGV": "AGV1", "Start": 12.5, "Finish": 25},
-    {"Order": "A2", "AGV": "AGV3", "Start": 30, "Finish": 45},
-    {"Order": "A3", "AGV": "AGV2", "Start": 5, "Finish": 15},
-]
+tasks = []
+# column_index = 0  # 第二列
+# nonzero_values = extract_values_with_first_zero(loaded_matrix, column_index)
+for i in range(len(loaded_matrix[0])):
+    nonzero_values = extract_values_with_first_zero(loaded_matrix, i)
+    for j in range(len(nonzero_values)):
+        if nonzero_values[j] == -1:
+            task ={"Order": i, "AGV": f"AGV{i}", "Start": nonzero_values[j + 1], "Finish": nonzero_values[j + 2]}
+            tasks.append(task)
 
 # 提取唯一的生产单元并按顺序分配 Y 轴位置
-Order = sorted(list({task["Order"] for task in tasks}))  # 按字母排序，如 ["A1", "A2", "A3"]
-print(Order)
-y_positions = {unit: idx for idx, unit in enumerate(Order)}
+Orders = sorted(list({task["Order"] for task in tasks}))  # 按字母排序，如 ["A1", "A2", "A3"]
+print(Orders)
+y_positions = {unit: idx for idx, unit in enumerate(Orders)}
 
 # 创建图表
 fig, ax = plt.subplots()
@@ -52,14 +50,14 @@ for task in tasks:
     ax.barh(y=y, width=duration, left=start, height=0.5,
             color=color, edgecolor="black", alpha=0.8)
 
-    # 添加AGV名称文本（居中显示）
-    text_x = start + duration / 2
-    ax.text(text_x, y, task["AGV"],
-            ha='center', va='center', color='black', fontweight='bold')
+    # # 添加AGV名称文本（居中显示）
+    # text_x = start + duration / 2
+    # ax.text(text_x, y, task["AGV"],
+    #         ha='center', va='center', color='black', fontweight='bold')
 
 # 设置Y轴标签
-ax.set_yticks([y_positions[unit] for unit in units])  # Y 轴刻度位置
-ax.set_yticklabels(units)  # Y 轴标签文本（显示在左侧）
+ax.set_yticks([y_positions[unit] for unit in Orders])  # Y 轴刻度位置
+ax.set_yticklabels(Orders)  # Y 轴标签文本（显示在左侧）
 ax.set_xlabel("Time")
 ax.set_ylabel("Production Units")
 ax.set_title("Multi-Unit AGV Schedule")
