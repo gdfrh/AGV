@@ -219,24 +219,37 @@ def mutate(individual, init_arm, unit_state, agv_count):
     new_individual = int(new_str)
 
     """对小车进行变异"""
-    # 先随机选择一个生产区
-    object_zone_agv = random.choice(work_name)
-    # 找到对应的生产区的索引
-    zone_index_agv = work_name.index(object_zone_agv)
-    # 先记录一下选到的小车的数量
-    target_agv_count = agv_count[zone_index_agv]
-    if target_agv_count > 1:
-        # 随机减少的数量，保证最少剩下一个小车
-        reduction = random.randint(1, target_agv_count - 1)
-        # 更新小车数量
-        agv_count[zone_index_agv] -= reduction
-        if object_zone_agv == work_name[-1]:
-            agv_count[0] += reduction
-        else:
-            agv_count[zone_index_agv + 1] += reduction
+    """我现在改成随机分配，感觉效果好一些"""
+    # 小车分布
+    new_agv_count = agv_count[:]
+    total_agv_number = total_agv
+    # 将每个生产单元的机器臂数量设为0
+    new_agv_count = [1] * len(new_agv_count)
+    remaining_agv_number = total_agv_number - sum(new_agv_count)
+    # 随机分配剩余的小车数量
+    while remaining_agv_number > 0:
+        # 随机选择一个生产单元，并增加一个小车
+        random_index = random.choice(range(len(new_agv_count)))
+        new_agv_count[random_index] += 1
+        remaining_agv_number -= 1
+    # # 先随机选择一个生产区
+    # object_zone_agv = random.choice(work_name)
+    # # 找到对应的生产区的索引
+    # zone_index_agv = work_name.index(object_zone_agv)
+    # # 先记录一下选到的小车的数量
+    # target_agv_count = agv_count[zone_index_agv]
+    # if target_agv_count > 1:
+    #     # 随机减少的数量，保证最少剩下一个小车
+    #     reduction = random.randint(1, target_agv_count - 1)
+    #     # 更新小车数量
+    #     agv_count[zone_index_agv] -= reduction
+    #     if object_zone_agv == work_name[-1]:
+    #         agv_count[0] += reduction
+    #     else:
+    #         agv_count[zone_index_agv + 1] += reduction
 
     # 返回重新组合后的结果,是一个列表,以及分布状态
-    return new_individual, new_state, agv_count
+    return new_individual, new_state, new_agv_count
 
 
 def anti_mapping(sequence, unit_state):
@@ -289,16 +302,16 @@ def crossover_and_mutation(use_list, population_R, init_arm):
     new_member1, new_member2 = crossover(population_R[x], population_R[y],
                                          init_arm.unit_states[x], init_arm.unit_states[y])
     """下一个可能的生产单元分布状态"""
-    new_state1 = init_arm.unit_states[x]
-    new_state2 = init_arm.unit_states[y]
+    new_state1 = init_arm.unit_states[x][:]
+    new_state2 = init_arm.unit_states[y][:]
 
     """下一个可能的小车分布数量"""
-    new_agv_count1 = init_arm.agv_count[x]
-    new_agv_count2 = init_arm.agv_count[y]
+    new_agv_count1 = init_arm.agv_count[x][:]
+    new_agv_count2 = init_arm.agv_count[y][:]
 
     """下一个可能的订单排列"""
-    new_order1 = init_arm.orders_list[x]
-    new_order2 = init_arm.orders_list[y]
+    new_order1 = init_arm.orders_list[x][:]
+    new_order2 = init_arm.orders_list[y][:]
     # 变异操作
     if random.random() < mutation_probability:  # 变异概率
         new_member1, new_state1, new_agv_count1 = mutate(new_member1, init_arm, init_arm.unit_states[x],
@@ -376,10 +389,10 @@ def cope_with_random_solution(population_R, init_arm):
     merged_str = ''.join(map(str, machine_count_list))
     # 将连接后的字符串转换为整数
     merged_number = int(merged_str)
-    unit_state = init_arm.unit_states[idx]
+    unit_state = init_arm.unit_states[idx][:]
 
     # 小车分布
-    agv_count = init_arm.agv_count[idx]
+    agv_count = init_arm.agv_count[idx][:]
     total_agv_number = total_agv
     # 将每个生产单元的机器臂数量设为0
     agv_count = [1] * len(agv_count)
@@ -455,6 +468,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         # 存储新一代的分布状态
         new_state = []
         new_agv_count = []
+
         level = 0
         while len(population_P_next) + len(fronts[level]) <= pop_size:
             for s in fronts[level]:
@@ -483,7 +497,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             best_solution_info = {
                 'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),  # 生产单元分配
                 'agv_count': init_arm.agv_count[i],  # 小车分布
-                'orders_list': init_arm.orders_list[i]  # 订单顺序
+                'orders_list': init_arm.orders_list[i],  # 订单顺序
+                'timeline_history':init_arm.timeline_history[i],  # 订单时间节点记录
+                'agv_timeline_history':init_arm.agv_timeline_history[i]  # 小车时间节点记录
             }
             # 保存最优解和其分布信息
             best_solutions_info.append(best_solution_info)
@@ -508,12 +524,23 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             agv_distributions = []
             order_distributions = []
             distributions_dicts = []
+            timeline_history = []
+            agv_timeline_history = []
             for s in fronts[0]:
                 energy_pic.append(best_solution_1[s])
                 time_pic.append(best_solution_2[s])
                 agv_distributions.append(best_solutions_info[s]['agv_count'])  # 小车分配
                 order_distributions.append(best_solutions_info[s]['orders_list'])  # 订单分配
                 distributions_dicts.append(best_solutions_info[s]['distributions'])  # 生产单元机器臂分配（字典）
+                timeline_history.append(best_solutions_info[s]['timeline_history'])
+                agv_timeline_history.append(best_solutions_info[s]['agv_timeline_history'])
+            # 将数据保存到文件
+            with open('timeline_history.pkl', 'wb') as file:
+                pickle.dump(timeline_history[0], file)
+
+            with open('agv_timeline_history.pkl', 'wb') as file:
+                pickle.dump(agv_timeline_history[0], file)
+
                 # 数据字典
             data = {
                 'energy': energy_pic,

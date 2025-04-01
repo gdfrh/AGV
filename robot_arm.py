@@ -37,6 +37,8 @@ class Arm:
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
         self.end_time = {}  # 用来记录生产区工作的结束时间
+        self.timeline_history = []  # 存储时间轴的历史状态
+        self.agv_timeline_history = []  # 存储小车时间轴的历史状态
         # ------------------------
         """小车"""
         self.agv_count = []  # 创建列表来存储每个生产区的小车数
@@ -292,12 +294,15 @@ class Arm:
             car_count += cars
         return production_zone, car_in_zone
 
-    def order_time_and_power(self, orders, step_idx):
+    def order_time_and_power(self, orders, step_idx, type):
         """计算一个订单的处理时间和功率消耗，包括生产区时间和运输时间"""
         order_time = 0  # 订单步骤完成所需时间
         order_power = 0  # 订单步骤完成所需功率
         use_time = [0] * num_orders  # 每个订单所用时间的列表
         use_power = 0  # 总共消耗的功率
+        timeline_history = []  # 存储时间轴的历史状态
+        agv_timeline_history = []  # 存储小车时间轴的历史状态
+        agv_timeline_one = []
 
         """遍历所有生产区和单元，将机器臂数量为 0 的生产单元的状态改为忙碌，避免出现选择0个机器臂的生产单元进行操作"""
         for zone in self.machines_count:
@@ -325,6 +330,9 @@ class Arm:
         point_type = 'start'  # 初始化断点类型
         while first_iteration or time_line.timeline:
             if all(point == float('inf') for point in time_line.timeline):
+                if type == 'picture':
+                    self.timeline_history.append(timeline_history)
+                    self.agv_timeline_history.append(agv_timeline_history)
                 break  # 跳出循环，停止处理，或者根据需要进行其他操作
             # 记录每一行是否已经找到了非 None 值，每一次都需要重置
             if point_type is None and idx is None:
@@ -347,6 +355,8 @@ class Arm:
             如果是订单的断点，判断是否存在空闲小车
             如果存在，释放生产单元并占据小车设置小车到达断点
             如果不存在将订单断点设为None表示空闲"""
+            timeline_one = [0] * num_rows
+            timeline_two = [0] * num_rows
             if idx:  # 不是第一次迭代，idx列表不为空，存在时间节点最小值，即完成了操作
                 if point_type == 'order':  # 是订单断点，此时订单结束了生产单元的操作
                     for index in idx:
@@ -375,9 +385,18 @@ class Arm:
                                 time_line.current_time + transport_time, orders[index][zone_idx + 1], 1, index)
                                 # 此时要将时间轴的时间改为忙碌:-1
                                 time_line.timeline[index] = -1
+                                # 添加开始的时间点，便于画图
+                                timeline_one[index] = time_line.current_time
+                                timeline_two[index] = time_line.current_time + transport_time
+
                             elif False not in self.agv_states[obj_zone]:  # 不存在空闲小车:-2
                                 time_line.timeline[index] = -2
 
+                                timeline_one[index] = time_line.current_time
+                            # -1代表后面的两个是运输的开始和结束，-2只代表下一个是等待小车的开始
+                            timeline_history.append(time_line.timeline[:])
+                            timeline_history.append(timeline_one[:])
+                            timeline_history.append(timeline_two[:])
                             """这里释放了生产单元的后续是是否有人需要生产单元√
                             不存在小车的后续是在其他断点出现小车空闲时，需要有判断找车的地方"""
                 if point_type == 'agv':  # 是小车断点，此时要区分是哪一种断点，送到还是返回
@@ -394,13 +413,11 @@ class Arm:
                             """我们在小车时间节点储存元组，（目标时间，目的地，小车的操作{-1是返回，1是送往},订单）"""
                             time_line.agv_timeline[index] = (
                                 time_line.current_time + transport_time, obj_zone_renew, -1, order_idx)
-                            # agv_time_list = list(time_line.agv_timeline[index])
-                            # agv_time_list[0] = float('inf')
-                            # time_line.agv_timeline[index] = tuple(agv_time_list)
 
                             time_line.timeline[order_idx] = -3
                             time_line.agv_step[order_idx] = index
-                            #point_type = 'agv_get'
+
+                            timeline_one[order_idx] = time_line.current_time
 
                             """至于这里断点的操作会在下面的矩阵里面进行，这里不能给小车断点，不知道有没有空闲生产单元
                             这里的后续是是否存在空闲生产单元与之相关的处理,按照矩阵遍历顺序对所有处于这一状态的判断是否空闲生产区None_unit"""
@@ -428,6 +445,10 @@ class Arm:
                             """这里生产区小车空闲，但是还没设置在哪里处理小车寻找
                             这里的后续是是否有空闲的订单需要找车与之相关的处理，对矩阵遍历，对所有的相同状态的需要小车的订单寻找小车"""
 
+                        timeline_history.append(time_line.timeline[:])
+                        timeline_history.append(timeline_one[:])
+
+
             for row in range(num_rows):
                 for col in range(num_cols):
                     # 检查当前行是否已经找到非 None 0 值，即每一个非None值可以进行一个节点的添加，如果已经找到就不需要管该订单后续部分
@@ -436,7 +457,9 @@ class Arm:
                         start_zone = orders[row][col]
                         # 标记此行已找到非 None 值
                         row_found[row] = True
-                        if point_type == 'order' or 'start' or 'agv':
+                        if point_type == 'order' or point_type == 'start' or point_type == 'agv':
+                            timeline_one = [0] * num_rows
+                            timeline_two = [0] * num_rows
                             # 存在空闲生产单元并且订单位于小车之上并且完成了自己的工作处于等待时间
                             # -3代表小车已送达订单但是没有生产单元
                             if False in self.work_status[start_zone] and (time_line.timeline[row] == -3):
@@ -456,11 +479,24 @@ class Arm:
                                 time_line.add_timeline((order_time + time_line.current_time), row,
                                                        max_unit_index)  # 添加订单时间节点，可以知道对应的订单
                                 self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
+                                timeline_one[row] = time_line.current_time
+                                timeline_two[row] = order_time + time_line.current_time
+                                if point_type == 'start':
+                                    timeline_history.append([-3] * num_rows)
+                                    timeline_history.append([0] * num_rows)
+                                    timeline_history.append(time_line.timeline[:])
+                                if point_type == 'agv' or point_type == 'order':
+                                    # -3占据生产单元,处理画图-3结束,处理生产单元开始
+                                    timeline_history.append(timeline_one[:])  # -3结束
+                                    timeline_history.append(timeline_one[:])  # 处理开始
+                                    timeline_history.append(timeline_two[:])  # 处理结束
 
                         if point_type == 'agv':
                             # 如果是小车断点，得判断出现了哪些情况
                             # 现在由于生产区小车开始空闲，需要寻找是否有地方需要小车，即寻找存在order节点为-2:
                             # 现在找到的是None后面的一个，所以对前一个生产区判断小车
+                            timeline_one = [0] * num_rows
+                            timeline_two = [0] * num_rows
                             if False in self.agv_states[orders[row][col - 1]] and (time_line.timeline[row] == -2):
                                 self.work_status[orders[row][col - 1]][time_line.step[row]] = False  # 生产单元变为空闲
                                 agv_idx = self.find_random_idle_agv(orders[row][col - 1],
@@ -475,6 +511,9 @@ class Arm:
                                     time_line.current_time + transport_time, start_zone, 1, row)
                                 # 此时要将时间轴的时间改为忙碌:-1
                                 time_line.timeline[row] = -1
+                                timeline_one[row] = time_line.current_time
+                                timeline_history.append(timeline_one[:])
+                                timeline_history.append(time_line.timeline[:])
                                 # 如果订单被小车送走了，此时要判断是否存在小车在等
                                 for rows in range(num_rows):
                                     for cols in range(num_cols):
@@ -485,6 +524,8 @@ class Arm:
                                             start_zone = orders[rows][cols]
                                             # 标记此行已找到非 None 值
                                             row_found[rows] = True
+                                            timeline_one = [0] * num_rows
+                                            timeline_two = [0] * num_rows
                                             if False in self.work_status[start_zone] and (
                                                     time_line.timeline[rows] == -3):
                                                 # 所找到的生产区变为None
@@ -506,6 +547,8 @@ class Arm:
                                                 time_line.add_timeline((order_time + time_line.current_time), rows,
                                                                        max_unit_index)  # 添加订单时间节点，可以知道对应的订单
                                                 self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
+                                                timeline_one[rows] = time_line.current_time
+                                                timeline_two[rows] = order_time + time_line.current_time
 
                             # # 如果不存在空闲生产单元，但是小车运输订单到达了目的地，此时订单变为None，表示现在处于空闲状态，小车变为inf
                             # elif False not in self.work_status[start_zone] and (time_line.current_time == time_line.agv_timeline[][0]) and (time_line.agv_timeline[][2] == 1):
@@ -517,7 +560,8 @@ class Arm:
                             #
                             # if False in self.agv_states[start_zone] and (time_line.current_time == time_line.timeline[row] or time_line.timeline[row] is None):
                             #     # 存在空闲小车,此时刚好到达小车断点，或者小车处于空闲None
-
+            # timeline_history.append(time_line.timeline[:])
+            # agv_timeline_history.append(time_line.agv_timeline[:])
             point_type, idx = time_line.get_next_point()
             # 我需要在这里求两个时间轴里面的最小时间节点（特殊情况：分别有一个时间节点在两个列表相同）
 
@@ -615,7 +659,7 @@ class Arm:
         self.padding(sequence)
 
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-        total_time_order, total_power_order = self.order_time_and_power(self.orders_list[idx], idx)
+        total_time_order, total_power_order = self.order_time_and_power(self.orders_list[idx], idx, '')
 
         return total_power_order, total_time_order
 
@@ -630,7 +674,7 @@ class Arm:
             """随机修改订单"""
             best_order = self.apply_random(idx)
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-        total_time_order, total_power_order = self.order_time_and_power(best_order, idx)
+        total_time_order, total_power_order = self.order_time_and_power(best_order, idx, 'picture')
 
         return total_power_order, total_time_order, best_order
 
