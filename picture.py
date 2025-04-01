@@ -4,9 +4,25 @@ import pickle
 # 从 pkl 文件加载矩阵
 with open('timeline_history.pkl', 'rb') as file:
     loaded_matrix = pickle.load(file)
+def extract_values_with_first_zero(matrix, column_index):
+    values = []
+    first_zero_added = False
 
-length = len(loaded_matrix[0])
-print(loaded_matrix)
+    for row in matrix:
+        value = row[column_index]
+        if value != 0 or not first_zero_added:
+            values.append(value)
+            if value == 0:
+                first_zero_added = True
+
+    return values
+# length = len(loaded_matrix[0])
+# for i in range(len(loaded_matrix)):
+#     print(loaded_matrix[i])
+# 调用函数并提取第二列的所有非零值
+column_index = 0  # 第二列
+nonzero_values = extract_values_with_first_zero(loaded_matrix, column_index)
+print("非零值列表:", nonzero_values)
 # 示例数据（多个生产单元）
 tasks = [
     {"Order": "A1", "AGV": "AGV1", "Start": 10, "Finish": 20},
@@ -52,3 +68,7 @@ ax.set_title("Multi-Unit AGV Schedule")
 plt.grid(axis="x", linestyle="--", alpha=0.7)
 plt.tight_layout()
 plt.show()
+
+
+
+
