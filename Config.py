@@ -78,7 +78,7 @@ zone_requirements = [
 # ------------------------
 # 小车配置
 total_agv = 15  # 总车辆数
-agv_speed = 500    # 小车速度
+agv_speed = 5    # 小车速度
 
 # ------------------------
 # NSGA2参数
@@ -88,7 +88,7 @@ number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
 # 订单数
-num_orders = 5
+num_orders = 10
 # 订单相似破坏率
 similarity_percent = 0.1
 # ------------------------

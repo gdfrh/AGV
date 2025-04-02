@@ -535,7 +535,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 agv_timeline_history.append(best_solutions_info[s]['agv_timeline_history'])
 
             # 1. 定义要创建的文件夹名称
-            folder_name = " Gantt_Chart"  # 可以修改为任意文件夹名称/路径
+            folder_name = "Gantt_Chart"  # 可以修改为任意文件夹名称/路径
             # 2. 创建文件夹（如果不存在）
             os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
             # 3. 构造完整文件路径
