@@ -183,6 +183,7 @@
 # print(timeline_history)  # 输出: [[5, 2, 3], [2, 3, 4]]
 # 过滤操作
 a = []
+
 previous_value = None  # 用来跟踪前一个元素
 col = [1,2,2,3,3,4]
 for x in col:

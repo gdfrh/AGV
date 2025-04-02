@@ -91,6 +91,7 @@ mutation_probability = 0.2  # 变异概率
 num_orders = 10
 # 订单相似破坏率
 similarity_percent = 0.1
+
 # ------------------------
 # 对比实验：
 compare = 0

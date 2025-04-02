@@ -85,6 +85,7 @@ ax.set_xlabel('Time')
 ax.set_title('AGV Schedule Gantt Chart')
 plt.tight_layout()
 plt.show()
+
 # import matplotlib.pyplot as plt
 # import pickle
 # import glob

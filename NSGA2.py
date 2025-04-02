@@ -541,6 +541,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # 3. 构造完整文件路径
             file_path1 = os.path.join(folder_name, 'timeline_history.pkl')
             file_path2 = os.path.join(folder_name, 'agv_timeline_history.pkl')
+
             # 将数据保存到文件
             with open(file_path1, 'wb') as file:
                 pickle.dump(timeline_history[0], file)
