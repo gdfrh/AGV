@@ -88,19 +88,32 @@ number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
 # 订单数
-num_orders = 20
+num_orders = 10
 # 订单相似破坏率
 similarity_percent = 0.1
-# ALNS迭代
-iterations = 1
 # ------------------------
 # 对比实验：
 compare = 0
+# ALNS轮盘赌
+# operators = [随机破坏修复， 后悔修复， 贪心修复]
+if compare == 0:
+    operator_fitness = [1, 1, 1]
+if compare == 1:
+    operator_fitness = [1, 0, 0]
+if compare == 2:
+    operator_fitness = [1, 1, 1]
+if compare == 3:
+    operator_fitness = [1, 0, 0]
+if compare == 4:
+    operator_fitness = [1, 0, 1]
+if compare == 5:
+    operator_fitness = [1, 1, 0]
 # 0.default
-# 1.ALNS 0次迭代：直接计算对订单没有修改
-# 2.ALNS 与 随机修改订单
-# 3.NSGA2 与 随机修改部署
-# 4.ALNS、NSGA2 与 双重随机
-# 5.ALNS：后悔插入 与 贪心插入
-# 6.选择空闲生产单元：权重 与 贪心选择
+# 1.ALNS 与 随机修改订单
+# 2.NSGA2 与 随机修改部署
+# 3.ALNS、NSGA2 与 双重随机
+# 4.ALNS：贪心插入
+# 5.ALNS：后悔插入
+# 4.5都需要参数分析：去掉任意一种除随机算子以外的算子所得到的结果，制作成表格。呈现最优值、平均值、方差
+
 

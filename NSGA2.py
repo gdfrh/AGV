@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 from scipy.stats import linregress
 from scipy.optimize import curve_fit
 import pickle
-
+import os
 
 # 快速非支配排序
 def fast_non_dominated_sort(values1, values2):
@@ -423,9 +423,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         # 计算每个解的目标函数值
         objective1 = []
         objective2 = []
-        if compare in (0, 1, 2):
+        if compare in (0, 1, 4, 5):
             for i in range(len(population_R)):
-                # print(init_arm.orders_list[i])
                 total_energy, total_time = init_arm.object_function_1(population_R[i], i)
                 objective1.append(round(total_energy, 2))  # 将 total_energy 添加到 objective1
                 objective2.append(round(total_time, 2))  # 将 total_time 添加到 objective2
@@ -443,7 +442,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 # 检查是否满足约束
                 check_and_add_solution(new_member1, new_state1, new_agv_count1, new_order1, population_R, init_arm, total_machines, total_agv)
                 check_and_add_solution(new_member2, new_state2, new_agv_count2, new_order2, population_R, init_arm, total_machines, total_agv)
-        if compare in (3, 4):
+        if compare in (2, 3):
             while len(population_R) < 2 * pop_size:
                 cope_with_random_solution(population_R,init_arm)
 
@@ -549,15 +548,56 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 'order': order_distributions,
                 'distributions_dict': distributions_dicts
             }
-            # 存储在文件中，之后一起进行绘制
-            with open(f'{compare}.pkl', 'wb') as file:
+            # 1. 定义要创建的文件夹名称
+            folder_name = "Scatter_plot"  # 可以修改为任意文件夹名称/路径
+            # 2. 创建文件夹（如果不存在）
+            os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            # 3. 构造完整文件路径
+            file_path = os.path.join(folder_name, f'{compare}.pkl')
+            # 4. 保存文件到新文件夹
+            with open(file_path, 'wb') as file:
                 pickle.dump(data, file)
+
             # 存储在文件中，之后一起进行绘制
             if compare == 0:
-                with open(f'num_orders{num_orders}.pkl', 'wb') as file:
+                # 1. 定义要创建的文件夹名称
+                folder_name = "Bar_plot"  # 可以修改为任意文件夹名称/路径
+                # 2. 创建文件夹（如果不存在）
+                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+                # 3. 构造完整文件路径
+                file_path = os.path.join(folder_name, f'{num_orders}orders_{total_machines}machines.pkl')
+
+                with open(file_path, 'wb') as file:
                     pickle.dump(data, file)
-                with open(f'total_machines{total_machines}.pkl', 'wb') as file:
-                    pickle.dump(data, file)
+
+            if compare == 4:
+                new_data = {
+                    'energy': energy_pic,
+                    'time': time_pic
+                }
+                # 1. 定义要创建的文件夹名称
+                folder_name = "greedy_repair_t_e"  # 可以修改为任意文件夹名称/路径
+                # 2. 创建文件夹（如果不存在）
+                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+                # 3. 构造完整文件路径
+                file_path = os.path.join(folder_name, f'{len(os.listdir(folder_name)) + 1}.pkl')
+                # 4. 保存文件到新文件夹
+                with open(file_path, 'wb') as file:
+                    pickle.dump(new_data, file)
+            if compare == 5:
+                new_data = {
+                    'energy': energy_pic,
+                    'time': time_pic
+                }
+                # 1. 定义要创建的文件夹名称
+                folder_name = "regret_repair_t_e"  # 可以修改为任意文件夹名称/路径
+                # 2. 创建文件夹（如果不存在）
+                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+                # 3. 构造完整文件路径
+                file_path = os.path.join(folder_name, f'{len(os.listdir(folder_name)) + 1}.pkl')
+                # 4. 保存文件到新文件夹
+                with open(file_path, 'wb') as file:
+                    pickle.dump(new_data, file)
             # # 计算最大长度
             # max_length = max(len(lst) for lst in data.values())
             #

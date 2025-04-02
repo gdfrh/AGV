@@ -699,12 +699,7 @@ class Arm:
         """初始化"""
         self._initialize_function(idx)
         self.padding(sequence)
-        if compare in (0, 1, 3):
-            """ALNS计算能量，时间"""
-            best_order = self.apply_ALNS(idx)
-        if compare in (2, 4):
-            """随机修改订单"""
-            best_order = self.apply_random(idx)
+        best_order = self.apply_ALNS(idx)
         """计算每个订单的消耗，功率应该累加，但是时间不应该"""
         total_time_order, total_power_order = self.order_time_and_power(best_order, idx, 'picture')
 
@@ -778,84 +773,15 @@ class Arm:
         """
         使用ALNS算法优化订单顺序
         """
-        # best_order = copy.deepcopy(self.orders)  # 初始订单
-        best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
-        for _ in range(iterations):
-            regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
-            similarity = self.calculate_similarity(best_order, idx)  # 存储订单相似值的列表
-            num_destruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
-            # 找到最大的部分元素
-            max_values = heapq.nlargest(num_destruction, similarity)
-
-            # 找到这些最大值的索引
-            indices = [i for i, value in enumerate(similarity) if value in max_values]
-            for index in indices:
-                regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
-
-            """这里准备进行后悔修复，先在原先订单中删除待破坏的订单"""
-            new_order = best_order  # 列表存储着订单，之后进行删除指标较高的订单
-            for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
-                del new_order[index]
-
-            """接下来我要来破坏订单内部的工艺流程"""
-            """决定将工艺流程暂定为[0,1,xxxx,6],所以所有的情况是xxxx的内部组合"""
-            while regret_matching_operator:  # 如果待插入列表为空，即完成插入
-                # 定义字典来存储所有排列组合的情况
-                permutations_dict = {}
-                for idx, lst in enumerate(regret_matching_operator):
-                    # 从索引2到倒数第二个元素（不包括最后的6）
-                    disruption = lst[2:-1]
-                    # 生成xxxx的所有排列
-                    permutations = list(itertools.permutations(disruption))
-                    # total_permutations += len(permutations)
-                    permutations = [[regret_matching_operator[idx][0]] + [regret_matching_operator[idx][1]]
-                                    + list(perm) + [regret_matching_operator[idx][-1]] for perm in permutations]
-                    # 存储排列,现在所有的排列情况都存在了字典中
-                    permutations_dict[idx] = permutations
-
-                # 遍历字典，并对每个排列列表进行操作
-                total_rh_value = []  # 用来存储每个排列的后悔值，方便后续比较
-                row_vectors = []  # 存储每个key的permutations对应的行向量
-                for key, permutations in permutations_dict.items():
-                    """对每一个订单的排列组合进行判断"""
-                    rh_value = 0  # 计算后悔值
-                    for perm in permutations:
-                        # 得到了相似性的值的数组
-                        array = self.insert_and_evaluate(new_order, perm, idx)
-                        # 使用 sorted() 函数对列表进行排序
-                        sorted_array = sorted(array)
-                        # 后悔修复算子优解个数,为待插入个数
-                        rh_number = len(regret_matching_operator)
-
-                        """如果为1，后悔值就会为0"""
-                        if rh_number == 1:
-                            rh_number += 1
-                        # 获取最小的 k 个数
-                        smallest_array = sorted_array[:rh_number]
-                        # 求k步的后悔值
-                        for small_array in smallest_array:
-                            rh_value += (small_array - smallest_array[0])
-                        total_rh_value.append(rh_value)
-                        # 记录所有的值以及索引
-                        row_vectors.append(array)
-
-                max_rh_value = max(total_rh_value)  # 找到每段排列组合之后的插入后悔值的最大值
-                max_index = total_rh_value.index(max_rh_value)
-
-                cope_array = row_vectors[max_index]  # 需要处理的适应值列表
-                min_adapt_value = min(cope_array)  # 该列表适应值最小的值
-                next_insert_position = cope_array.index(min_adapt_value)  # 订单待插入的位置
-
-                # 找到了下一个应该插入的订单的样式,需要插入的列表在字典中的位置
-                found_key, found_lst = self.find_key_and_list_for_index(permutations_dict, max_index)
-                next_insert_order = found_lst  # 待插入订单
-                """完成插入，并修改regret_matching_operator"""
-                new_order.insert(next_insert_position, next_insert_order)
-                del regret_matching_operator[found_key]
-
-            """将插入好的列表返回为最好列表，进行迭代"""
-            best_order = new_order
-
+        # # best_order = copy.deepcopy(self.orders)  # 初始订单
+        # best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
+        operators = [self.apply_random, self.apply_regret_repair, self.greedy_repair]
+        # 使用轮盘赌选择算子
+        selected_operator = roulette_wheel_selection(operators, operator_fitness)
+        # 根据选择的算子进行操作
+        best_order = selected_operator(idx)
+        # for _ in range(iterations):
+        #     best_order = self.apply_regret_repair(idx)
         return best_order
 
     def apply_random(self, idx):
@@ -863,4 +789,176 @@ class Arm:
         random.shuffle(orders)
         return orders
 
+    def apply_regret_repair(self, idx):
+        best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
+        regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
+        similarity = self.calculate_similarity(best_order, idx)  # 存储订单相似值的列表
+        num_destruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
+        # 找到最大的部分元素
+        max_values = heapq.nlargest(num_destruction, similarity)
 
+        # 找到这些最大值的索引
+        indices = [i for i, value in enumerate(similarity) if value in max_values]
+        for index in indices:
+            regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
+
+        """这里准备进行后悔修复，先在原先订单中删除待破坏的订单"""
+        new_order = best_order  # 列表存储着订单，之后进行删除指标较高的订单
+        for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
+            del new_order[index]
+
+        """接下来我要来破坏订单内部的工艺流程"""
+        """决定将工艺流程暂定为[0,1,xxxx,6],所以所有的情况是xxxx的内部组合"""
+        while regret_matching_operator:  # 如果待插入列表为空，即完成插入
+            # 定义字典来存储所有排列组合的情况
+            permutations_dict = {}
+            for idx, lst in enumerate(regret_matching_operator):
+                # 从索引2到倒数第二个元素（不包括最后的6）
+                disruption = lst[2:-1]
+                # 生成xxxx的所有排列
+                permutations = list(itertools.permutations(disruption))
+                # total_permutations += len(permutations)
+                permutations = [[regret_matching_operator[idx][0]] + [regret_matching_operator[idx][1]]
+                                + list(perm) + [regret_matching_operator[idx][-1]] for perm in permutations]
+                # 存储排列,现在所有的排列情况都存在了字典中
+                permutations_dict[idx] = permutations
+
+            # 遍历字典，并对每个排列列表进行操作
+            total_rh_value = []  # 用来存储每个排列的后悔值，方便后续比较
+            row_vectors = []  # 存储每个key的permutations对应的行向量
+            for key, permutations in permutations_dict.items():
+                """对每一个订单的排列组合进行判断"""
+                rh_value = 0  # 计算后悔值
+                for perm in permutations:
+                    # 得到了相似性的值的数组
+                    array = self.insert_and_evaluate(new_order, perm, idx)
+                    # 使用 sorted() 函数对列表进行排序
+                    sorted_array = sorted(array)
+                    # 后悔修复算子优解个数,为待插入个数
+                    rh_number = len(regret_matching_operator)
+
+                    """如果为1，后悔值就会为0"""
+                    if rh_number == 1:
+                        rh_number += 1
+                    # 获取最小的 k 个数
+                    smallest_array = sorted_array[:rh_number]
+                    # 求k步的后悔值
+                    for small_array in smallest_array:
+                        rh_value += (small_array - smallest_array[0])
+                    total_rh_value.append(rh_value)
+                    # 记录所有的值以及索引
+                    row_vectors.append(array)
+
+            max_rh_value = max(total_rh_value)  # 找到每段排列组合之后的插入后悔值的最大值
+            max_index = total_rh_value.index(max_rh_value)
+
+            cope_array = row_vectors[max_index]  # 需要处理的适应值列表
+            min_adapt_value = min(cope_array)  # 该列表适应值最小的值
+            next_insert_position = cope_array.index(min_adapt_value)  # 订单待插入的位置
+
+            # 找到了下一个应该插入的订单的样式,需要插入的列表在字典中的位置
+            found_key, found_lst = self.find_key_and_list_for_index(permutations_dict, max_index)
+            next_insert_order = found_lst  # 待插入订单
+            """完成插入，并修改regret_matching_operator"""
+            new_order.insert(next_insert_position, next_insert_order)
+            del regret_matching_operator[found_key]
+
+            """将插入好的列表返回为最好列表，进行迭代"""
+            best_order = new_order
+
+        return best_order
+
+    def greedy_repair(self, idx):
+        """
+        使用ALNS算法优化订单顺序
+        """
+        """初始化最佳时间和能耗"""
+        best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
+        regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
+        similarity = self.calculate_similarity(best_order, idx)  # 存储订单相似值的列表
+        num_destruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
+        # 找到最大的部分元素
+        max_values = heapq.nlargest(num_destruction, similarity)
+
+        # 找到这些最大值的索引
+        indices = [i for i, value in enumerate(similarity) if value in max_values]
+        for index in indices:
+            regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
+
+        """这里准备进行后悔修复，先在原先订单中删除待破坏的订单"""
+        new_order = best_order  # 列表存储着订单，之后进行删除指标较高的订单
+        for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
+            del new_order[index]
+
+        """接下来我要来破坏订单内部的工艺流程"""
+        """决定将工艺流程暂定为[0,1,xxxx,6],所以所有的情况是xxxx的内部组合"""
+        while regret_matching_operator:  # 如果待插入列表为空，即完成插入
+            # 定义字典来存储所有排列组合的情况
+            permutations_dict = {}
+            # total_permutations = 0  # 存储所有排列的数量
+            for idx, lst in enumerate(regret_matching_operator):
+                # 从索引2到倒数第二个元素（不包括最后的6）
+                disruption = lst[2:-1]
+                # 生成xxxx的所有排列
+                permutations = list(itertools.permutations(disruption))
+                # total_permutations += len(permutations)
+                permutations = [[regret_matching_operator[idx][0]] + [regret_matching_operator[idx][1]]
+                                + list(perm) + [regret_matching_operator[idx][-1]] for perm in permutations]
+                # 存储排列,现在所有的排列情况都存在了字典中
+                permutations_dict[idx] = permutations
+            # """定义一个矩阵来存储所有的相似性值"""
+            # matrix = np.zeros((total_permutations, len(new_order) + 1))
+            # 遍历字典，并对每个排列列表进行操作
+            total_min_value = []  # 用来存储每个排列的最小适应值，方便后续比较
+            total_min_value_index = []  # 用来存储每个排列的最小适应值的索引，方便后续比较
+            for key, permutations in permutations_dict.items():
+                """对每一个订单的排列组合进行判断"""
+                row_vectors = []  # 存储每个key的permutations对应的行向量
+                for perm in permutations:
+                    # 得到了相似性的值的数组
+                    array = self.insert_and_evaluate(new_order, perm, idx)
+                    # 添加到列表中
+                    row_vectors.append(array)
+                matrix = np.vstack(row_vectors)
+                """接下来是对矩阵进行最小值及其索引的寻找与储存"""
+                min_value = np.min(matrix)  # 找到矩阵中的最小值
+                total_min_value.append(min_value)  # 存入列表，方便之后比较
+                min_positions = np.where(matrix == min_value)  # 寻找最小值位置
+                total_min_value_index.append(list(zip(min_positions[0], min_positions[1])))
+
+                """这样比较每个最小值得到插入点，然后迭代就可以完成"""
+            min_value = min(total_min_value)  # 找到每段排列组合之后的插入最小值的最小值
+            min_index = total_min_value.index(min_value)
+            next_insert_position = total_min_value_index[min_index]  # 存储了所有适应值中的最小值在其矩阵中所在位置
+            # 找到了下一个应该插入的订单的样式
+            next_insert_order = permutations_dict[min_index][next_insert_position[0][0]]
+            """完成插入，并修改regret_matching_operator"""
+            new_order.insert(next_insert_position[0][1], next_insert_order)
+            del regret_matching_operator[min_index]
+
+        """将插入好的列表返回为最好列表，进行迭代"""
+        best_order = new_order
+
+        return best_order
+
+def roulette_wheel_selection(operators, operator_fitness):
+    # 计算适应度总和
+    total_fitness = sum(operator_fitness)
+
+    # 计算每个个体的选择概率
+    probabilities = [fitness / total_fitness for fitness in operator_fitness]
+
+    # 计算累积概率
+    cumulative_probabilities = []
+    cumulative_sum = 0
+    for prob in probabilities:
+        cumulative_sum += prob
+        cumulative_probabilities.append(cumulative_sum)
+
+    # 随机选择一个值
+    r = random.random()  # 生成一个[0, 1)之间的随机数
+
+    # 根据累积概率选择算子
+    for i, cum_prob in enumerate(cumulative_probabilities):
+        if r <= cum_prob:
+            return operators[i]

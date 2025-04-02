@@ -4,30 +4,9 @@ import plotly.express as px
 import pandas as pd
 import glob
 
-# 获取所有.pickle文件的路径
-# file_paths = glob.glob('*.pkl')  # 假设所有文件都在当前目录
-# file_paths = [  # 散点图对比
-#     '0.pkl',
-#     '1.pkl',
-#     '2.pkl',
-#     '3.pkl',
-#     '4.pkl',
-# ]
-file_paths = [  # 订单数量柱状图对比
-    'num_orders5.pkl',
-    'num_orders10.pkl',
-    'num_orders15.pkl',
-    'num_orders20.pkl',
-    'num_orders30.pkl',
-]
+# 替换 'folder_name' 为你目标文件夹的路径
+file_paths = glob.glob('Scatter_plot/*.pkl')
 
-# file_paths = [  # 订单数量柱状图对比
-#     'total_machines30.pkl',
-#     'total_machines40.pkl',
-#     'total_machines50.pkl',
-#     'total_machines60.pkl',
-#     'total_machines70.pkl',
-# ]
 # 用于存储所有的数据
 combined_data = {
     'energy': [],
@@ -87,18 +66,18 @@ df_dicts = pd.DataFrame(arm_distributions)
 # 合并 DataFrame
 df_final = pd.concat([df, df_dicts], axis=1)
 
-# # 使用 Plotly Express 创建散点图
-# fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
-#                  hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
-#                              '配置区'], color='group')
+# 使用 Plotly Express 创建散点图
+fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
+                 hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
+                             '配置区'], color='group')
 
-# 使用 Plotly Express 创建柱状图
-fig = px.bar(df_final, x='point_id', y='time', title="Time Distribution Across Different Algorithms",
-             labels={'time': 'Execution Time'}, color='group', barmode='group')
-fig.update_layout(
-    bargap=0,  # 控制柱子之间的间隙，数值范围 [0, 1]，值越小柱子之间的间隙越小
-    bargroupgap=0  # 控制分组柱子之间的间隙，数值范围 [0, 1]，值越小柱子之间的间隙越小
-)
+# # 使用 Plotly Express 创建柱状图
+# fig = px.bar(df_final, x='point_id', y='time', title="Time Distribution Across Different Algorithms",
+#              labels={'time': 'Execution Time'}, color='group', barmode='group')
+# fig.update_layout(
+#     bargap=0,  # 控制柱子之间的间隙，数值范围 [0, 1]，值越小柱子之间的间隙越小
+#     bargroupgap=0  # 控制分组柱子之间的间隙，数值范围 [0, 1]，值越小柱子之间的间隙越小
+# )
 # 显示图表
 fig.show()
 
