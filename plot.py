@@ -110,3 +110,4 @@ fig.show()
 # fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
 #                  hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
 #                              '配置区'])
+

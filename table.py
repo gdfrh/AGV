@@ -54,3 +54,4 @@ def process_folder_data(folder_path, output_excel_name, target_folder):
 
 process_folder_data('greedy_repair_t_e', 'energy_time_table1.xlsx', 'greedy_repair_t_e')
 process_folder_data('regret_repair_t_e', 'energy_time_table2.xlsx', 'regret_repair_t_e')
+
