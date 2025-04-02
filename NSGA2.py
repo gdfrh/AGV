@@ -533,11 +533,19 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 distributions_dicts.append(best_solutions_info[s]['distributions'])  # 生产单元机器臂分配（字典）
                 timeline_history.append(best_solutions_info[s]['timeline_history'])
                 agv_timeline_history.append(best_solutions_info[s]['agv_timeline_history'])
+
+            # 1. 定义要创建的文件夹名称
+            folder_name = " Gantt_Chart"  # 可以修改为任意文件夹名称/路径
+            # 2. 创建文件夹（如果不存在）
+            os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            # 3. 构造完整文件路径
+            file_path1 = os.path.join(folder_name, 'timeline_history.pkl')
+            file_path2 = os.path.join(folder_name, 'agv_timeline_history.pkl')
             # 将数据保存到文件
-            with open('timeline_history.pkl', 'wb') as file:
+            with open(file_path1, 'wb') as file:
                 pickle.dump(timeline_history[0], file)
 
-            with open('agv_timeline_history.pkl', 'wb') as file:
+            with open(file_path2, 'wb') as file:
                 pickle.dump(agv_timeline_history[0], file)
 
                 # 数据字典

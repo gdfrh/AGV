@@ -88,7 +88,7 @@ number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
 # 订单数
-num_orders = 10
+num_orders = 5
 # 订单相似破坏率
 similarity_percent = 0.1
 # ------------------------
