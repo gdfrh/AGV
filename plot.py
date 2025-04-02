@@ -80,7 +80,6 @@ fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter 
 # )
 # 显示图表
 fig.show()
-
 # # 从文件加载数据
 # with open(f'{compare}.pkl', 'rb') as file:
 #     loaded_data = pickle.load(file)

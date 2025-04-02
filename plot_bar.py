@@ -26,7 +26,6 @@ for idx, file_path in enumerate(file_paths):
     combined_data['time'] += time_pic
     combined_data['group'] += [group_label] * len(time_pic)  # 对应的每个数据点分配相同的 group 标签
 
-
 # 将数据转换为 DataFrame
 df = pd.DataFrame(combined_data)
 

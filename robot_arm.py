@@ -623,7 +623,6 @@ class Arm:
         #         order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
         #         # 记录任务结束时间
         #         self.end_time[start_zone][max_unit_index] = self.start_time[start_zone][max_unit_index] + order_total_time_renew + processing_time['sleep_time']
-        #
         #         # 2. 计算运输时间
         #         if False not in self.agv_states[start_zone]:  # 该生产区的小车全部忙碌
         #             """如果该生产区不存在空闲小车"""

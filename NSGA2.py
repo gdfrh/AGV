@@ -566,7 +566,6 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
                 # 3. 构造完整文件路径
                 file_path = os.path.join(folder_name, f'{num_orders}orders_{total_machines}machines.pkl')
-
                 with open(file_path, 'wb') as file:
                     pickle.dump(data, file)
 
