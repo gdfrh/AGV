@@ -400,11 +400,11 @@ class Arm:
                             # -1代表后面的两个是运输的开始和结束，-2只代表下一个是等待小车的开始
                     timeline_history.append(time_line.timeline[:])
                     timeline_history.append(timeline_one[:])
+                    timeline_history.append(timeline_two[:])
                     # 有空闲小车时会记录小车出发的时间，time_line.agv_timeline[:]会记录小车送到的时间
                     agv_timeline_history.append(agv_timeline_one[:])
                     agv_timeline_history.append(time_line.agv_timeline[:])
-                    if not all(x == 0 for x in timeline_two[:]):
-                        timeline_history.append(timeline_two[:])
+
                     """这里释放了生产单元的后续是是否有人需要生产单元√
                     不存在小车的后续是在其他断点出现小车空闲时，需要有判断找车的地方"""
                 if point_type == 'agv':  # 是小车断点，此时要区分是哪一种断点，送到还是返回
@@ -455,9 +455,9 @@ class Arm:
                             这里的后续是是否有空闲的订单需要找车与之相关的处理，对矩阵遍历，对所有的相同状态的需要小车的订单寻找小车"""
                     # 记录送达的时间
                     agv_timeline_history.append(time_line.agv_timeline[:])
-                    if not all(x == 0 for x in timeline_one[:]):
-                        timeline_history.append(time_line.timeline[:])
-                        timeline_history.append(timeline_one[:])
+                    # if not all(x == 0 for x in timeline_one[:]):
+                    #     timeline_history.append(time_line.timeline[:])
+                    #     timeline_history.append(timeline_one[:])
 
             timeline_one = [0] * num_rows
             timeline_two = [0] * num_rows
@@ -571,29 +571,29 @@ class Arm:
                                                 timeline_one[rows] = time_line.current_time
                                                 timeline_two[rows] = order_time + time_line.current_time
                                 # timeline_history.append(timeline_one[:])  # 结束-3
-                                timeline_history.append(timeline_one[:])  # 开始处理
-                                timeline_history.append(timeline_two[:])  # 结束处理
+                                # timeline_history.append(timeline_one[:])  # 开始处理
+                                # timeline_history.append(timeline_two[:])  # 结束处理
             agv_timeline_history.append(agv_timeline_one[:])
-            if point_type == 'start':
-                timeline_history.append([-3] * num_rows)
-                timeline_history.append([0] * num_rows)
-                timeline_history.append(time_line.timeline[:])
-            if point_type == 'order':
-                if not all(x == 0 for x in timeline_one[:]):
-                    # -3占据生产单元,处理画图-3结束,处理生产单元开始
-                    # timeline_history.append(timeline_one[:])  # -3结束
-                    timeline_history.append(timeline_one[:])  # 处理开始
-                    timeline_history.append(timeline_two[:])  # 处理结束
-            if point_type == 'agv':
-                # -3占据生产单元,处理画图-3结束,处理生产单元开始
-                if not all(x == 0 for x in timeline_one[:]):
-                    # timeline_history.append(timeline_one[:])  # -3结束
-                    timeline_history.append(timeline_one[:])  # 处理开始
-                    timeline_history.append(timeline_two[:])  # 处理结束
-                if not all(x == 0 for x in timeline_three[:]):
-                    # timeline_history.append(timeline_three[:])  # -2结束
-                    timeline_history.append(timeline_three[:])  # 处理开始
-                    timeline_history.append(timeline_four[:])  # 处理结束
+            # if point_type == 'start':
+            #     timeline_history.append([-3] * num_rows)
+            #     timeline_history.append([0] * num_rows)
+            #     timeline_history.append(time_line.timeline[:])
+            # if point_type == 'order':
+            #     if not all(x == 0 for x in timeline_one[:]):
+            #         # -3占据生产单元,处理画图-3结束,处理生产单元开始
+            #         # timeline_history.append(timeline_one[:])  # -3结束
+            #         timeline_history.append(timeline_one[:])  # 处理开始
+            #         timeline_history.append(timeline_two[:])  # 处理结束
+            # if point_type == 'agv':
+            #     # -3占据生产单元,处理画图-3结束,处理生产单元开始
+            #     if not all(x == 0 for x in timeline_one[:]):
+            #         # timeline_history.append(timeline_one[:])  # -3结束
+            #         timeline_history.append(timeline_one[:])  # 处理开始
+            #         timeline_history.append(timeline_two[:])  # 处理结束
+            #     if not all(x == 0 for x in timeline_three[:]):
+            #         # timeline_history.append(timeline_three[:])  # -2结束
+            #         timeline_history.append(timeline_three[:])  # 处理开始
+            #         timeline_history.append(timeline_four[:])  # 处理结束
                             # # 如果不存在空闲生产单元，但是小车运输订单到达了目的地，此时订单变为None，表示现在处于空闲状态，小车变为inf
                             # elif False not in self.work_status[start_zone] and (time_line.current_time == time_line.agv_timeline[][0]) and (time_line.agv_timeline[][2] == 1):
                             #     time_line.timeline[row] = None  # 赋值None表示空闲

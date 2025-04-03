@@ -94,7 +94,7 @@ similarity_percent = 0.1
 
 # ------------------------
 # 对比实验：
-compare = 6
+compare = 0
 # ALNS轮盘赌
 # operators = [随机破坏修复， 后悔修复， 贪心修复]
 if compare == 0:
@@ -111,8 +111,8 @@ if compare == 5:
     operator_fitness = [1, 3, 0]
 if compare == 6:
     operator_fitness = [1, 1, 1]
-    num_obj = 2  # 优化目标数量
-    divisions = 4  # 参考点分布密度
+num_obj = 2  # 优化目标数量
+divisions = 4  # 参考点分布密度
 
 # 0.default
 # 1.ALNS 与 随机修改订单
