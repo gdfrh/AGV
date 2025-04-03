@@ -194,8 +194,40 @@
 #             a.append(x)
 #             previous_value = x  # 更新前一个元素
 # print(a)
-a={ '1':1,
-    '2':2,
-    '3':3
-    }
-print(a[:-1])
+import numpy as np
+
+
+# 生成参考点函数
+def generate_reference_points(num_obj, divisions):
+    """
+    生成参考点
+    num_obj: 目标数目
+    divisions: 每个目标的分割数目（分布密度）
+    """
+    # 生成一个等间距的参考点网格
+    reference_points = []
+    step_size = 1.0 / (divisions - 1)
+
+    # 使用多维网格方法生成参考点
+    grid = np.array(np.meshgrid(*[np.linspace(0, 1, divisions)] * num_obj))
+    grid = grid.reshape(num_obj, -1).T
+
+    # 将参考点按列归一化到 [0, 1] 区间
+    reference_points = grid
+
+    return reference_points
+
+
+# 设置目标数目和分布密度
+num_obj = 2  # 目标数目
+divisions = 10  # 分布密度，表示每个维度分为4个区间
+
+# 生成参考点
+ref_points = generate_reference_points(num_obj, divisions)
+
+# 初始化理想点和截距点
+ideal_point = np.full(num_obj, np.inf)
+nadir_point = np.full(num_obj, -np.inf)
+
+print("生成的参考点：")
+print(ref_points)

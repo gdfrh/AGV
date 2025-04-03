@@ -408,22 +408,56 @@ def cope_with_random_solution(population_R, init_arm):
         init_arm.unit_states.append(unit_state)
         init_arm.agv_count.append(agv_count)
         init_arm.orders_list.append(init_arm.orders_list[idx])
+# ------------------------
+# NSGA-III新增参考点生成函数
+def generate_reference_points(num_obj, divisions):
+    # 使用Das and Dennis方法生成参考点
+    from itertools import combinations
+    ref_points = []
+    if num_obj == 2:
+        for i in range(divisions+1):
+            ref_points.append([i/divisions, (divisions-i)/divisions])
+    elif num_obj == 3:
+        # 三维情况下的生成逻辑
+        pass
+    return np.array(ref_points)
 
+# 新增标准化函数
+def normalize_objectives(pop_obj, ideal_point, nadir_point):
+    return (pop_obj - ideal_point) / (nadir_point - ideal_point + 1e-10)
+
+# 新增关联函数
+def associate_to_reference_points(normalized_obj, ref_points):
+    # 计算每个解到参考点的垂直距离
+    distances = []
+    for obj in normalized_obj:
+        dist = np.sqrt(np.sum((ref_points - obj)**2, axis=1))
+        distances.append(dist)
+    return np.argmin(distances, axis=1)
+# ------------------------
 # NSGA2主循环
 def main_loop(pop_size, max_gen, init_population, init_arm):
+    # NSGA-III参数初始化
+
+    ref_points = generate_reference_points(num_obj, divisions)
+    # 初始化理想点和截距点
+    ideal_point = np.full(num_obj, np.inf)
+    nadir_point = np.full(num_obj, -np.inf)
+
     gen_no = 0
     best_solution_1 = []
     best_solution_2 = []  # 用于存储每一代的最优解
     best_solutions_info = []  # 用于存储最优解对应的分布信息
     population_P = init_population.copy()
     loop_start_time = time.time()
+
     while gen_no <= max_gen:
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         # 计算每个解的目标函数值
         objective1 = []
         objective2 = []
-        if compare in (0, 1, 4, 5):
+        if compare in (0, 1, 4, 5, 6):
             for i in range(len(population_R)):
                 total_energy, total_time = init_arm.object_function_1(population_R[i], i)
                 objective1.append(round(total_energy, 2))  # 将 total_energy 添加到 objective1
@@ -458,57 +492,147 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             objective1.append(round(total_energy, 2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time, 2))  # 将 total_time 添加到 objective2
             obj_order.append(total_order)
-        fronts = fast_non_dominated_sort(objective1, objective2)
+        if compare != 6:
+            fronts = fast_non_dominated_sort(objective1, objective2)
 
-        # 获取P(t+1)，先从等级高的fronts复制，然后在同一层front根据拥挤距离选择
-        population_P_next = []
-        choose_solution = []
-        obj_order_next = []
-        # 存储新一代的分布状态
-        new_state = []
-        new_agv_count = []
+            # 获取P(t+1)，先从等级高的fronts复制，然后在同一层front根据拥挤距离选择
+            population_P_next = []
+            choose_solution = []
+            obj_order_next = []
+            # 存储新一代的分布状态
+            new_state = []
+            new_agv_count = []
 
-        level = 0
-        while len(population_P_next) + len(fronts[level]) <= pop_size:
-            for s in fronts[level]:
-                choose_solution.append(s)
-                new_state.append(init_arm.unit_states[s])
-                new_agv_count.append(init_arm.agv_count[s])
-                population_P_next.append(population_R[s])
-                obj_order_next.append(obj_order[s])
-            level += 1
-        if len(population_P_next) != pop_size:
-            level_distance = crowed_distance_assignment(objective1, objective2, fronts[level])
-            sort_solution = sorted(fronts[level], key=lambda x: level_distance[fronts[level].index(x)], reverse=True)
-            for i in range(pop_size - len(population_P_next)):
-                choose_solution.append(sort_solution[i])
-                new_state.append(init_arm.unit_states[sort_solution[i]])
-                new_agv_count.append(init_arm.agv_count[sort_solution[i]])
-                population_P_next.append(population_R[sort_solution[i]])
-                obj_order_next.append(obj_order[sort_solution[i]])
+            level = 0
+            while len(population_P_next) + len(fronts[level]) <= pop_size:
+                for s in fronts[level]:
+                    choose_solution.append(s)
+                    new_state.append(init_arm.unit_states[s])
+                    new_agv_count.append(init_arm.agv_count[s])
+                    population_P_next.append(population_R[s])
+                    obj_order_next.append(obj_order[s])
+                level += 1
+            if len(population_P_next) != pop_size:
+                level_distance = crowed_distance_assignment(objective1, objective2, fronts[level])
+                sort_solution = sorted(fronts[level], key=lambda x: level_distance[fronts[level].index(x)], reverse=True)
+                for i in range(pop_size - len(population_P_next)):
+                    choose_solution.append(sort_solution[i])
+                    new_state.append(init_arm.unit_states[sort_solution[i]])
+                    new_agv_count.append(init_arm.agv_count[sort_solution[i]])
+                    population_P_next.append(population_R[sort_solution[i]])
+                    obj_order_next.append(obj_order[sort_solution[i]])
+            # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
+            """保留最优解"""
+            for i in fronts[0]:
+                # 获取最优解对应的生产单元分布、订单分布和小车分布
+                best_solution_1.append(objective1[i])
+                best_solution_2.append(objective2[i])
+                best_solution_info = {
+                    'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),  # 生产单元分配
+                    'agv_count': init_arm.agv_count[i],  # 小车分布
+                    'orders_list': init_arm.orders_list[i],  # 订单顺序
+                    'timeline_history': init_arm.timeline_history[i],  # 订单时间节点记录
+                    'agv_timeline_history': init_arm.agv_timeline_history[i]  # 小车时间节点记录
+                }
+                # 保存最优解和其分布信息
+                best_solutions_info.append(best_solution_info)
+            # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
+            # 得到P(t+1)重复上述过程
+            population_P = population_P_next.copy()
+            """新一代分布状态"""
+            init_arm.unit_states = new_state.copy()
+            init_arm.agv_count = new_agv_count.copy()
+            init_arm.orders_list = obj_order_next.copy()
 
-        # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
-        """保留最优解"""
-        for i in fronts[0]:
-            # 获取最优解对应的生产单元分布、订单分布和小车分布
-            best_solution_1.append(objective1[i])
-            best_solution_2.append(objective2[i])
-            best_solution_info = {
-                'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),  # 生产单元分配
-                'agv_count': init_arm.agv_count[i],  # 小车分布
-                'orders_list': init_arm.orders_list[i],  # 订单顺序
-                'timeline_history':init_arm.timeline_history[i],  # 订单时间节点记录
-                'agv_timeline_history':init_arm.agv_timeline_history[i]  # 小车时间节点记录
-            }
-            # 保存最优解和其分布信息
-            best_solutions_info.append(best_solution_info)
-        # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
-        # 得到P(t+1)重复上述过程
-        population_P = population_P_next.copy()
-        """新一代分布状态"""
-        init_arm.unit_states = new_state.copy()
-        init_arm.agv_count = new_agv_count.copy()
-        init_arm.orders_list = obj_order_next.copy()
+        if compare == 6:
+            # 更新理想点和截距点
+            current_obj = np.array(list(zip(objective1, objective2)))
+            ideal_point = np.minimum(ideal_point, np.min(current_obj, axis=0))
+            nadir_point = np.maximum(nadir_point, np.max(current_obj, axis=0))
+
+            # 标准化目标值
+            normalized_obj = normalize_objectives(current_obj, ideal_point, nadir_point)
+
+            # 关联解到参考点
+            association = associate_to_reference_points(normalized_obj, ref_points)
+
+            # 非支配排序
+            fronts = fast_non_dominated_sort(objective1, objective2)
+
+            # NSGA-III环境选择 -------------------------------------------------
+            population_P_next = []
+            selected_indices = []
+            niche_count = np.zeros(len(ref_points))
+
+            # 统计每个参考点的关联解数
+            for idx in association:
+                niche_count[idx] += 1
+
+            # 逐层选择解
+            remaining = pop_size
+            for front in fronts:
+                if remaining <= 0:
+                    break
+
+                # 当前前沿候选解
+                front_solutions = []
+                for idx in front:
+                    ref_idx = association[idx]
+                    front_solutions.append((idx, ref_idx))
+
+                # 优先选择关联到较空区域的解
+                while len(front_solutions) > 0 and remaining > 0:
+                    # 找到关联最少的参考点
+                    min_count = np.inf
+                    selected_ref = -1
+                    for (idx, ref_idx) in front_solutions:
+                        if niche_count[ref_idx] < min_count:
+                            min_count = niche_count[ref_idx]
+                            selected_ref = ref_idx
+
+                    # 选择关联该参考点的解
+                    candidates = [idx for (idx, ref_idx) in front_solutions
+                                  if ref_idx == selected_ref]
+                    if len(candidates) == 0:
+                        break
+
+                    # 随机选择一个解
+                    selected_idx = np.random.choice(candidates)
+                    population_P_next.append(population_R[selected_idx])
+                    selected_indices.append(selected_idx)
+                    niche_count[selected_ref] += 1
+                    remaining -= 1
+
+                    # 从候选列表中移除
+                    front_solutions = [(idx, r) for (idx, r) in front_solutions
+                                       if idx != selected_idx]
+
+            # 如果仍未选满，补充分配
+            if remaining > 0:
+                unselected = [idx for idx in range(len(population_R))
+                              if idx not in selected_indices]
+                population_P_next.extend(population_R[idx] for idx in unselected[:remaining])
+
+            # 更新种群 ---------------------------------------------------------
+            population_P = population_P_next[:pop_size]
+
+            # 保留最优解（保持原有逻辑）
+            for i in fronts[0]:
+                best_solution_1.append(objective1[i])
+                best_solution_2.append(objective2[i])
+                best_solution_info = {
+                'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),
+                'agv_count': init_arm.agv_count[i],
+                'orders_list': init_arm.orders_list[i],
+                'timeline_history': init_arm.timeline_history[i],
+                'agv_timeline_history': init_arm.agv_timeline_history[i]
+                }
+                best_solutions_info.append(best_solution_info)
+
+            # 更新分布状态
+            init_arm.unit_states = [init_arm.unit_states[i] for i in selected_indices]
+            init_arm.agv_count = [init_arm.agv_count[i] for i in selected_indices]
+            init_arm.orders_list = [obj_order[i] for i in selected_indices]
 
         if gen_no % 10 == 0:
             cope_time = time.time() - loop_start_time
