@@ -63,8 +63,9 @@ class Arm:
 
         for zone in self.machines_count:
             # 统计当前生产区中机器臂不为0的生产单元数量
-            non_zero_count = sum(1 for machine in self.machines_count[zone] if machine != 0)
-            non_zero_machines_count[zone] = non_zero_count
+            if zone != work_name[-1]:
+                non_zero_count = sum(1 for machine in self.machines_count[zone] if machine != 0)
+                non_zero_machines_count[zone] = non_zero_count
 
         return non_zero_machines_count
 

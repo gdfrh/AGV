@@ -182,15 +182,20 @@
 # timeline_history.append(timeline_one)
 # print(timeline_history)  # 输出: [[5, 2, 3], [2, 3, 4]]
 # 过滤操作
-a = []
-
-previous_value = None  # 用来跟踪前一个元素
-col = [1,2,2,3,3,4]
-for x in col:
-    # 检查是否符合过滤条件
-    if x != -1 and (not isinstance(x, tuple) or x[0] is not None):
-        # 如果当前元素与前一个元素相同，则跳过
-        if x != previous_value:
-            a.append(x)
-            previous_value = x  # 更新前一个元素
-print(a)
+# a = []
+#
+# previous_value = None  # 用来跟踪前一个元素
+# col = [1,2,2,3,3,4]
+# for x in col:
+#     # 检查是否符合过滤条件
+#     if x != -1 and (not isinstance(x, tuple) or x[0] is not None):
+#         # 如果当前元素与前一个元素相同，则跳过
+#         if x != previous_value:
+#             a.append(x)
+#             previous_value = x  # 更新前一个元素
+# print(a)
+a={ '1':1,
+    '2':2,
+    '3':3
+    }
+print(a[:-1])
