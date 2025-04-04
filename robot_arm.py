@@ -441,6 +441,7 @@ class Arm:
 
                             timeline_one[order_idx] = time_line.current_time
 
+                            timeline_history_3.append(timeline_one[:])
                             """至于这里断点的操作会在下面的矩阵里面进行，这里不能给小车断点，不知道有没有空闲生产单元
                             这里的后续是是否存在空闲生产单元与之相关的处理,按照矩阵遍历顺序对所有处于这一状态的判断是否空闲生产区None_unit"""
 
@@ -471,13 +472,14 @@ class Arm:
                     # if not all(x == 0 for x in timeline_one[:]):
                     #     timeline_history.append(time_line.timeline[:])
                     #     timeline_history.append(timeline_one[:])
-            timeline_one = [0] * num_rows
-            timeline_two = [0] * num_rows
-            timeline_three = [0] * num_rows
-            timeline_four = [0] * num_rows
+
             agv_timeline_one = [-1] * total_agv
             for row in range(num_rows):
                 for col in range(num_cols):
+                    timeline_one = [0] * num_rows
+                    timeline_two = [0] * num_rows
+                    timeline_three = [0] * num_rows
+                    timeline_four = [0] * num_rows
                     # 检查当前行是否已经找到非 None 0 值，即每一个非None值可以进行一个节点的添加，如果已经找到就不需要管该订单后续部分
                     if not row_found[row] and order_matrix[row, col] is not None and order_matrix[row, col] != 0:
                         # 找到目标生产区
@@ -508,6 +510,12 @@ class Arm:
                                 timeline_two[row] = order_time + time_line.current_time
                                 timeline_history.append(timeline_one[:])
                                 timeline_history.append(timeline_two[:])
+
+                                if point_type == 'start':
+                                    timeline_history_3.append([0] * num_rows)
+                                    timeline_history_3.append(timeline_one[:])
+                                if point_type != 'start':
+                                    timeline_history_3.append(timeline_one[:])
                                 # if point_type == 'start':
                                 #     timeline_history.append([-3] * num_rows)
                                 #     timeline_history.append([0] * num_rows)
@@ -590,14 +598,15 @@ class Arm:
                                                 timeline_two[rows] = order_time + time_line.current_time
                                                 timeline_history.append(timeline_one[:])
                                                 timeline_history.append(timeline_two[:])
+                                                timeline_history_3.append(timeline_one[:])
                                 # timeline_history.append(timeline_one[:])  # 结束-3
                                 # timeline_history.append(timeline_one[:])  # 开始处理
                                 # timeline_history.append(timeline_two[:])  # 结束处理
             agv_timeline_history.append(agv_timeline_one[:])
             # if point_type == 'start':
-            #     timeline_history.append([-3] * num_rows)
-            #     timeline_history.append([0] * num_rows)
-            #     timeline_history.append(time_line.timeline[:])
+            #     timeline_history_3.append([-3] * num_rows)
+            #     timeline_history_3.append([0] * num_rows)
+            #     timeline_history_3.append(time_line.timeline[:])
             # if point_type == 'order':
             #     if not all(x == 0 for x in timeline_one[:]):
             #         # -3占据生产单元,处理画图-3结束,处理生产单元开始

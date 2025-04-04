@@ -252,13 +252,56 @@ for i in range(num_columns):
             'start': wait_agv_times[x][0], 'end': wait_agv_times[x][1]
         })
     results_2.append(agv_wait)
+
+# 先找到等待生产区状态
+file_path = glob.glob('Gantt_Chart/timeline_history_3.pkl')
+
+# 从 pkl 文件加载数据
+with open(file_path[0], 'rb') as file:
+    loaded_data = pickle.load(file)
+# 初始化列存储
+num_columns = len(loaded_data[0])
+columns = [[] for _ in range(num_columns)]
+for row in loaded_data:
+    for col_idx, value in enumerate(row):
+        columns[col_idx].append(value)
+
+
+results_3 = []
+for i in range(num_columns):
+    # 数据过滤
+    filtered = [x for x in columns[i] if x != 0]
+    # 从后往前遍历列表，避免在删除元素时影响后面的元素
+    i = 0
+    while i < len(filtered) - 2:
+        if filtered[i] == filtered[i+1] == filtered[i+2]:  # 如果存在三个连续的相同值
+            del filtered[i+2]  # 删除第三个元素
+        else:
+            i += 1  # 如果没有连续三个相同元素，继续向前走
+    # 如果列表长度为奇数，在第一位插入0
+    if len(filtered) % 2 != 0:
+        filtered.insert(0, 0)
+    # 将列表每两个值分为一组，前一个为开始时间，后一个为结束时间
+    wait_for_work = []
+    wait_times = [(filtered[i], filtered[i + 1]) for i in range(0, len(filtered), 2)]
+
+    agv_wait = []
+    for x in range(len(wait_times)):
+        wait_for_work.append({
+            'start': wait_times[x][0], 'end': wait_times[x][1]
+        })
+    results_3.append(wait_for_work)
 # 绘制甘特图
 fig, ax = plt.subplots(figsize=(12, 6))
-
+# 创建代理条形图对象用于图例（只有一条条形）
+working_by_robot_arm = plt.Rectangle((0, 0), 1, 1, fc='pink', edgecolor='black')
+transporting_by_agvs = plt.Rectangle((0, 0), 1, 1, fc='skyblue', edgecolor='black')
+waiting_for_agvs = plt.Rectangle((0, 0), 1, 1, fc='green', edgecolor='black')
+waiting_for_working = plt.Rectangle((0, 0), 1, 1, fc='yellow', edgecolor='black')
 # 为Orders绘制条形
 for order_idx, tasks in enumerate(results):
     for task in tasks:
-        # 运输过程
+        # 处理过程
         ax.barh(
             y=order_idx,
             width=task['end'] - task['start'],
@@ -266,7 +309,7 @@ for order_idx, tasks in enumerate(results):
             height=0.4,
             color='pink',
             edgecolor='black',
-            label='Transport' if order_idx == 0 else ""
+
         )
 for order_idx, tasks in enumerate(results_1):
     for task in tasks:
@@ -278,7 +321,7 @@ for order_idx, tasks in enumerate(results_1):
             height=0.4,
             color='skyblue',
             edgecolor='black',
-            label='Transport' if order_idx == 0 else ""
+
         )
 # 为Orders绘制条形
 for order_idx, tasks in enumerate(results_2):
@@ -291,7 +334,19 @@ for order_idx, tasks in enumerate(results_2):
             height=0.4,
             color='green',
             edgecolor='black',
-            label='Transport' if order_idx == 0 else ""
+
+        )
+for order_idx, tasks in enumerate(results_3):
+    for task in tasks:
+        # 等待生产区过程
+        ax.barh(
+            y=order_idx,
+            width=task['end'] - task['start'],
+            left=task['start'],
+            height=0.4,
+            color='yellow',
+            edgecolor='black',
+
         )
 # 设置坐标轴标签
 ax.set_xlim(left=0)  # 设置x轴的最小值为0
@@ -299,6 +354,12 @@ ax.set_yticks(range(len(results_1)))
 ax.set_yticklabels([f'Order {i}' for i in range(len(results_1))])
 ax.set_xlabel('Time')
 ax.set_title('Orders transport Gantt Chart')
+
+# 反向y轴
+ax.invert_yaxis()
+# 设置图例
+ax.legend([working_by_robot_arm, transporting_by_agvs, waiting_for_agvs,waiting_for_working],
+          ['Working by robot_arm', 'Transporting by Agvs', 'Waiting for Agvs','Waiting for Working'], loc='upper right')
 plt.tight_layout()
 plt.show()
 
