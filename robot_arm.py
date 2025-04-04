@@ -37,7 +37,10 @@ class Arm:
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
         self.end_time = {}  # 用来记录生产区工作的结束时间
-        self.timeline_history = []  # 存储时间轴的历史状态
+        self.timeline_history = []    # 存储时间轴的处理历史状态
+        self.timeline_history_1 = []  # 存储时间轴的-1历史状态
+        self.timeline_history_2 = []  # 存储时间轴的-2历史状态
+        self.timeline_history_3 = []  # 存储时间轴的-3历史状态
         self.agv_timeline_history = []  # 存储小车时间轴的历史状态
         # ------------------------
         """小车"""
@@ -301,7 +304,11 @@ class Arm:
         order_power = 0  # 订单步骤完成所需功率
         use_time = [0] * num_orders  # 每个订单所用时间的列表
         use_power = 0  # 总共消耗的功率
-        timeline_history = []  # 存储时间轴的历史状态
+
+        timeline_history = []  # 存储时间轴的处理历史状态
+        timeline_history_1 = []  # 存储时间轴的-1历史状态
+        timeline_history_2 = []  # 存储时间轴的-2历史状态
+        timeline_history_3 = []  # 存储时间轴的-3历史状态
         agv_timeline_history = []  # 存储小车时间轴的历史状态
 
         """遍历所有生产区和单元，将机器臂数量为 0 的生产单元的状态改为忙碌，避免出现选择0个机器臂的生产单元进行操作"""
@@ -333,6 +340,9 @@ class Arm:
             if all(point == float('inf') for point in time_line.timeline):
                 if type == 'picture':
                     self.timeline_history.append(timeline_history)
+                    self.timeline_history_1.append(timeline_history_1)
+                    self.timeline_history_2.append(timeline_history_2)
+                    self.timeline_history_3.append(timeline_history_3)
                     self.agv_timeline_history.append(agv_timeline_history)
                 break  # 跳出循环，停止处理，或者根据需要进行其他操作
             # 记录每一行是否已经找到了非 None 值，每一次都需要重置
@@ -398,9 +408,12 @@ class Arm:
 
                                 timeline_one[index] = time_line.current_time
                             # -1代表后面的两个是运输的开始和结束，-2只代表下一个是等待小车的开始
-                    timeline_history.append(time_line.timeline[:])
-                    timeline_history.append(timeline_one[:])
-                    timeline_history.append(timeline_two[:])
+                    timeline_history_1.append(time_line.timeline[:])
+                    timeline_history_1.append(timeline_one[:])
+                    timeline_history_1.append(timeline_two[:])
+
+                    timeline_history_2.append(time_line.timeline[:])
+                    timeline_history_2.append(timeline_one[:])
                     # 有空闲小车时会记录小车出发的时间，time_line.agv_timeline[:]会记录小车送到的时间
                     agv_timeline_history.append(agv_timeline_one[:])
                     agv_timeline_history.append(time_line.agv_timeline[:])
@@ -473,7 +486,6 @@ class Arm:
                         # 标记此行已找到非 None 值
                         row_found[row] = True
                         if point_type == 'order' or point_type == 'start' or point_type == 'agv':
-
                             # 存在空闲生产单元并且订单位于小车之上并且完成了自己的工作处于等待时间
                             # -3代表小车已送达订单但是没有生产单元
                             if False in self.work_status[start_zone] and (time_line.timeline[row] == -3):
@@ -495,6 +507,8 @@ class Arm:
                                 self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
                                 timeline_one[row] = time_line.current_time
                                 timeline_two[row] = order_time + time_line.current_time
+                                timeline_history.append(timeline_one[:])
+                                timeline_history.append(timeline_two[:])
                                 # if point_type == 'start':
                                 #     timeline_history.append([-3] * num_rows)
                                 #     timeline_history.append([0] * num_rows)
@@ -532,6 +546,11 @@ class Arm:
                                 time_line.timeline[row] = -1
                                 timeline_three[row] = time_line.current_time
                                 timeline_four[row] = time_line.current_time + transport_time
+                                timeline_history_1.append(time_line.timeline[:])
+                                timeline_history_1.append(timeline_three[:])
+                                timeline_history_1.append(timeline_four[:])
+
+                                timeline_history_2.append(timeline_three[:])
                                 # 记录小车出发时间
                                 agv_timeline_one[agv_idx] = time_line.current_time
 
@@ -570,6 +589,8 @@ class Arm:
                                                 self.work_status[start_zone][max_unit_index] = True  # 占据空闲生产单元
                                                 timeline_one[rows] = time_line.current_time
                                                 timeline_two[rows] = order_time + time_line.current_time
+                                                timeline_history.append(timeline_one[:])
+                                                timeline_history.append(timeline_two[:])
                                 # timeline_history.append(timeline_one[:])  # 结束-3
                                 # timeline_history.append(timeline_one[:])  # 开始处理
                                 # timeline_history.append(timeline_two[:])  # 结束处理

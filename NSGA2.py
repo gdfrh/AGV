@@ -532,6 +532,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                     'agv_count': init_arm.agv_count[i],  # 小车分布
                     'orders_list': init_arm.orders_list[i],  # 订单顺序
                     'timeline_history': init_arm.timeline_history[i],  # 订单时间节点记录
+                    'timeline_history_1': init_arm.timeline_history_1[i],  # 订单时间节点记录
+                    'timeline_history_2': init_arm.timeline_history_2[i],
+                    'timeline_history_3': init_arm.timeline_history_3[i],
                     'agv_timeline_history': init_arm.agv_timeline_history[i]  # 小车时间节点记录
                 }
                 # 保存最优解和其分布信息
@@ -624,7 +627,10 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),
                 'agv_count': init_arm.agv_count[i],
                 'orders_list': init_arm.orders_list[i],
-                'timeline_history': init_arm.timeline_history[i],
+                'timeline_history': init_arm.timeline_history[i],  # 订单时间节点记录
+                'timeline_history_1': init_arm.timeline_history_1[i],  # 订单时间节点记录
+                'timeline_history_2': init_arm.timeline_history_2[i],
+                'timeline_history_3': init_arm.timeline_history_3[i],
                 'agv_timeline_history': init_arm.agv_timeline_history[i]
                 }
                 best_solutions_info.append(best_solution_info)
@@ -648,6 +654,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             order_distributions = []
             distributions_dicts = []
             timeline_history = []
+            timeline_history_1 = []
+            timeline_history_2 = []
+            timeline_history_3 = []
             agv_timeline_history = []
             for s in fronts[0]:
                 energy_pic.append(best_solution_1[s])
@@ -656,6 +665,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 order_distributions.append(best_solutions_info[s]['orders_list'])  # 订单分配
                 distributions_dicts.append(best_solutions_info[s]['distributions'])  # 生产单元机器臂分配（字典）
                 timeline_history.append(best_solutions_info[s]['timeline_history'])
+                timeline_history_1.append(best_solutions_info[s]['timeline_history_1'])
+                timeline_history_2.append(best_solutions_info[s]['timeline_history_2'])
+                timeline_history_3.append(best_solutions_info[s]['timeline_history_3'])
                 agv_timeline_history.append(best_solutions_info[s]['agv_timeline_history'])
 
             # 1. 定义要创建的文件夹名称
@@ -663,14 +675,23 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # 2. 创建文件夹（如果不存在）
             os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
             # 3. 构造完整文件路径
-            file_path1 = os.path.join(folder_name, 'timeline_history.pkl')
-            file_path2 = os.path.join(folder_name, 'agv_timeline_history.pkl')
+            file_path0 = os.path.join(folder_name, 'timeline_history.pkl')
+            file_path1 = os.path.join(folder_name, 'timeline_history_1.pkl')
+            file_path2 = os.path.join(folder_name, 'timeline_history_2.pkl')
+            file_path3 = os.path.join(folder_name, 'timeline_history_3.pkl')
+            file_path4 = os.path.join(folder_name, 'agv_timeline_history.pkl')
 
             # 将数据保存到文件
-            with open(file_path1, 'wb') as file:
+            with open(file_path0, 'wb') as file:
                 pickle.dump(timeline_history[0], file)
-
+            with open(file_path1, 'wb') as file:
+                pickle.dump(timeline_history_1[0], file)
             with open(file_path2, 'wb') as file:
+                pickle.dump(timeline_history_2[0], file)
+            with open(file_path3, 'wb') as file:
+                pickle.dump(timeline_history_3[0], file)
+
+            with open(file_path4, 'wb') as file:
                 pickle.dump(agv_timeline_history[0], file)
 
                 # 数据字典
