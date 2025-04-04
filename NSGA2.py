@@ -555,10 +555,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
 
             # 标准化目标值
             normalized_obj = normalize_objectives(current_obj, ideal_point, nadir_point)
-
             # 关联解到参考点
             association = associate_to_reference_points(normalized_obj, ref_points)
-
             # 非支配排序
             fronts = fast_non_dominated_sort(objective1, objective2)
 

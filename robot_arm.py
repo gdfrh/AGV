@@ -471,7 +471,6 @@ class Arm:
                     # if not all(x == 0 for x in timeline_one[:]):
                     #     timeline_history.append(time_line.timeline[:])
                     #     timeline_history.append(timeline_one[:])
-
             timeline_one = [0] * num_rows
             timeline_two = [0] * num_rows
             timeline_three = [0] * num_rows

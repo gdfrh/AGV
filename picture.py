@@ -293,7 +293,6 @@ for order_idx, tasks in enumerate(results_2):
             edgecolor='black',
             label='Transport' if order_idx == 0 else ""
         )
-
 # 设置坐标轴标签
 ax.set_xlim(left=0)  # 设置x轴的最小值为0
 ax.set_yticks(range(len(results_1)))
