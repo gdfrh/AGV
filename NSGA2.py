@@ -552,7 +552,6 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             current_obj = np.array(list(zip(objective1, objective2)))
             ideal_point = np.minimum(ideal_point, np.min(current_obj, axis=0))
             nadir_point = np.maximum(nadir_point, np.max(current_obj, axis=0))
-
             # 标准化目标值
             normalized_obj = normalize_objectives(current_obj, ideal_point, nadir_point)
             # 关联解到参考点

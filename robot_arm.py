@@ -637,7 +637,6 @@ class Arm:
             # agv_timeline_history.append(time_line.agv_timeline[:])
             point_type, idx = time_line.get_next_point()
             # 我需要在这里求两个时间轴里面的最小时间节点（特殊情况：分别有一个时间节点在两个列表相同）
-
         order_time = max(use_time)
         return order_time, use_power
         # for i in range(len(order)):

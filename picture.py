@@ -354,7 +354,6 @@ ax.set_yticks(range(len(results_1)))
 ax.set_yticklabels([f'Order {i}' for i in range(len(results_1))])
 ax.set_xlabel('Time')
 ax.set_title('Orders transport Gantt Chart')
-
 # 反向y轴
 ax.invert_yaxis()
 # 设置图例
