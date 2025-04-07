@@ -194,6 +194,6 @@ TypeError: 'float' object is not subscriptable
 
 4.7
 1.生产区的甘特图(√)
-2.小车数量对应似乎出错了/生产区也对不上
+2.小车数量对应似乎出错了/生产区也对不上(√),每次迭代timeline没有置0
 3.帕累托解的图
 4.ALNS的迭代

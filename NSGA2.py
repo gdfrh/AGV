@@ -548,6 +548,11 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             init_arm.unit_states = copy.deepcopy(new_state)
             init_arm.agv_count = copy.deepcopy(new_agv_count)
             init_arm.orders_list = copy.deepcopy(obj_order_next)
+            init_arm.timeline_history = []  # 存储时间轴的处理历史状态
+            init_arm.timeline_history_1 = []  # 存储时间轴的-1历史状态
+            init_arm.timeline_history_2 = []  # 存储时间轴的-2历史状态
+            init_arm.timeline_history_3 = []  # 存储时间轴的-3历史状态
+            init_arm.agv_timeline_history = []  # 存储小车时间轴的历史状态
             # init_arm.unit_states = new_state.copy()
             # init_arm.agv_count = new_agv_count.copy()
             # init_arm.orders_list = obj_order_next.copy()
