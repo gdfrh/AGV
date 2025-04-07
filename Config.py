@@ -78,12 +78,12 @@ zone_requirements = [
 # ------------------------
 # 小车配置
 total_agv = 15  # 总车辆数
-agv_speed = 2    # 小车速度
+agv_speed = 3    # 小车速度
 
 # ------------------------
 # NSGA2参数
-pop_size = 50  # 每一代种群数量
-max_gen = 100  # 最高代数
+pop_size = 10  # 每一代种群数量
+max_gen = 10  # 最高代数
 number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
@@ -106,9 +106,9 @@ if compare == 2:
 if compare == 3:
     operator_fitness = [1, 0, 0]
 if compare == 4:
-    operator_fitness = [1, 0, 3]
+    operator_fitness = [1, 0, 1]
 if compare == 5:
-    operator_fitness = [1, 3, 0]
+    operator_fitness = [1, 1, 0]
 if compare == 6:
     operator_fitness = [1, 1, 1]
 num_obj = 2  # 优化目标数量

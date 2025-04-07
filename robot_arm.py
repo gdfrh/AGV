@@ -111,12 +111,16 @@ class Arm:
         total_non_zero = sum(non_zero_machines_count.values())
 
         # 3. 根据比例来分配小车数量
-        agv_distribute = []
-        for zone, non_zero_count in non_zero_machines_count.items():
-            # 计算该生产区应该分配的小车数量
-            proportion = non_zero_count / total_non_zero
-            car_count_for_zone = round(proportion * total_agv)  # 根据比例计算，并取整
-            agv_distribute.append(car_count_for_zone)
+        agv_distribute = [1] * len(work_name[:-1])  # 每个生产区分配1个小车
+        remaining_agv = total_agv - sum(agv_distribute)  # 总小车数量减去已经分配的数量
+        if remaining_agv > 0:
+            # 计算每个生产区应该分配的比例
+            for i, (zone, non_zero_count) in enumerate(non_zero_machines_count.items()):
+                proportion = non_zero_count / total_non_zero
+                car_count_for_zone = round(proportion * remaining_agv)  # 根据比例计算剩余的小车数量
+                if car_count_for_zone <= remaining_agv:
+                    agv_distribute[i] += car_count_for_zone
+                    remaining_agv -= car_count_for_zone
         # 确保分配的小车总数为 total_agv
         total_distributed_agv = sum(agv_distribute)
         if total_distributed_agv != total_agv:
@@ -126,7 +130,6 @@ class Arm:
             max_agv_zone = agv_distribute.index(max(agv_distribute))
             # 将差额加到小车最多的生产区
             agv_distribute[max_agv_zone] += difference
-
         # 4. 对每个生产区的生产单元按机器数量从大到小排序
         for zone in self.machines_count:
             # 排序每个生产区的单元，按机器数量从大到小
@@ -357,21 +360,14 @@ class Arm:
             if first_iteration:
                 first_iteration = False
 
-            """这里需要判断是车的断点还是订单的断点
-            如果是车的断点，就要判断是车回来的断点还是送到的断点
-            如果是回来的断点，需要将目标生产区对应的小车状态置为False表示空闲
-            如果是送到的断点，需要判断下一个生产区是否有空闲状态，如果有占据生产单元并且2个断点（车和订单）
-            如果没有，可以将agv_timeline=None表示空闲等待
-            
-            如果是订单的断点，判断是否存在空闲小车
-            如果存在，释放生产单元并占据小车设置小车到达断点
-            如果不存在将订单断点设为None表示空闲"""
             timeline_one = [0] * num_rows
             timeline_two = [0] * num_rows
             if idx:  # 不是第一次迭代，idx列表不为空，存在时间节点最小值，即完成了操作
                 if point_type == 'order':  # 是订单断点，此时订单结束了生产单元的操作
                     # 记录小车开始工作时间，方便绘制甘特图
-                    agv_timeline_one = [-1] * total_agv
+                    agv_timeline_one = [0] * total_agv
+                    agv_timeline_two = [0] * total_agv
+
                     for index in idx:
                         zone_idx = self.find_last_none_index(order_matrix, index)  # 找到最后一个None的索引位置，即是对应生产区的位置
                         obj_zone = orders[index][zone_idx]  # 目标生产区
@@ -403,6 +399,7 @@ class Arm:
                                 timeline_two[index] = time_line.current_time + transport_time
 
                                 agv_timeline_one[agv_idx] = time_line.current_time
+                                agv_timeline_two[agv_idx] = time_line.current_time + 2 * transport_time
                             elif False not in self.agv_states[obj_zone]:  # 不存在空闲小车:-2
                                 time_line.timeline[index] = -2
 
@@ -416,7 +413,7 @@ class Arm:
                     timeline_history_2.append(timeline_one[:])
                     # 有空闲小车时会记录小车出发的时间，time_line.agv_timeline[:]会记录小车送到的时间
                     agv_timeline_history.append(agv_timeline_one[:])
-                    agv_timeline_history.append(time_line.agv_timeline[:])
+                    agv_timeline_history.append(agv_timeline_two[:])
 
                     """这里释放了生产单元的后续是是否有人需要生产单元√
                     不存在小车的后续是在其他断点出现小车空闲时，需要有判断找车的地方"""
@@ -447,14 +444,9 @@ class Arm:
 
                         elif time_line.agv_timeline[index][2] == -1:
                             # 如果小车返回了出发点，将agv时间节点变为None，表示空闲,并且将states变为False
-                            #point_type = 'agv_return'
                             obj_zone = time_line.agv_timeline[index][1]  # 找到目的地，即出发地
                             # 找到了是生产区的第几辆车
                             zone_idx, idx_of_states = self.find_index_of_agv(self.agv_count[step_idx], index)
-                            # print(obj_zone, _, idx_of_states)
-                            # print(self.agv_count[step_idx])
-                            # if work_name[zone_idx] != obj_zone:
-                            #     print(1)
                             self.agv_states[obj_zone][idx_of_states] = False
                             # 元组不能直接修改
                             # time_line.agv_timeline[index][0] = None
@@ -467,13 +459,9 @@ class Arm:
                             time_line.agv_timeline[index] = tuple(temp_list)
                             """这里生产区小车空闲，但是还没设置在哪里处理小车寻找
                             这里的后续是是否有空闲的订单需要找车与之相关的处理，对矩阵遍历，对所有的相同状态的需要小车的订单寻找小车"""
-                    # 记录送达的时间
-                    agv_timeline_history.append(time_line.agv_timeline[:])
-                    # if not all(x == 0 for x in timeline_one[:]):
-                    #     timeline_history.append(time_line.timeline[:])
-                    #     timeline_history.append(timeline_one[:])
 
-            agv_timeline_one = [-1] * total_agv
+            agv_timeline_one = [0] * total_agv
+            agv_timeline_two = [0] * total_agv
             for row in range(num_rows):
                 for col in range(num_cols):
                     timeline_one = [0] * num_rows
@@ -509,6 +497,7 @@ class Arm:
                                 timeline_one[row] = time_line.current_time
                                 timeline_two[row] = order_time + time_line.current_time
                                 timeline_history.append(timeline_one[:])
+                                timeline_history.append((start_zone,max_unit_index))
                                 timeline_history.append(timeline_two[:])
 
                                 if point_type == 'start':
@@ -516,20 +505,6 @@ class Arm:
                                     timeline_history_3.append(timeline_one[:])
                                 if point_type != 'start':
                                     timeline_history_3.append(timeline_one[:])
-                                # if point_type == 'start':
-                                #     timeline_history.append([-3] * num_rows)
-                                #     timeline_history.append([0] * num_rows)
-                                #     timeline_history.append(time_line.timeline[:])
-                                # if point_type == 'order':
-                                #     # -3占据生产单元,处理画图-3结束,处理生产单元开始
-                                #     timeline_history.append(timeline_one[:])  # -3结束
-                                #     timeline_history.append(timeline_one[:])  # 处理开始
-                                #     timeline_history.append(timeline_two[:])  # 处理结束
-                                # if point_type == 'agv':
-                                #     # -3占据生产单元,处理画图-3结束,处理生产单元开始
-                                #     timeline_history.append(timeline_one[:])  # -3结束
-                                #     timeline_history.append(timeline_one[:])  # 处理开始
-                                #     timeline_history.append(timeline_two[:])  # 处理结束
 
                         if point_type == 'agv':
                             # 如果是小车断点，得判断出现了哪些情况
@@ -558,8 +533,9 @@ class Arm:
                                 timeline_history_1.append(timeline_four[:])
 
                                 timeline_history_2.append(timeline_three[:])
-                                # 记录小车出发时间
+                                # 记录小车时间
                                 agv_timeline_one[agv_idx] = time_line.current_time
+                                agv_timeline_two[agv_idx] = time_line.current_time + 2 * transport_time
 
                                 # 如果订单被小车送走了，此时要判断是否存在小车在等
                                 for rows in range(num_rows):
@@ -597,12 +573,14 @@ class Arm:
                                                 timeline_one[rows] = time_line.current_time
                                                 timeline_two[rows] = order_time + time_line.current_time
                                                 timeline_history.append(timeline_one[:])
+                                                timeline_history.append((start_zone,max_unit_index))
                                                 timeline_history.append(timeline_two[:])
                                                 timeline_history_3.append(timeline_one[:])
                                 # timeline_history.append(timeline_one[:])  # 结束-3
                                 # timeline_history.append(timeline_one[:])  # 开始处理
                                 # timeline_history.append(timeline_two[:])  # 结束处理
             agv_timeline_history.append(agv_timeline_one[:])
+            agv_timeline_history.append(agv_timeline_two[:])
             # if point_type == 'start':
             #     timeline_history_3.append([-3] * num_rows)
             #     timeline_history_3.append([0] * num_rows)

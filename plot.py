@@ -3,9 +3,10 @@ from Config import *
 import plotly.express as px
 import pandas as pd
 import glob
+import matplotlib.pyplot as plt
 
 # 替换 'folder_name' 为你目标文件夹的路径
-file_paths = glob.glob('Scatter_plot/*.pkl')
+file_paths = glob.glob('Scatter_plot/0.pkl')
 
 # 用于存储所有的数据
 combined_data = {
@@ -71,15 +72,81 @@ fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter 
                  hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
                              '配置区'], color='group')
 
-# # 使用 Plotly Express 创建柱状图
-# fig = px.bar(df_final, x='point_id', y='time', title="Time Distribution Across Different Algorithms",
-#              labels={'time': 'Execution Time'}, color='group', barmode='group')
-# fig.update_layout(
-#     bargap=0,  # 控制柱子之间的间隙，数值范围 [0, 1]，值越小柱子之间的间隙越小
-#     bargroupgap=0  # 控制分组柱子之间的间隙，数值范围 [0, 1]，值越小柱子之间的间隙越小
-# )
 # 显示图表
 fig.show()
+
+# 定义图例映射关系
+legend_mapping = {
+    0: "NSGA-II_ALNS",
+    1: "NSGA-II_Random",
+    2: "Random_ALNS",
+    3: "Random_Random",
+    4: "NSGA-II_ALNS-greedy",
+    5: "NSGA-II_ALNS-regret",
+    6: "NSGA-III_ALNS"
+}
+
+# 数据清洗
+df_clean = df_final.dropna(subset=['energy', 'time'])
+
+# 创建图形
+plt.figure(figsize=(12, 8), dpi=100)
+ax = plt.gca()
+
+# 颜色列表（保持与plotly默认颜色一致）
+colors = px.colors.qualitative.Plotly
+
+# 为每个算法组绘制散点
+groups = sorted(df_clean['group'].unique())
+for idx, group in enumerate(groups):
+    subset = df_clean[df_clean['group'] == group]
+
+    # 获取对应的图例标签
+    label = legend_mapping.get(idx, group)  # 找不到映射时显示原始组名
+
+    plt.scatter(
+        subset['energy'],
+        subset['time'],
+        alpha=0.7,
+        edgecolors='w',
+        linewidths=0.5,
+        color=colors[idx % len(colors)],  # 循环使用颜色
+        label=label,
+        zorder=2  # 确保点在上层
+    )
+
+# 坐标轴设置
+plt.xlabel('Energy Consumption', fontsize=12, labelpad=10)
+plt.ylabel('Completion Time', fontsize=12, labelpad=10)
+plt.title('Energy vs. Time Distribution', fontsize=14, pad=20)
+
+# 网格设置
+ax.grid(True,
+        linestyle='--',
+        alpha=0.6,
+        zorder=1)  # 网格在下层
+
+# 图例设置
+handles, labels = ax.get_legend_handles_labels()
+ax.legend(
+    handles,
+    labels,
+    title='Algorithm Versions',
+    bbox_to_anchor=(1.05, 0.95),  # 调整图例位置
+    loc='upper left',
+    frameon=True,
+    framealpha=0.9,
+    fontsize=10
+)
+
+# 调整边距
+plt.subplots_adjust(right=0.75)  # 为图例留出空间
+
+# 显示图表
+plt.tight_layout()
+plt.show()
+
+
 # # 从文件加载数据
 # with open(f'{compare}.pkl', 'rb') as file:
 #     loaded_data = pickle.load(file)

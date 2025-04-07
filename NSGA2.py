@@ -315,9 +315,9 @@ def crossover_and_mutation(use_list, population_R, init_arm):
     # 变异操作
     if random.random() < mutation_probability:  # 变异概率
         new_member1, new_state1, new_agv_count1 = mutate(new_member1, init_arm, init_arm.unit_states[x],
-                                                         init_arm.agv_count[x])  # 对新个体进行变异
+                                                         init_arm.agv_count[x][:])  # 对新个体进行变异
         new_member2, new_state2, new_agv_count2 = mutate(new_member2, init_arm, init_arm.unit_states[y],
-                                                         init_arm.agv_count[y])
+                                                         init_arm.agv_count[y][:])
 
     return new_member1, new_member2, new_state1, new_state2, new_agv_count1, new_agv_count2, new_order1, new_order2
 
@@ -344,7 +344,7 @@ def check_and_add_solution(new_member, new_state, new_agv_count, new_order, popu
     if not is_zero and new_member not in population_R:
         population_R.append(new_member)
         init_arm.unit_states.append(new_state)
-        init_arm.agv_count.append(new_agv_count)
+        init_arm.agv_count.append(new_agv_count[:])
         init_arm.orders_list.append(new_order)
 
 def cope_with_random_solution(population_R, init_arm):
@@ -406,7 +406,7 @@ def cope_with_random_solution(population_R, init_arm):
     if merged_number not in population_R:
         population_R.append(merged_number)
         init_arm.unit_states.append(unit_state)
-        init_arm.agv_count.append(agv_count)
+        init_arm.agv_count.append(agv_count[:])
         init_arm.orders_list.append(init_arm.orders_list[idx])
 # ------------------------
 # NSGA-III新增参考点生成函数
@@ -508,7 +508,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 for s in fronts[level]:
                     choose_solution.append(s)
                     new_state.append(init_arm.unit_states[s])
-                    new_agv_count.append(init_arm.agv_count[s])
+                    new_agv_count.append(init_arm.agv_count[s][:])
                     population_P_next.append(population_R[s])
                     obj_order_next.append(obj_order[s])
                 level += 1
@@ -518,7 +518,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 for i in range(pop_size - len(population_P_next)):
                     choose_solution.append(sort_solution[i])
                     new_state.append(init_arm.unit_states[sort_solution[i]])
-                    new_agv_count.append(init_arm.agv_count[sort_solution[i]])
+                    new_agv_count.append(init_arm.agv_count[sort_solution[i]][:])
                     population_P_next.append(population_R[sort_solution[i]])
                     obj_order_next.append(obj_order[sort_solution[i]])
             # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
@@ -529,13 +529,15 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 best_solution_2.append(objective2[i])
                 best_solution_info = {
                     'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),  # 生产单元分配
-                    'agv_count': init_arm.agv_count[i],  # 小车分布
-                    'orders_list': init_arm.orders_list[i],  # 订单顺序
+                    # 'agv_count': init_arm.agv_count[i][:],  # 小车分布
+                    # 'orders_list': init_arm.orders_list[i][:],  # 订单顺序
+                    'agv_count': copy.deepcopy(init_arm.agv_count[i]),
+                    'orders_list': copy.deepcopy(init_arm.orders_list[i]),
                     'timeline_history': init_arm.timeline_history[i],  # 订单时间节点记录
                     'timeline_history_1': init_arm.timeline_history_1[i],  # 订单时间节点记录
                     'timeline_history_2': init_arm.timeline_history_2[i],
                     'timeline_history_3': init_arm.timeline_history_3[i],
-                    'agv_timeline_history': init_arm.agv_timeline_history[i]  # 小车时间节点记录
+                    'agv_timeline_history': init_arm.agv_timeline_history[i][:],  # 小车时间节点记录
                 }
                 # 保存最优解和其分布信息
                 best_solutions_info.append(best_solution_info)
@@ -543,9 +545,13 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # 得到P(t+1)重复上述过程
             population_P = population_P_next.copy()
             """新一代分布状态"""
-            init_arm.unit_states = new_state.copy()
-            init_arm.agv_count = new_agv_count.copy()
-            init_arm.orders_list = obj_order_next.copy()
+            init_arm.unit_states = copy.deepcopy(new_state)
+            init_arm.agv_count = copy.deepcopy(new_agv_count)
+            init_arm.orders_list = copy.deepcopy(obj_order_next)
+            # init_arm.unit_states = new_state.copy()
+            # init_arm.agv_count = new_agv_count.copy()
+            # init_arm.orders_list = obj_order_next.copy()
+
 
         if compare == 6:
             # 更新理想点和截距点
@@ -622,19 +628,21 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 best_solution_2.append(objective2[i])
                 best_solution_info = {
                 'distributions': anti_mapping(population_R[i], init_arm.unit_states[i]),
-                'agv_count': init_arm.agv_count[i],
-                'orders_list': init_arm.orders_list[i],
-                'timeline_history': init_arm.timeline_history[i],  # 订单时间节点记录
-                'timeline_history_1': init_arm.timeline_history_1[i],  # 订单时间节点记录
-                'timeline_history_2': init_arm.timeline_history_2[i],
-                'timeline_history_3': init_arm.timeline_history_3[i],
-                'agv_timeline_history': init_arm.agv_timeline_history[i]
+                # 'agv_count': init_arm.agv_count[i][:],
+                # 'orders_list': init_arm.orders_list[i][:],
+                'agv_count': copy.deepcopy(init_arm.agv_count[i]),
+                'orders_list': copy.deepcopy(init_arm.orders_list[i]),
+                'timeline_history': init_arm.timeline_history[i][:],  # 订单时间节点记录
+                'timeline_history_1': init_arm.timeline_history_1[i][:],  # 订单时间节点记录
+                'timeline_history_2': init_arm.timeline_history_2[i][:],
+                'timeline_history_3': init_arm.timeline_history_3[i][:],
+                'agv_timeline_history': init_arm.agv_timeline_history[i][:]
                 }
                 best_solutions_info.append(best_solution_info)
 
             # 更新分布状态
             init_arm.unit_states = [init_arm.unit_states[i] for i in selected_indices]
-            init_arm.agv_count = [init_arm.agv_count[i] for i in selected_indices]
+            init_arm.agv_count = [init_arm.agv_count[i][:] for i in selected_indices]
             init_arm.orders_list = [obj_order[i] for i in selected_indices]
 
         if gen_no % 10 == 0:
@@ -748,47 +756,6 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 # 4. 保存文件到新文件夹
                 with open(file_path, 'wb') as file:
                     pickle.dump(new_data, file)
-            # # 计算最大长度
-            # max_length = max(len(lst) for lst in data.values())
-            #
-            # # 调整所有列表到相同的长度
-            # for key in data:
-            #     current_length = len(data[key])
-            #     if current_length < max_length:
-            #         # 补全列表
-            #         data[key].extend([None] * (max_length - current_length))
-            # # 将字典转换为 DataFrame
-            # df = pd.DataFrame(data)
-            # df_dicts = pd.DataFrame(distributions_dicts)
-            # # 合并 DataFrame
-            # df_final = pd.concat([df, df_dicts], axis=1)
-            # # 使用 Plotly Express 创建散点图
-            # fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
-            #                  hover_data=['agv_distribution', '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
-            #                              '配置区'])
-
-            # # 获取 energy 和 time 数据
-            # x_data = df_final['energy'].dropna()  # 删除 NaN 值
-            # y_data = df_final['time'].dropna()  # 删除 NaN 值
-            #
-            # # 定义反比例函数模型
-            # def inverse_model(x, a, b):
-            #     return a / (x + b)
-            #
-            # # 使用 curve_fit 进行反比例函数拟合
-            # params, params_covariance = curve_fit(inverse_model, x_data, y_data, p0=[1, 1])
-            # # 拟合的参数 a 和 b
-            # a, b = params
-            #
-            # # 创建拟合曲线
-            # x_fit = np.linspace(min(x_data), max(x_data), 100)
-            # y_fit = inverse_model(x_fit, *params)
-            #
-            # # 将拟合曲线添加到图中
-            # fig.add_trace(go.Scatter(x=x_fit, y=y_fit, mode='lines', name='Inverse Fit Line', line=dict(color='red')))
-
-            # 显示图表
-            # fig.show()
 
         gen_no += 1
 
