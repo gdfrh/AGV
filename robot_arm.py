@@ -367,6 +367,7 @@ class Arm:
                     # 记录小车开始工作时间，方便绘制甘特图
                     agv_timeline_one = [0] * total_agv
                     agv_timeline_two = [0] * total_agv
+                    agv_order = [0] * total_agv
 
                     for index in idx:
                         zone_idx = self.find_last_none_index(order_matrix, index)  # 找到最后一个None的索引位置，即是对应生产区的位置
@@ -399,6 +400,10 @@ class Arm:
                                 timeline_two[index] = time_line.current_time + transport_time
 
                                 agv_timeline_one[agv_idx] = time_line.current_time
+                                if index == 0:
+                                    agv_order[agv_idx] = -1
+                                else:
+                                    agv_order[agv_idx] = index
                                 agv_timeline_two[agv_idx] = time_line.current_time + 2 * transport_time
                             elif False not in self.agv_states[obj_zone]:  # 不存在空闲小车:-2
                                 time_line.timeline[index] = -2
@@ -413,6 +418,7 @@ class Arm:
                     timeline_history_2.append(timeline_one[:])
                     # 有空闲小车时会记录小车出发的时间，time_line.agv_timeline[:]会记录小车送到的时间
                     agv_timeline_history.append(agv_timeline_one[:])
+                    agv_timeline_history.append(agv_order[:])
                     agv_timeline_history.append(agv_timeline_two[:])
 
                     """这里释放了生产单元的后续是是否有人需要生产单元√
@@ -462,6 +468,7 @@ class Arm:
 
             agv_timeline_one = [0] * total_agv
             agv_timeline_two = [0] * total_agv
+            agv_order = [0] * total_agv
             for row in range(num_rows):
                 for col in range(num_cols):
                     timeline_one = [0] * num_rows
@@ -535,6 +542,10 @@ class Arm:
                                 timeline_history_2.append(timeline_three[:])
                                 # 记录小车时间
                                 agv_timeline_one[agv_idx] = time_line.current_time
+                                if row == 0:
+                                    agv_order[agv_idx] = -1
+                                else:
+                                    agv_order[agv_idx] = row
                                 agv_timeline_two[agv_idx] = time_line.current_time + 2 * transport_time
 
                                 # 如果订单被小车送走了，此时要判断是否存在小车在等
@@ -580,6 +591,7 @@ class Arm:
                                 # timeline_history.append(timeline_one[:])  # 开始处理
                                 # timeline_history.append(timeline_two[:])  # 结束处理
             agv_timeline_history.append(agv_timeline_one[:])
+            agv_timeline_history.append(agv_order[:])
             agv_timeline_history.append(agv_timeline_two[:])
             # if point_type == 'start':
             #     timeline_history_3.append([-3] * num_rows)
