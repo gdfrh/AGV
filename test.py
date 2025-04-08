@@ -231,97 +231,32 @@
 #
 # print("生成的参考点：")
 # print(ref_points)
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib import rcParams
+import os
 
-# 设置中文字体（如果需要显示中文）
-rcParams['font.sans-serif'] = ['SimHei']
-rcParams['axes.unicode_minus'] = False
 
-# 原始数据
-data = [
-    (0.0, 6.3445977636864, '组装区', 0),
-    (6.3445977636864, 12.6891955273728, '组装区', 0),
-    (9.677931097019734, 16.662804183019734, '铸造区', 0),
-    (13.011264430353068, 19.355862194039467, '组装区', 0),
-    (16.662804183019734, 23.647677269019734, '铸造区', 0),
-    (19.677931097019734, 26.02252886070613, '组装区', 0),
-    (21.662804183019734, 27.815764383019733, '清洗区', 0),
-    (26.344597763686398, 32.689195527372796, '组装区', 0),
-    (26.662804183019734, 33.64767726901974, '铸造区', 0),
-    (31.662804183019734, 37.81576438301973, '清洗区', 0),
-    (36.66280418301973, 43.64767726901973, '铸造区', 0),
-    (41.14909771635307, 58.43159771635307, '配置区', 0),
-    (44.4824310496864, 60.91817104968639, '焊接区', 0),
-    (54.99613751635306, 74.44613751635306, '配置区', 1),
-    (64.25150438301972, 73.28172858301971, '喷漆区', 0),
-    (73.32947084968639, 80.3143439356864, '铸造区', 0),
-    (79.94839524968639, 85.32322744968639, '包装区', 0),
-    (84.99613751635306, 101.43187751635305, '焊接区', 0),
-    (95.32322744968639, 112.60572744968638, '配置区', 0),
-    (108.09854418301973, 127.54854418301973, '配置区', 1),
-    (108.3294708496864, 124.7652108496864, '焊接区', 0),
-    (128.09854418301973, 137.12876838301972, '喷漆区', 0),
-    (147.12876838301972, 153.2817285830197, '清洗区', 0),
-    (166.61506191635306, 183.89756191635306, '配置区', 0)
-]
+def get_next_filename(directory, base_name):
+    # 获取目录下所有的 .pkl 文件
+    files = [f for f in os.listdir(directory) if f.endswith('.pkl') and f.startswith(base_name)]
 
-# 生产区配置
-zone_order = ['组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区', '配置区']
-units_config = {
-    '组装区': 1,
-    '铸造区': 2,
-    '清洗区': 1,
-    '包装区': 2,
-    '焊接区': 2,
-    '喷漆区': 3,
-    '配置区': 3
-}
+    # 提取所有的编号
+    numbers = []
+    for file in files:
+        try:
+            # 假设文件名格式为 "base_name_index.pkl"
+            parts = file[len(base_name) + 1:].replace('.pkl', '')  # 取出索引部分
+            numbers.append(int(parts))
+        except ValueError:
+            continue
 
-# 创建7个子图
-fig, axs = plt.subplots(len(zone_order), 1, figsize=(16, 18), dpi=100)
-plt.subplots_adjust(hspace=0.5)
+    # 如果没有找到文件，则从 0 开始
+    next_number = max(numbers, default=-1) + 1
+    return os.path.join(directory, f'{base_name}_{next_number}.pkl')
 
-# 颜色映射
-colors = plt.cm.tab20.colors
 
-for idx, zone in enumerate(zone_order):
-    ax = axs[idx]
-    max_units = units_config[zone]
-
-    # 设置Y轴
-    ax.set_yticks(range(max_units))
-    ax.set_yticklabels([f'单元 {i}' for i in range(max_units)])
-    ax.set_ylabel(zone)
-
-    # 收集该区数据
-    zone_data = [d for d in data if d[2] == zone]
-
-    # 绘制每个单元的条形
-    for unit in range(max_units):
-        unit_tasks = [t for t in zone_data if t[3] == unit]
-
-        # 绘制每个任务段
-        for i, task in enumerate(unit_tasks):
-            start, end = task[0], task[1]
-            ax.barh(y=unit,
-                    width=end - start,
-                    left=start,
-                    height=0.6,
-                    color=colors[i % 20],
-                    edgecolor='black',
-                    alpha=0.8)
-
-    # 设置公共参数
-    ax.set_xlabel('时间')
-    ax.set_xlim(0, max([d[1] for d in data]) * 1.05)
-    ax.grid(axis='x', linestyle='--', alpha=0.7)
-    ax.set_title(f'{zone}生产单元甘特图 (共{max_units}个单元)')
-
-# 创建图例
-handles = [mpatches.Patch(color=colors[i % 20], label=f'任务{i + 1}') for i in range(20)]
-fig.legend(handles=handles, loc='upper right', bbox_to_anchor=(1.15, 0.95))
-
-plt.tight_layout()
-plt.show()
+# 示例
+directory = 'Pareto_Crowding_Distance'  # 文件夹路径
+base_name = '1'  # 基础文件名部分
+new_file_path = get_next_filename(directory, base_name)
+print(new_file_path)
+file_path = os.path.join('Pareto_Crowding_Distance', f'0_.pkl')
+print(file_path)

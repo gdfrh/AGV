@@ -6,7 +6,7 @@ import glob
 import matplotlib.pyplot as plt
 
 # 替换 'folder_name' 为你目标文件夹的路径
-file_paths = glob.glob('Scatter_plot/0.pkl')
+file_paths = glob.glob('Scatter_plot/*.pkl')
 
 # 用于存储所有的数据
 combined_data = {

@@ -12,6 +12,7 @@ class Schedule:
         self.arm = Arm(work_name, self.unit_numbers, total_machines, num_orders)  # 创建 Arm 类实例
         self.car = Car(work_name, self.unit_numbers, total_machines)  # 创建 Car 类实例
         self.orders = self.arm.orders  # 获取从 OrderManager 获取到的订单
+        self.machine_counts = []
 
     def get_max_units(self, zone_requirements, total_machines):
         # 初始化每个生产区的生产单元数和剩余机器臂
@@ -39,19 +40,18 @@ class Schedule:
 
     def arm_random(self):
         # 随机分配所有机器臂，形成一组机器臂的初始解
-
-        while len(machine_counts) < pop_size:
+        while len(self.machine_counts) < pop_size:
             """当目前的解数量小于种群代规模"""
             agv_counts = self.arm.distribute_machines_randomly()
             new_list = copy.deepcopy(self.arm.display_machine_count())
-            if new_list not in machine_counts:
+            if new_list not in self.machine_counts:
                 """添加初始分布状态"""
                 self.arm.agv_count.append(agv_counts)
                 self.arm.unit_states.append(self.unit_numbers)
                 self.arm.orders_list.append(self.orders)
-                machine_counts.append(new_list)  # 列表形式记录机器臂数量
+                self.machine_counts.append(new_list)  # 列表形式记录机器臂数量
 
     def arm_loop(self):
         """实现机器臂的 NSGA-II算法来优化机器臂数量"""
-        main_loop(pop_size, max_gen, machine_counts, self.arm)
+        main_loop(pop_size, max_gen, self.machine_counts, self.arm)
 

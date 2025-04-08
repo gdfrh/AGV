@@ -62,7 +62,7 @@ total_machines = 50  # 总机器数
 
 # 存储机器臂的分配
 machine_count_list = []  # 列表
-machine_counts = []  # 解的机器臂分配
+# machine_counts = []  # 解的机器臂分配
 energy_counts = []  # 解的能量消耗
 time_counts = []  # 解的时间消耗
 # 生产区机器臂的生产单元最低所需的数量最低要求
@@ -82,8 +82,8 @@ agv_speed = 2    # 小车速度
 
 # ------------------------
 # NSGA2参数
-pop_size = 10  # 每一代种群数量
-max_gen = 30  # 最高代数
+pop_size = 50  # 每一代种群数量
+max_gen = 100  # 最高代数
 number_limits = 0.1  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
@@ -94,6 +94,7 @@ similarity_percent = 0.1
 
 # ------------------------
 # 对比实验：
+compare_number = 7
 compare = 0
 # ALNS轮盘赌
 # operators = [随机破坏修复， 后悔修复， 贪心修复]
@@ -113,7 +114,8 @@ if compare == 6:
     operator_fitness = [1, 1, 1]
 num_obj = 2  # 优化目标数量
 divisions = 4  # 参考点分布密度
-
+# 设置运行次数
+num_runs = 3  # 你可以根据需要修改运行次数
 # 0.default
 # 1.ALNS 与 随机修改订单
 # 2.NSGA2 与 随机修改部署

@@ -199,6 +199,6 @@ TypeError: 'float' object is not subscriptable
 4.ALNS的迭代
 
 4.8
-1.帕累托解的图
-2.ALNS的迭代，似乎修改概率
-3.小车色块修改
+1.帕累托解的图(√)结果不太好
+2.ALNS的迭代，轮盘赌修改概率
+3.小车色块修改(√)

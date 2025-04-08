@@ -721,6 +721,10 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # 4. 保存文件到新文件夹
             with open(file_path, 'wb') as file:
                 pickle.dump(data, file)
+            # 记录数据来绘制帕累托拥挤距离
+            file_path = get_next_filename('Pareto_Crowding_Distance', f'{compare}')
+            with open(file_path, 'wb') as file:
+                pickle.dump(data, file)
 
             # 存储在文件中，之后一起进行绘制
             if compare == 0:
@@ -855,3 +859,20 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
     #     gen_no += 1
     #
     # return energy_pic, time_pic
+def get_next_filename(directory, base_name):
+    # 获取目录下所有的 .pkl 文件
+    files = [f for f in os.listdir(directory) if f.endswith('.pkl') and f.startswith(base_name)]
+
+    # 提取所有的编号
+    numbers = []
+    for file in files:
+        try:
+            # 假设文件名格式为 "base_name_index.pkl"
+            parts = file[len(base_name) + 1:].replace('.pkl', '')  # 取出索引部分
+            numbers.append(int(parts))
+        except ValueError:
+            continue
+
+    # 如果没有找到文件，则从 0 开始
+    next_number = max(numbers, default=-1) + 1
+    return os.path.join(directory, f'{base_name}_{next_number}.pkl')

@@ -148,7 +148,7 @@ for idx, boundary in enumerate(zone_boundaries):
 
     elif idx == len(zone_boundaries) - 1:
         middle_y = (len(results) + zone_boundaries[idx - 1]) / 2 - 0.5
-        print(middle_y)
+
     else:
         # 后续标签，放在虚线之间
         middle_y = (boundary + zone_boundaries[idx - 1]) / 2 - 0.5
@@ -242,7 +242,6 @@ for i in range(num_columns):
     # 将列表每两个值分为一组，前一个为开始时间，后一个为结束时间
     cope_with_orders = []
     cope_times = [(filtered_clean[i], filtered_clean[i + 1]) for i in range(0, len(filtered_clean), 2)]
-
 
     for x in range(len(cope_times)):
         cope_with_orders.append({
