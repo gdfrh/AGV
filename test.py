@@ -231,32 +231,35 @@
 #
 # print("生成的参考点：")
 # print(ref_points)
-import os
-
-
-def get_next_filename(directory, base_name):
-    # 获取目录下所有的 .pkl 文件
-    files = [f for f in os.listdir(directory) if f.endswith('.pkl') and f.startswith(base_name)]
-
-    # 提取所有的编号
-    numbers = []
-    for file in files:
-        try:
-            # 假设文件名格式为 "base_name_index.pkl"
-            parts = file[len(base_name) + 1:].replace('.pkl', '')  # 取出索引部分
-            numbers.append(int(parts))
-        except ValueError:
-            continue
-
-    # 如果没有找到文件，则从 0 开始
-    next_number = max(numbers, default=-1) + 1
-    return os.path.join(directory, f'{base_name}_{next_number}.pkl')
-
-
-# 示例
-directory = 'Pareto_Crowding_Distance'  # 文件夹路径
-base_name = '1'  # 基础文件名部分
-new_file_path = get_next_filename(directory, base_name)
-print(new_file_path)
-file_path = os.path.join('Pareto_Crowding_Distance', f'0_.pkl')
-print(file_path)
+# import os
+#
+#
+# def get_next_filename(directory, base_name):
+#     # 获取目录下所有的 .pkl 文件
+#     files = [f for f in os.listdir(directory) if f.endswith('.pkl') and f.startswith(base_name)]
+#
+#     # 提取所有的编号
+#     numbers = []
+#     for file in files:
+#         try:
+#             # 假设文件名格式为 "base_name_index.pkl"
+#             parts = file[len(base_name) + 1:].replace('.pkl', '')  # 取出索引部分
+#             numbers.append(int(parts))
+#         except ValueError:
+#             continue
+#
+#     # 如果没有找到文件，则从 0 开始
+#     next_number = max(numbers, default=-1) + 1
+#     return os.path.join(directory, f'{base_name}_{next_number}.pkl')
+#
+#
+# # 示例
+# directory = 'Pareto_Crowding_Distance'  # 文件夹路径
+# base_name = '1'  # 基础文件名部分
+# new_file_path = get_next_filename(directory, base_name)
+# print(new_file_path)
+# file_path = os.path.join('Pareto_Crowding_Distance', f'0_.pkl')
+# print(file_path)
+a=(1,2,3,4)
+b,c,d,e=a
+print(b,c,d,e)

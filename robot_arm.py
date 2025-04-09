@@ -37,6 +37,7 @@ class Arm:
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
         self.start_time = {}  # 用来记录生产区工作的开始时间
         self.end_time = {}  # 用来记录生产区工作的结束时间
+        self.timeline_record = {}  # 用来记录ALNS迭代中的最优值的时间节点
         self.timeline_history = []    # 存储时间轴的处理历史状态
         self.timeline_history_1 = []  # 存储时间轴的-1历史状态
         self.timeline_history_2 = []  # 存储时间轴的-2历史状态
@@ -342,11 +343,16 @@ class Arm:
 
             if all(point == float('inf') for point in time_line.timeline):
                 if type == 'picture':
-                    self.timeline_history.append(timeline_history)
-                    self.timeline_history_1.append(timeline_history_1)
-                    self.timeline_history_2.append(timeline_history_2)
-                    self.timeline_history_3.append(timeline_history_3)
-                    self.agv_timeline_history.append(agv_timeline_history)
+                    self.timeline_record['timeline_history'] = timeline_history
+                    self.timeline_record['timeline_history_1'] = timeline_history_1
+                    self.timeline_record['timeline_history_2'] = timeline_history_2
+                    self.timeline_record['timeline_history_3'] = timeline_history_3
+                    self.timeline_record['agv_timeline_history'] = agv_timeline_history
+                    # self.timeline_history.append(timeline_history)
+                    # self.timeline_history_1.append(timeline_history_1)
+                    # self.timeline_history_2.append(timeline_history_2)
+                    # self.timeline_history_3.append(timeline_history_3)
+                    # self.agv_timeline_history.append(agv_timeline_history)
                 break  # 跳出循环，停止处理，或者根据需要进行其他操作
             # 记录每一行是否已经找到了非 None 值，每一次都需要重置
             if point_type is None and idx is None:
@@ -728,9 +734,88 @@ class Arm:
         """初始化"""
         self._initialize_function(idx)
         self.padding(sequence)
-        best_order = self.apply_ALNS(idx)
-        """计算每个订单的消耗，功率应该累加，但是时间不应该"""
-        total_time_order, total_power_order = self.order_time_and_power(best_order, idx, 'picture')
+        # 模拟退火温度
+        T = 100
+        # 降温速度
+        a = 0.97
+        # operators = [随机破坏修复， 后悔修复， 贪心修复]
+        # 轮盘赌的初始权重
+        operator_weight = [1, 1, 1]
+        # 算子的使用次数
+        operator_counter = [0, 0, 0]
+        # 算子的初始得分
+        operator_score = [1, 1, 1]
+        # 算子的挥发系数
+        lambda_rate = 0.5
+        # 开始ALNS迭代
+        current_iteration = 0
+        # 生成初始解
+        first_order = copy.deepcopy(self.orders_list[idx])
+        total_time_order, total_power_order = self.order_time_and_power(first_order, idx, 'picture')
+        # 记录绘制甘特图的信息
+        timeline_record = copy.deepcopy(self.timeline_record)
+        # 同时清除原self.timeline_record的值
+        self.timeline_record = {}
+        # 将初始解设置为历史最优解和当前解
+        best_value = (total_time_order, total_power_order, first_order, timeline_record)
+        current_value = (total_time_order, total_power_order, first_order, timeline_record)
+        while current_iteration < iteration:
+            # 使用当前订单作为原始订单
+            order = copy.deepcopy(current_value[2])
+            new_order, operator_idx = self.apply_ALNS(idx, order, operator_weight, operator_counter)
+            """计算每个订单的消耗，功率应该累加，但是时间不应该"""
+            total_time_order, total_power_order = self.order_time_and_power(new_order, idx, 'picture')
+            # 记录绘制甘特图的信息
+            timeline_record = copy.deepcopy(self.timeline_record)
+            # 同时清除原self.timeline_record的值
+            self.timeline_record = {}
+
+            if total_time_order >= current_value[0] and total_power_order >= current_value[1]:
+                # 如果新的解好于原来的解，就更新解
+                current_value = (total_time_order, total_power_order, new_order, timeline_record)
+                if total_time_order >= best_value[0] and total_power_order >= best_value[1]:
+                    # 测试解为历史最优解，更新历史最优解，并设置最高的算子得分
+                    best_value = (total_time_order, total_power_order, new_order, timeline_record)
+                    operator_score[operator_idx] = 2.0
+                else:
+                    # 测试解不是历史最优解，但优于当前解，设置第二高的算子得分
+                    operator_score[operator_idx] = 1.5
+
+            elif (total_time_order <= current_value[0] and total_power_order < current_value[1]) or (total_time_order < current_value[0] and total_power_order <= current_value[1]):
+                # 测试解被当前解支配，概率接受测试解
+                # 计算delta
+                delta = ((total_time_order - current_value[0]) + (total_power_order - current_value[1])) / 2
+                prob = math.exp(delta / T)
+                if random.random() < prob:
+                    # 当前解优于测试解，但满足模拟退火逻辑，依然更新当前解，设置第三高的算子得分
+                    current_value = (total_time_order, total_power_order, new_order, timeline_record)
+                    operator_score[operator_idx] = 0.8
+                else:
+                    # 当前解优于测试解，也不满足模拟退火逻辑，不更新当前解，设置最低的算子得分
+                    operator_score[operator_idx] = 0.5
+            else:
+                # 测试解和当前解互不支配,接受当前解
+                current_value = (total_time_order, total_power_order, new_order, timeline_record)
+                if total_time_order < best_value[0] and total_power_order < best_value[1]:
+                    # 如果测试解不如最优解
+                    operator_score[operator_idx] = 1.2
+                else:
+                    # 测试解与最优解不互相支配，接受最优解
+                    best_value = (total_time_order, total_power_order, new_order, timeline_record)
+                    operator_score[operator_idx] = 1.8
+            # 更新算子的权重
+            operator_weight[operator_idx] = operator_weight[operator_idx] * lambda_rate + \
+                (1 - lambda_rate) * operator_weight[operator_idx] / operator_score[operator_idx]
+            # 降低温度
+            T *= a
+            current_iteration += 1
+
+        total_time_order, total_power_order, best_order, timeline_record = best_value
+        self.timeline_history.append(timeline_record['timeline_history'])
+        self.timeline_history_1.append(timeline_record['timeline_history_1'])
+        self.timeline_history_2.append(timeline_record['timeline_history_2'])
+        self.timeline_history_3.append(timeline_record['timeline_history_3'])
+        self.agv_timeline_history.append(timeline_record['agv_timeline_history'])
 
         return total_power_order, total_time_order, best_order
 
@@ -798,41 +883,39 @@ class Arm:
                 current_index += 1
         return None, None  # 如果没有找到，返回None
 
-    def apply_ALNS(self, idx):
+    def apply_ALNS(self, idx, orders, operator_weight, operator_counter):
         """
         使用ALNS算法优化订单顺序
         """
-        # # best_order = copy.deepcopy(self.orders)  # 初始订单
-        # best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
+        now_order = copy.deepcopy(orders)
         operators = [self.apply_random, self.apply_regret_repair, self.greedy_repair]
-        # 使用轮盘赌选择算子
-        selected_operator = roulette_wheel_selection(operators, operator_fitness)
+        # 使用轮盘赌选择算子的索引
+        selected_operator, operator_idx = roulette_wheel_selection(operators, operator_weight)
         # 根据选择的算子进行操作
-        best_order = selected_operator(idx)
-        # for _ in range(iterations):
-        #     best_order = self.apply_regret_repair(idx)
-        return best_order
+        new_order = selected_operator(idx, now_order)
+        operator_counter[operator_idx] += 1
+        return new_order, operator_idx
 
-    def apply_random(self, idx):
-        orders = copy.deepcopy(self.orders_list[idx])  # 初始订单
-        random.shuffle(orders)
-        return orders
+    def apply_random(self, idx, now_order):
+        new_order = copy.deepcopy(now_order)
+        random.shuffle(new_order)
+        return new_order
 
-    def apply_regret_repair(self, idx):
-        best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
+    def apply_regret_repair(self, idx, now_order):
+        # best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
         regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
-        similarity = self.calculate_similarity(best_order, idx)  # 存储订单相似值的列表
-        num_destruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
+        similarity = self.calculate_similarity(now_order, idx)  # 存储订单相似值的列表
+        num_destruction = int(len(now_order) * similarity_percent)  # 需要破坏的订单个数
         # 找到最大的部分元素
         max_values = heapq.nlargest(num_destruction, similarity)
 
         # 找到这些最大值的索引
         indices = [i for i, value in enumerate(similarity) if value in max_values]
         for index in indices:
-            regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
+            regret_matching_operator.append(now_order[index])  # 将最大值对应的订单添加到新列表
 
         """这里准备进行后悔修复，先在原先订单中删除待破坏的订单"""
-        new_order = best_order  # 列表存储着订单，之后进行删除指标较高的订单
+        new_order = copy.deepcopy(now_order)  # 列表存储着订单，之后进行删除指标较高的订单
         for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
             del new_order[index]
 
@@ -892,30 +975,27 @@ class Arm:
             new_order.insert(next_insert_position, next_insert_order)
             del regret_matching_operator[found_key]
 
-            """将插入好的列表返回为最好列表，进行迭代"""
-            best_order = new_order
+        return new_order
 
-        return best_order
-
-    def greedy_repair(self, idx):
+    def greedy_repair(self, idx, now_order):
         """
         使用ALNS算法优化订单顺序
         """
         """初始化最佳时间和能耗"""
-        best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
+        # best_order = copy.deepcopy(self.orders_list[idx])  # 初始订单
         regret_matching_operator = []  # 要使用后悔修复算子的元素组成的列表
-        similarity = self.calculate_similarity(best_order, idx)  # 存储订单相似值的列表
-        num_destruction = int(len(best_order) * similarity_percent)  # 需要破坏的订单个数
+        similarity = self.calculate_similarity(now_order, idx)  # 存储订单相似值的列表
+        num_destruction = int(len(now_order) * similarity_percent)  # 需要破坏的订单个数
         # 找到最大的部分元素
         max_values = heapq.nlargest(num_destruction, similarity)
 
         # 找到这些最大值的索引
         indices = [i for i, value in enumerate(similarity) if value in max_values]
         for index in indices:
-            regret_matching_operator.append(best_order[index])  # 将最大值对应的订单添加到新列表
+            regret_matching_operator.append(now_order[index])  # 将最大值对应的订单添加到新列表
 
         """这里准备进行后悔修复，先在原先订单中删除待破坏的订单"""
-        new_order = best_order  # 列表存储着订单，之后进行删除指标较高的订单
+        new_order = copy.deepcopy(now_order)  # 列表存储着订单，之后进行删除指标较高的订单
         for index in sorted(indices, reverse=True):  # reverse=True 确保从后往前删除
             del new_order[index]
 
@@ -965,17 +1045,14 @@ class Arm:
             new_order.insert(next_insert_position[0][1], next_insert_order)
             del regret_matching_operator[min_index]
 
-        """将插入好的列表返回为最好列表，进行迭代"""
-        best_order = new_order
+        return new_order
 
-        return best_order
-
-def roulette_wheel_selection(operators, operator_fitness):
-    # 计算适应度总和
-    total_fitness = sum(operator_fitness)
+def roulette_wheel_selection(operators, operator_weight):
+    # 计算权重总和
+    total_weight = sum(operator_weight)
 
     # 计算每个个体的选择概率
-    probabilities = [fitness / total_fitness for fitness in operator_fitness]
+    probabilities = [weight / total_weight for weight in operator_weight]
 
     # 计算累积概率
     cumulative_probabilities = []
@@ -990,4 +1067,4 @@ def roulette_wheel_selection(operators, operator_fitness):
     # 根据累积概率选择算子
     for i, cum_prob in enumerate(cumulative_probabilities):
         if r <= cum_prob:
-            return operators[i]
+            return operators[i], i

@@ -451,7 +451,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
     population_P = init_population.copy()
     loop_start_time = time.time()
 
-    while gen_no <= max_gen:
+    while gen_no < max_gen:
         population_R = population_P.copy()
         # 根据P(t)生成Q(t),R(t)=P(t)vQ(t)
         # 计算每个解的目标函数值
@@ -654,7 +654,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             cope_time = time.time() - loop_start_time
             print(f"Generation {gen_no}, time:{cope_time}")
 
-        if gen_no == max_gen:
+        if gen_no == max_gen - 1:
             # 从历史最优解中取得全局最优解
             fronts = fast_non_dominated_sort(best_solution_1, best_solution_2)
 

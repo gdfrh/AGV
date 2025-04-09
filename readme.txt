@@ -202,3 +202,27 @@ TypeError: 'float' object is not subscriptable
 1.帕累托解的图(√)结果不太好
 2.ALNS的迭代，轮盘赌修改概率
 3.小车色块修改(√)
+
+4.9
+1.ALNS的迭代，轮盘赌修改概率(√)
+2.use_list设计不太合理(但也无大碍)
+def select_front(fronts):
+    # 选择使用的前沿
+    not_front_1 = []  # 非第一前沿的解的索引
+    for level in range(1, len(fronts)):  # 从第二前沿开始
+        for s in fronts[level]:
+            not_front_1.append(s)
+    front_1 = []  # 第一前沿的解的索引
+    for s in fronts[0]:  # 从第一前沿开始
+        front_1.append(s)
+    if not not_front_1:
+        """not_front_1为空，则使用第一前沿解"""
+        use_list = front_1
+    elif len(not_front_1) >= number_limits * pop_size:
+        """not_front_1数量不少于x倍总种群，则使用它"""
+        use_list = not_front_1
+    else:
+        """如果not_front_1数量太少,则全局使用"""
+        use_list = front_1 + not_front_1
+    return use_list
+3.似乎又出现了死锁情况
