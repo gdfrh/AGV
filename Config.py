@@ -77,23 +77,23 @@ zone_requirements = [
 ]
 # ------------------------
 # 小车配置
-total_agv = 15  # 总车辆数
+total_agv = 10  # 总车辆数
 agv_speed = 2    # 小车速度
 
 # ------------------------
 # NSGA-II 参数
 pop_size = 10  # 每一代种群数量
-max_gen = 30  # 最高代数
+max_gen = 50  # 最高代数
 number_limits = 0.5  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
 # 订单数
-num_orders = 3
+num_orders = 10
 # 订单相似破坏率
 similarity_percent = 0.1
 # ------------------------
 # ALNS 迭代次数
-iteration = 50
+iteration = 30
 # ------------------------
 # 对比实验：
 compare_number = 7
@@ -102,7 +102,7 @@ compare = 0
 num_obj = 2  # 优化目标数量
 divisions = 4  # 参考点分布密度
 # 设置运行次数
-num_runs = 3  # 你可以根据需要修改运行次数
+num_runs = 1  # 你可以根据需要修改运行次数
 # ALNS轮盘赌,初始都用[1,1,1]，对于4,5暂不清楚
 
 # operators = [随机破坏修复， 后悔修复， 贪心修复]

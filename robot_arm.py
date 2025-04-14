@@ -760,6 +760,8 @@ class Arm:
         best_value = (total_time_order, total_power_order, first_order, timeline_record)
         current_value = (total_time_order, total_power_order, first_order, timeline_record)
         while current_iteration < iteration:
+            self._initialize_function(idx)
+            self.padding(sequence)
             # 使用当前订单作为原始订单
             order = copy.deepcopy(current_value[2])
             new_order, operator_idx = self.apply_ALNS(idx, order, operator_weight, operator_counter)
@@ -1046,6 +1048,7 @@ class Arm:
             del regret_matching_operator[min_index]
 
         return new_order
+
 
 def roulette_wheel_selection(operators, operator_weight):
     # 计算权重总和
