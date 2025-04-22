@@ -18,20 +18,20 @@ class Arm:
         self.unit_states = []  # 后续每个序列的生产单元个数
         self.total_machines = total_machines  # 总机器数量
         self.machines_count = {}  # 创建字典来存储每个生产单元的机器数
-        self.order_manager = OrderManager(work_name, num_orders)
-        self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
-#         self.orders = [
-#     ['组装区', '铸造区', '清洗区', '焊接区', '包装区', '喷漆区', '配置区'],
-#     ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-#     ['组装区', '铸造区', '喷漆区', '焊接区', '配置区'],
-#     ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-#     ['组装区', '铸造区', '配置区'],
-#     ['组装区', '铸造区', '焊接区', '包装区', '喷漆区', '清洗区', '配置区'],
-#     ['组装区', '铸造区', '焊接区', '喷漆区', '配置区'],
-#     ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-#     ['组装区', '铸造区', '配置区'],
-#     ['组装区', '铸造区', '清洗区', '配置区']
-# ]
+        # self.order_manager = OrderManager(work_name, num_orders)
+        # self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
+        self.orders = [
+    ['组装区', '铸造区', '清洗区', '焊接区', '包装区', '喷漆区', '配置区'],
+    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '配置区'],
+    ['组装区', '铸造区', '焊接区', '包装区', '喷漆区', '清洗区', '配置区'],
+    ['组装区', '铸造区', '焊接区', '喷漆区', '配置区'],
+    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
+    ['组装区', '铸造区', '配置区'],
+    ['组装区', '铸造区', '清洗区', '配置区']
+]
         self.orders_list = []   # 用来记录每一个解的订单顺序排列
         """用False表示空闲，True表示忙碌"""
         self.work_status = {}  # 用来判断生产区的生产单元是否在工作
@@ -43,6 +43,9 @@ class Arm:
         self.timeline_history_2 = []  # 存储时间轴的-2历史状态
         self.timeline_history_3 = []  # 存储时间轴的-3历史状态
         self.agv_timeline_history = []  # 存储小车时间轴的历史状态
+        self.iteration_value = []   # 记录迭代效果
+        self.weight = []  # 记录权重
+        self.SA_temperature = [init_temperature] * (2 * pop_size + 1)  # 记录模拟退火温度
         # ------------------------
         """小车"""
         self.agv_count = []  # 创建列表来存储每个生产区的小车数
@@ -151,54 +154,14 @@ class Arm:
         machine_count_list_renew = merged_number
         return machine_count_list_renew
 
-    def calculate_reduction(self, initial_time, initial_power, zone_name, machine_count):
-        """
-        根据机器臂数量来改变消耗
-        参数:
-        initial_time (float): 初始运行时间
-        initial_power (float):初始运行功率
-        zone (str): 生产区名称
-        machine_count (int): 当前该生产单元的机器数量
+    def calculate_reduction(self, zone_name, machine_count):
+        # 求解矩阵行列
+        row_idx = work_name.index(zone_name)
+        col_idx = machine_count - 1
+        cope_time = processing_time_matrix[row_idx][col_idx]
+        cope_energy = energy_consumption_matrix[row_idx][col_idx]
 
-        返回:
-        float: 调整后的运行时间
-        """
-
-        reduction_factor_time = 0  # 初始化
-        reduction_factor_power = 0
-        temp_idx = 0
-        for zone in self.work_name:
-
-            if zone == zone_name:
-                reduction_factor_time = reduction_factor_time_list[temp_idx]
-                reduction_factor_power = reduction_factor_power_list[temp_idx]
-                break
-            temp_idx += 1
-
-        return initial_time * ((1 - reduction_factor_time) ** machine_count) \
-            , initial_power * ((1 - reduction_factor_power) ** machine_count)
-
-    def calculate_task_energy(self, run_time, run_power, sleep_time, sleep_power):
-        """
-        计算单个任务的能量消耗
-
-        参数:
-        run_time (float): 执行工艺任务的运行时间 (秒)
-        run_power (float): 执行工艺任务的运行功率 (瓦特)
-        sleep_time (float): 休眠时间 (秒)
-        sleep_power (float): 休眠功率 (瓦特)
-        machine_count (int): 该生产单元的机器数量
-
-        返回:
-        float: 该任务的总能量消耗 (焦耳, J)
-        """
-        # 单个任务的能量消耗
-        task_energy = (run_time * run_power) + (sleep_time * sleep_power)
-        return task_energy
-
-    def calculate_processing_time(self):
-        """计算生产区的处理时间"""
-        return processing_time
+        return cope_time, cope_energy
 
     def calculate_transport_time(self, start_zone, end_zone, distance_matrix, work_name_order, speed):
         """由于传递过来的订单是汉字，我们反映射为数字"""
@@ -348,11 +311,7 @@ class Arm:
                     self.timeline_record['timeline_history_2'] = timeline_history_2
                     self.timeline_record['timeline_history_3'] = timeline_history_3
                     self.timeline_record['agv_timeline_history'] = agv_timeline_history
-                    # self.timeline_history.append(timeline_history)
-                    # self.timeline_history_1.append(timeline_history_1)
-                    # self.timeline_history_2.append(timeline_history_2)
-                    # self.timeline_history_3.append(timeline_history_3)
-                    # self.agv_timeline_history.append(agv_timeline_history)
+
                 break  # 跳出循环，停止处理，或者根据需要进行其他操作
             # 记录每一行是否已经找到了非 None 值，每一次都需要重置
             if point_type is None and idx is None:
@@ -495,14 +454,9 @@ class Arm:
                                 # 所找到的生产区变为None
                                 order_matrix[row, col] = None
                                 max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 暂时选择机器臂最多的单元
-
-                                order_time_renew, order_total_power_renew = self.calculate_reduction(
-                                    processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
-                                order_power += self.calculate_task_energy(order_time_renew, order_total_power_renew,
-                                                                          processing_time['sleep_time'],
-                                                                          processing_time['sleep_power']) * max_machines
+                                order_time, order_total_power = self.calculate_reduction(start_zone, max_machines)
+                                order_power = order_total_power * order_time * random.uniform(0.99, 1.01)
                                 # 记录使用时间和功率
-                                order_time = order_time_renew + processing_time['sleep_time']
                                 use_power += order_power
                                 time_line.add_timeline((order_time + time_line.current_time), row,
                                                        max_unit_index)  # 添加订单时间节点，可以知道对应的订单
@@ -572,17 +526,10 @@ class Arm:
                                                 order_matrix[rows, cols] = None
                                                 max_unit_index, max_machines = self.find_false_max_machines(
                                                     start_zone)  # 暂时选择机器臂最多的单元
-
-                                                order_time_renew, order_total_power_renew = self.calculate_reduction(
-                                                    processing_time['run_time'], processing_time['run_power'],
-                                                    start_zone, max_machines)
-                                                order_power += self.calculate_task_energy(order_time_renew,
-                                                                                          order_total_power_renew,
-                                                                                          processing_time['sleep_time'],
-                                                                                          processing_time[
-                                                                                              'sleep_power']) * max_machines
+                                                order_time, order_total_power = self.calculate_reduction(start_zone, max_machines)
+                                                # 生成一个0.99到1.01之间的随机浮动值
+                                                order_power = order_total_power * order_time * random.uniform(0.99, 1.01)
                                                 # 记录使用时间和功率
-                                                order_time = order_time_renew + processing_time['sleep_time']
                                                 use_power += order_power
                                                 time_line.add_timeline((order_time + time_line.current_time), rows,
                                                                        max_unit_index)  # 添加订单时间节点，可以知道对应的订单
@@ -593,9 +540,7 @@ class Arm:
                                                 timeline_history.append((start_zone,max_unit_index))
                                                 timeline_history.append(timeline_two[:])
                                                 timeline_history_3.append(timeline_one[:])
-                                # timeline_history.append(timeline_one[:])  # 结束-3
-                                # timeline_history.append(timeline_one[:])  # 开始处理
-                                # timeline_history.append(timeline_two[:])  # 结束处理
+
             agv_timeline_history.append(agv_timeline_one[:])
             agv_timeline_history.append(agv_order[:])
             agv_timeline_history.append(agv_timeline_two[:])
@@ -603,97 +548,11 @@ class Arm:
             #     timeline_history_3.append([-3] * num_rows)
             #     timeline_history_3.append([0] * num_rows)
             #     timeline_history_3.append(time_line.timeline[:])
-            # if point_type == 'order':
-            #     if not all(x == 0 for x in timeline_one[:]):
-            #         # -3占据生产单元,处理画图-3结束,处理生产单元开始
-            #         # timeline_history.append(timeline_one[:])  # -3结束
-            #         timeline_history.append(timeline_one[:])  # 处理开始
-            #         timeline_history.append(timeline_two[:])  # 处理结束
-            # if point_type == 'agv':
-            #     # -3占据生产单元,处理画图-3结束,处理生产单元开始
-            #     if not all(x == 0 for x in timeline_one[:]):
-            #         # timeline_history.append(timeline_one[:])  # -3结束
-            #         timeline_history.append(timeline_one[:])  # 处理开始
-            #         timeline_history.append(timeline_two[:])  # 处理结束
-            #     if not all(x == 0 for x in timeline_three[:]):
-            #         # timeline_history.append(timeline_three[:])  # -2结束
-            #         timeline_history.append(timeline_three[:])  # 处理开始
-            #         timeline_history.append(timeline_four[:])  # 处理结束
-                            # # 如果不存在空闲生产单元，但是小车运输订单到达了目的地，此时订单变为None，表示现在处于空闲状态，小车变为inf
-                            # elif False not in self.work_status[start_zone] and (time_line.current_time == time_line.agv_timeline[][0]) and (time_line.agv_timeline[][2] == 1):
-                            #     time_line.timeline[row] = None  # 赋值None表示空闲
-                            #     time_line.agv_timeline[][0] = float('inf')
-                            #
-                            # # 小车返回了出发地，此时为小车返回断点，并将车轴变为None表示空闲（感觉应该写在上面）
-                            # elif (time_line.current_time == time_line.agv_timeline[][0]) and (time_line.agv_timeline[][2] == -1):
-                            #
-                            # if False in self.agv_states[start_zone] and (time_line.current_time == time_line.timeline[row] or time_line.timeline[row] is None):
-                            #     # 存在空闲小车,此时刚好到达小车断点，或者小车处于空闲None
-            # timeline_history.append(time_line.timeline[:])
-            # agv_timeline_history.append(time_line.agv_timeline[:])
+
             point_type, idx = time_line.get_next_point()
             # 我需要在这里求两个时间轴里面的最小时间节点（特殊情况：分别有一个时间节点在两个列表相同）
         order_time = max(use_time)
         return order_time, use_power
-        # for i in range(len(order)):
-        #     start_zone = order[i]
-        #     min_unit_index, min_wait_time = 0, 0
-        #     min_unit_index_agv, min_wait_time_agv = 0, 0
-        #
-        #     if False not in self.work_status[start_zone]:  # 生产单元全部忙碌
-        #         """需要获得等待时间再加上工作时间"""
-        #         min_unit_index, min_wait_time = self.find_min_wait_time(start_zone, 'unit')
-        #         self.work_status[start_zone][min_unit_index] = False
-        #
-        #     if False in self.work_status[start_zone]:
-        #         """如果该生产区存在空闲单元,暂时寻找最大机器臂数量的生产单元"""
-        #         """"""
-        #         """"""
-        #         """这里要改成找到加权之后的最低的生产单元"""
-        #         max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
-        #         self.work_status[start_zone][max_unit_index] = True  # 占据了这个生产单元
-        #         self.start_time[start_zone][max_unit_index] = time.time()  # 将开始时间记录下来
-        #         # print(self.work_status)
-        #         order_total_time_renew, order_total_power_renew = self.calculate_reduction(processing_time['run_time'], processing_time['run_power'], start_zone, max_machines)
-        #         order_total_time += order_total_time_renew + processing_time['sleep_time']
-        #         order_total_power += self.calculate_task_energy(order_total_time_renew, order_total_power_renew, processing_time['sleep_time'], processing_time['sleep_power']) * max_machines
-        #         # 记录任务结束时间
-        #         self.end_time[start_zone][max_unit_index] = self.start_time[start_zone][max_unit_index] + order_total_time_renew + processing_time['sleep_time']
-        #         # 2. 计算运输时间
-        #         if False not in self.agv_states[start_zone]:  # 该生产区的小车全部忙碌
-        #             """如果该生产区不存在空闲小车"""
-        #             min_unit_index_agv, min_wait_time_agv = self.find_min_wait_time(start_zone, 'agv')
-        #             self.agv_states[start_zone][min_unit_index] = False
-        #
-        #         if False in self.work_status[start_zone]:
-        #             """如果该生产区存在空闲小车"""
-        #             agv_index = self.find_random_idle_agv(start_zone)  # 返回空闲生产单元机器臂最大值索引和数量
-        #             self.agv_states[start_zone][agv_index[0]] = True  # 占据了这个生产单元
-        #             self.agv_start_time[start_zone][agv_index[0]] = time.time()  # 将开始时间记录下来
-        #             transport_time = 0
-        #             if i < len(order) - 1:
-        #                 end_zone = order[i + 1]
-        #                 transport_time = self.calculate_transport_time(start_zone, end_zone, distance_matrix, work_name_order, agv_speed)
-        #                 order_total_time += transport_time  # 加上运输时间
-        #                 """离开车间"""
-        #             if i == len(order) - 1:
-        #                 # Step 1: 创建一个反向字典，将生产区汉字名称映射到数字索引
-        #                 zone_to_index = {name: index for index, name in work_name_order.items()}
-        #                 # Step 2: 使用反向字典，将汉字生产区转换为数字索引
-        #                 start_index = zone_to_index[start_zone]
-        #                 # Step 3: 使用转换后的数字索引从距离矩阵中获取距离
-        #                 distance = distance_matrix[start_index][-1]
-        #                 # Step 4: 计算运输时间（假设速度是已知的，单位为距离/时间）
-        #                 transport_time = distance / agv_speed  # 时间 = 距离 / 速度
-        #                 order_total_time += transport_time  # 加上运输时间
-        #
-        #             self.agv_end_time[start_zone][agv_index[0]] = self.agv_start_time[start_zone][agv_index[0]] + transport_time * 2
-        #
-        #         # 3. 工作区生产单元等待时间
-        #         order_total_time += min_wait_time
-        #
-        #         # 4. 工作区小车等待时间
-        #         order_total_time += min_wait_time_agv
 
     def _initialize_function(self, idx):
         for zone, unit_count in zip(self.work_name, self.unit_states[idx]):
@@ -734,17 +593,29 @@ class Arm:
         """初始化"""
         self._initialize_function(idx)
         self.padding(sequence)
+        time_record = []
+        energy_record = []
+        weight_record = []
         # 模拟退火温度
-        T = 100
+        T = copy.deepcopy(self.SA_temperature[idx])
         # 降温速度
-        a = 0.97
+        a = 0.95
         # operators = [随机破坏修复， 后悔修复， 贪心修复]
-        # 轮盘赌的初始权重
-        operator_weight = [1, 1, 1]
-        # 算子的使用次数
-        operator_counter = [0, 0, 0]
-        # 算子的初始得分
-        operator_score = [1, 1, 1]
+        if compare == 4 or compare == 5:
+            # 轮盘赌的初始权重
+            operator_weight = [1, 1]
+            # 算子的使用次数
+            operator_counter = [0, 0]
+            # 算子的初始得分
+            operator_score = [1, 1]
+
+        else:
+            # 轮盘赌的初始权重
+            operator_weight = [1, 1, 1]
+            # 算子的使用次数
+            operator_counter = [0, 0, 0]
+            # 算子的初始得分
+            operator_score = [1, 1, 1]
         # 算子的挥发系数
         lambda_rate = 0.5
         # 开始ALNS迭代
@@ -758,8 +629,14 @@ class Arm:
         self.timeline_record = {}
         # 将初始解设置为历史最优解和当前解
         best_value = (total_time_order, total_power_order, first_order, timeline_record)
+        worst_value = (total_time_order, total_power_order)
         current_value = (total_time_order, total_power_order, first_order, timeline_record)
+        time_record.append(best_value[0])
+        energy_record.append(best_value[1])
+        weight_record.append(operator_weight)
         while current_iteration < iteration:
+            # if current_iteration % 10 == 0:
+            #     print(current_iteration)
             self._initialize_function(idx)
             self.padding(sequence)
             # 使用当前订单作为原始订单
@@ -771,53 +648,76 @@ class Arm:
             timeline_record = copy.deepcopy(self.timeline_record)
             # 同时清除原self.timeline_record的值
             self.timeline_record = {}
-
-            if total_time_order >= current_value[0] and total_power_order >= current_value[1]:
+            if total_time_order >= worst_value[0] and total_time_order >= worst_value[1]:
+                # 如果解比最差解差，修改最差解
+                worst_value = (total_time_order, total_power_order)
+            if total_time_order <= current_value[0] and total_power_order <= current_value[1]:
                 # 如果新的解好于原来的解，就更新解
                 current_value = (total_time_order, total_power_order, new_order, timeline_record)
-                if total_time_order >= best_value[0] and total_power_order >= best_value[1]:
+                if total_time_order <= best_value[0] and total_power_order <= best_value[1]:
                     # 测试解为历史最优解，更新历史最优解，并设置最高的算子得分
                     best_value = (total_time_order, total_power_order, new_order, timeline_record)
                     operator_score[operator_idx] = 2.0
-                else:
-                    # 测试解不是历史最优解，但优于当前解，设置第二高的算子得分
+                elif total_time_order >=best_value[1] and total_power_order >=best_value[0]:
+                    # 测试解不是历史最优解，但优于当前解，设置第三高的算子得分
                     operator_score[operator_idx] = 1.5
+                else:
+                    # 测试解与历史最优解相互支配，设置第二高的算子得分
+                    best_value = (total_time_order, total_power_order, new_order, timeline_record)
+                    operator_score[operator_idx] = 1.8
 
-            elif (total_time_order <= current_value[0] and total_power_order < current_value[1]) or (total_time_order < current_value[0] and total_power_order <= current_value[1]):
+            elif (total_time_order >= current_value[0] and total_power_order >= current_value[1]):
                 # 测试解被当前解支配，概率接受测试解
                 # 计算delta
-                delta = ((total_time_order - current_value[0]) + (total_power_order - current_value[1])) / 2
+                # 归一化改进量（避免除零）
+                time_range = max(worst_value[0] - best_value[0], 1e-6)
+                energy_range = max(worst_value[1] - best_value[1], 1e-6)
+                delta = - ((total_time_order - current_value[0]) / time_range + (total_power_order - current_value[1]) / energy_range) / 2
                 prob = math.exp(delta / T)
+                print(prob)
                 if random.random() < prob:
-                    # 当前解优于测试解，但满足模拟退火逻辑，依然更新当前解，设置第三高的算子得分
+                    # 当前解优于测试解，但满足模拟退火逻辑，依然更新当前解，设置较低的算子得分
                     current_value = (total_time_order, total_power_order, new_order, timeline_record)
                     operator_score[operator_idx] = 0.8
                 else:
                     # 当前解优于测试解，也不满足模拟退火逻辑，不更新当前解，设置最低的算子得分
                     operator_score[operator_idx] = 0.5
             else:
-                # 测试解和当前解互不支配,接受当前解
+                # 测试解和当前解互相支配,接受当前解
                 current_value = (total_time_order, total_power_order, new_order, timeline_record)
-                if total_time_order < best_value[0] and total_power_order < best_value[1]:
+                if total_time_order > best_value[0] and total_power_order > best_value[1]:
                     # 如果测试解不如最优解
                     operator_score[operator_idx] = 1.2
                 else:
-                    # 测试解与最优解不互相支配，接受最优解
+                    # 测试解与最优解互相支配，接受最优解(与当前解相互支配不可能好于最优解)
                     best_value = (total_time_order, total_power_order, new_order, timeline_record)
                     operator_score[operator_idx] = 1.8
             # 更新算子的权重
             operator_weight[operator_idx] = operator_weight[operator_idx] * lambda_rate + \
                 (1 - lambda_rate) * operator_weight[operator_idx] / operator_score[operator_idx]
+            # 记录更新过程
+            time_record.append(best_value[0])
+            energy_record.append(best_value[1])
+            weight_record.append(operator_weight)
             # 降低温度
             T *= a
             current_iteration += 1
-
         total_time_order, total_power_order, best_order, timeline_record = best_value
         self.timeline_history.append(timeline_record['timeline_history'])
         self.timeline_history_1.append(timeline_record['timeline_history_1'])
         self.timeline_history_2.append(timeline_record['timeline_history_2'])
         self.timeline_history_3.append(timeline_record['timeline_history_3'])
         self.agv_timeline_history.append(timeline_record['agv_timeline_history'])
+        value_length = len(self.iteration_value)
+        if value_length - 1 < idx:
+            self.iteration_value.append((time_record, energy_record))
+            self.weight.append(weight_record)
+        else:
+            self.iteration_value[idx][0].extend(time_record)
+            self.iteration_value[idx][1].extend(energy_record)
+            self.weight[idx].extend(weight_record)
+
+        self.SA_temperature[idx] = T
 
         return total_power_order, total_time_order, best_order
 
@@ -832,12 +732,6 @@ class Arm:
             for j in range(i + 1, len(orders)):  # 只比较后续的订单，避免重复比较
                 obj_order = orders[i]  # 查找这个列表中的元素是否在其他列表中
                 search_order = orders[j]  # 被查找的其他元素
-                # # 在这里进行比较操作
-                # if obj_order == search_order:  # 如果订单完全相同，相似值设为最大
-                #     """越近越相似"""
-                #     similarity_matrix[i, j] = 10000 / (j - i)
-                #     similarity_matrix[j, i] = 10000 / (j - i)
-                # else:
                 similarity = 0  # 临时相似值
                 for index, element in enumerate(obj_order):
                     if element in search_order:  # 检查该元素是否在 search_order 中
@@ -890,7 +784,12 @@ class Arm:
         使用ALNS算法优化订单顺序
         """
         now_order = copy.deepcopy(orders)
-        operators = [self.apply_random, self.apply_regret_repair, self.greedy_repair]
+        if compare == 4:
+            operators = [self.apply_random, self.greedy_repair]
+        elif compare == 5:
+            operators = [self.apply_random, self.apply_regret_repair]
+        else:
+            operators = [self.apply_random, self.apply_regret_repair, self.greedy_repair]
         # 使用轮盘赌选择算子的索引
         selected_operator, operator_idx = roulette_wheel_selection(operators, operator_weight)
         # 根据选择的算子进行操作
@@ -1017,8 +916,6 @@ class Arm:
                                 + list(perm) + [regret_matching_operator[idx][-1]] for perm in permutations]
                 # 存储排列,现在所有的排列情况都存在了字典中
                 permutations_dict[idx] = permutations
-            # """定义一个矩阵来存储所有的相似性值"""
-            # matrix = np.zeros((total_permutations, len(new_order) + 1))
             # 遍历字典，并对每个排列列表进行操作
             total_min_value = []  # 用来存储每个排列的最小适应值，方便后续比较
             total_min_value_index = []  # 用来存储每个排列的最小适应值的索引，方便后续比较
@@ -1048,7 +945,6 @@ class Arm:
             del regret_matching_operator[min_index]
 
         return new_order
-
 
 def roulette_wheel_selection(operators, operator_weight):
     # 计算权重总和

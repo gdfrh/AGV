@@ -226,3 +226,12 @@ def select_front(fronts):
         use_list = front_1 + not_front_1
     return use_list
 3.似乎又出现了死锁情况
+
+4.21
+需要的结果：
+1.front层级图
+2.ALNS算子对比优化图（是否可以将权重大小拉出来做箱型图）
+3.ALNS算子十次结果最优解、平均解表格
+4.算法对比图
+5.ALNS仿真迭代优化图
+6.仿真甘特图

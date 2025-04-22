@@ -1,58 +1,62 @@
+import glob
 import pickle
 import pandas as pd
-import glob
 import numpy as np
 import os
 
 
-# 处理文件夹路径数据的函数
 def process_folder_data(folder_path, output_excel_name, target_folder):
     # 获取文件夹中的所有.pkl文件
-    file_paths = glob.glob(f'{folder_path}/*.pkl')
+    file_paths = glob.glob(os.path.join(folder_path, '*.pkl'))
 
-    energy_table = []
-    time_table = []
+    all_files_data = []  # 存储所有文件统计结果
 
     # 遍历所有文件
-    for idx, file_path in enumerate(file_paths):
+    for file_path in file_paths:
         with open(file_path, 'rb') as file:
             loaded_data = pickle.load(file)
-            # 获取文件中的数据
+
+            # 提取数据
             energy = loaded_data['energy']
-            for i in range(len(energy)):
-                energy_table.append(energy[i])
             time = loaded_data['time']
-            for i in range(len(time)):
-                time_table.append(time[i])
 
-    # 计算 energy 和 time 的统计量
-    energy_mean = np.mean(energy_table)
-    energy_min = np.min(energy_table)
-    energy_var = np.var(energy_table)
+            # 计算统计量
+            file_stats = {
+                'Filename': os.path.basename(file_path),  # 记录文件名
+                'Energy_Mean': np.mean(energy),
+                'Energy_Best': np.min(energy),
+                'Energy_Variance': np.var(energy),
+                'Time_Mean': np.mean(time),
+                'Time_Best': np.min(time),
+                'Time_Variance': np.var(time)
+            }
+            all_files_data.append(file_stats)
 
-    time_mean = np.mean(time_table)
-    time_min = np.min(time_table)
-    time_var = np.var(time_table)
+    # 转换为DataFrame
+    df = pd.DataFrame(all_files_data)
 
-    # 将统计量保存为字典
-    data = {
-        'Metric': ['Mean', 'Best', 'Variance'],
-        'Energy': [energy_mean, energy_min, energy_var],
-        'Time': [time_mean, time_min, time_var]
-    }
-
-    # 转换为 DataFrame
-    df = pd.DataFrame(data)
+    # 重新排列列顺序
+    columns_order = [
+        'Filename',
+        'Energy_Mean', 'Energy_Best', 'Energy_Variance',
+        'Time_Mean', 'Time_Best', 'Time_Variance'
+    ]
+    df = df[columns_order]
 
     # 输出到控制台
-    print(f"Data from folder: {folder_path}")
-    print(df)
+    print(f"\nProcessing folder: {folder_path}")
+    print(f"Found {len(file_paths)} files")
+    print(df.head())
 
-    # 保存为 Excel 文件到指定文件夹
-    output_file_path = os.path.join(target_folder, output_excel_name)
-    df.to_excel(output_file_path, index=False)
+    # 创建目标文件夹（如果不存在）
+    os.makedirs(target_folder, exist_ok=True)
+
+    # 保存为Excel文件
+    output_path = os.path.join(target_folder, output_excel_name)
+    df.to_excel(output_path, index=False)
+    print(f"Saved to: {output_path}")
 
 
-process_folder_data('greedy_repair_t_e', 'energy_time_table1.xlsx', 'greedy_repair_t_e')
-process_folder_data('regret_repair_t_e', 'energy_time_table2.xlsx', 'regret_repair_t_e')
-
+# 使用示例
+process_folder_data('greedy_repair_t_e', 'greedy_stats.xlsx', 'results')
+process_folder_data('regret_repair_t_e', 'regret_stats.xlsx', 'results')

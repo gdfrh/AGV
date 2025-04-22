@@ -437,8 +437,8 @@ def associate_to_reference_points(normalized_obj, ref_points):
 # ------------------------
 # NSGA2主循环
 def main_loop(pop_size, max_gen, init_population, init_arm):
+    point_record = []  # 记录所有的点
     # NSGA-III参数初始化
-
     ref_points = generate_reference_points(num_obj, divisions)
     # 初始化理想点和截距点
     ideal_point = np.full(num_obj, np.inf)
@@ -489,6 +489,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
             total_energy, total_time, total_order = init_arm.object_function_compare(population_R[i], i)
+            point_record.append((total_energy, total_time))
             objective1.append(round(total_energy, 2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time, 2))  # 将 total_time 添加到 objective2
             obj_order.append(total_order)
@@ -502,6 +503,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # 存储新一代的分布状态
             new_state = []
             new_agv_count = []
+            new_iteration_value = []
+            new_temperature = []
 
             level = 0
             while len(population_P_next) + len(fronts[level]) <= pop_size:
@@ -511,6 +514,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                     new_agv_count.append(init_arm.agv_count[s][:])
                     population_P_next.append(population_R[s])
                     obj_order_next.append(obj_order[s])
+                    new_iteration_value.append(init_arm.iteration_value[s])
+                    new_temperature.append(init_arm.SA_temperature[s])
+
                 level += 1
             if len(population_P_next) != pop_size:
                 level_distance = crowed_distance_assignment(objective1, objective2, fronts[level])
@@ -521,6 +527,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                     new_agv_count.append(init_arm.agv_count[sort_solution[i]][:])
                     population_P_next.append(population_R[sort_solution[i]])
                     obj_order_next.append(obj_order[sort_solution[i]])
+                    new_iteration_value.append(init_arm.iteration_value[sort_solution[i]])
+                    new_temperature.append(init_arm.SA_temperature[sort_solution[i]])
             # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
             """保留最优解"""
             for i in fronts[0]:
@@ -538,6 +546,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                     'timeline_history_2': init_arm.timeline_history_2[i],
                     'timeline_history_3': init_arm.timeline_history_3[i],
                     'agv_timeline_history': init_arm.agv_timeline_history[i][:],  # 小车时间节点记录
+                    'iteration_value': init_arm.iteration_value[i],
+                    'temprature': init_arm.SA_temperature[i],
                 }
                 # 保存最优解和其分布信息
                 best_solutions_info.append(best_solution_info)
@@ -548,6 +558,14 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             init_arm.unit_states = copy.deepcopy(new_state)
             init_arm.agv_count = copy.deepcopy(new_agv_count)
             init_arm.orders_list = copy.deepcopy(obj_order_next)
+            init_arm.iteration_value = copy.deepcopy(new_iteration_value)
+            init_arm.SA_temperature = copy.deepcopy(new_temperature)
+            # 获取 init_arm.SA_temperature 的长度
+            current_length = len(init_arm.SA_temperature)
+            target_length = 2 * pop_size  # 目标长度为 2 * pop_size
+            # 如果长度低于目标长度，补充 100 直到长度达到目标长度
+            if current_length < target_length:
+                init_arm.SA_temperature.extend([init_temperature] * (target_length - current_length + 1))
             init_arm.timeline_history = []  # 存储时间轴的处理历史状态
             init_arm.timeline_history_1 = []  # 存储时间轴的-1历史状态
             init_arm.timeline_history_2 = []  # 存储时间轴的-2历史状态
@@ -556,7 +574,6 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # init_arm.unit_states = new_state.copy()
             # init_arm.agv_count = new_agv_count.copy()
             # init_arm.orders_list = obj_order_next.copy()
-
 
         if compare == 6:
             # 更新理想点和截距点
@@ -641,7 +658,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 'timeline_history_1': init_arm.timeline_history_1[i][:],  # 订单时间节点记录
                 'timeline_history_2': init_arm.timeline_history_2[i][:],
                 'timeline_history_3': init_arm.timeline_history_3[i][:],
-                'agv_timeline_history': init_arm.agv_timeline_history[i][:]
+                'agv_timeline_history': init_arm.agv_timeline_history[i][:],
+                'iteration_value': init_arm.iteration_value[i]
                 }
                 best_solutions_info.append(best_solution_info)
 
@@ -668,6 +686,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             timeline_history_2 = []
             timeline_history_3 = []
             agv_timeline_history = []
+            iterations_value = []
             for s in fronts[0]:
                 energy_pic.append(best_solution_1[s])
                 time_pic.append(best_solution_2[s])
@@ -679,6 +698,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 timeline_history_2.append(best_solutions_info[s]['timeline_history_2'])
                 timeline_history_3.append(best_solutions_info[s]['timeline_history_3'])
                 agv_timeline_history.append(best_solutions_info[s]['agv_timeline_history'])
+                iterations_value.append(best_solutions_info[s]['iteration_value'])
 
             # 1. 定义要创建的文件夹名称
             folder_name = "Gantt_Chart"  # 可以修改为任意文件夹名称/路径
@@ -710,7 +730,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 'time': time_pic,
                 'agv_distribution': agv_distributions,
                 'order': order_distributions,
-                'distributions_dict': distributions_dicts
+                'distributions_dict': distributions_dicts,
             }
             # 1. 定义要创建的文件夹名称
             folder_name = "Scatter_plot"  # 可以修改为任意文件夹名称/路径
@@ -721,6 +741,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             # 4. 保存文件到新文件夹
             with open(file_path, 'wb') as file:
                 pickle.dump(data, file)
+
+
             # 记录数据来绘制帕累托拥挤距离
             file_path = get_next_filename('Pareto_Crowding_Distance', f'{compare}')
             with open(file_path, 'wb') as file:
@@ -737,6 +759,16 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 with open(file_path, 'wb') as file:
                     pickle.dump(data, file)
 
+                folder_name = "iterations"  # 可以修改为任意文件夹名称/路径
+                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+                file_path = os.path.join(folder_name, 'iterations.pkl')
+                with open(file_path, 'wb') as file:
+                    pickle.dump(iterations_value, file)
+
+                file_path = os.path.join("Scatter_plot", 'all_point.pkl')
+                with open(file_path, 'wb') as file:
+                    pickle.dump(point_record, file)
+
             if compare == 4:
                 new_data = {
                     'energy': energy_pic,
@@ -751,6 +783,11 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 # 4. 保存文件到新文件夹
                 with open(file_path, 'wb') as file:
                     pickle.dump(new_data, file)
+                folder_name = "iterations"  # 可以修改为任意文件夹名称/路径
+                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+                file_path = os.path.join(folder_name, 'iterations_greedy.pkl')
+                with open(file_path, 'wb') as file:
+                    pickle.dump(iterations_value[0], file)
             if compare == 5:
                 new_data = {
                     'energy': energy_pic,
@@ -765,6 +802,11 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 # 4. 保存文件到新文件夹
                 with open(file_path, 'wb') as file:
                     pickle.dump(new_data, file)
+                folder_name = "iterations"  # 可以修改为任意文件夹名称/路径
+                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+                file_path = os.path.join(folder_name, 'iterations_regret.pkl')
+                with open(file_path, 'wb') as file:
+                    pickle.dump(iterations_value[0], file)
 
         gen_no += 1
 
