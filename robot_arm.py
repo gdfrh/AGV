@@ -21,16 +21,21 @@ class Arm:
         # self.order_manager = OrderManager(work_name, num_orders)
         # self.orders = self.order_manager.get_orders()  # 调用 OrderManager来显示订单
         self.orders = [
-    ['组装区', '铸造区', '清洗区', '焊接区', '包装区', '喷漆区', '配置区'],
-    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '配置区'],
-    ['组装区', '铸造区', '焊接区', '包装区', '喷漆区', '清洗区', '配置区'],
-    ['组装区', '铸造区', '焊接区', '喷漆区', '配置区'],
-    ['组装区', '铸造区', '包装区', '清洗区', '喷漆区', '焊接区', '配置区'],
-    ['组装区', '铸造区', '配置区'],
-    ['组装区', '铸造区', '清洗区', '配置区']
+            ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
+            ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
+            ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
+            ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
+            ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
+            ['铸造区', '清洗区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '配置区', '包装区'],
+            ['铸造区', '清洗区', '配置区', '包装区'],
 ]
         self.orders_list = []   # 用来记录每一个解的订单顺序排列
         """用False表示空闲，True表示忙碌"""
@@ -589,7 +594,7 @@ class Arm:
 
         return total_power_order, total_time_order
 
-    def object_function_compare(self, sequence, idx):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
+    def object_function_compare(self, sequence, idx, compare):  # 由序列改变字典，用于使用交叉变异修改机器臂分配后计算时间
         """初始化"""
         self._initialize_function(idx)
         self.padding(sequence)
@@ -599,7 +604,7 @@ class Arm:
         # 模拟退火温度
         T = copy.deepcopy(self.SA_temperature[idx])
         # 降温速度
-        a = 0.95
+        a = 0.98
         # operators = [随机破坏修复， 后悔修复， 贪心修复]
         if compare == 4 or compare == 5:
             # 轮盘赌的初始权重
@@ -633,15 +638,18 @@ class Arm:
         current_value = (total_time_order, total_power_order, first_order, timeline_record)
         time_record.append(best_value[0])
         energy_record.append(best_value[1])
-        weight_record.append(operator_weight)
+        total_weight = sum(operator_weight)
+        # 计算每个权重的占比
+        weight_percentage = [(weight / total_weight) * 100 for weight in operator_weight]
+        weight_record.append(weight_percentage[:])
         while current_iteration < iteration:
-            # if current_iteration % 10 == 0:
-            #     print(current_iteration)
+            if current_iteration % 10 == 0:
+                print(current_iteration)
             self._initialize_function(idx)
             self.padding(sequence)
             # 使用当前订单作为原始订单
             order = copy.deepcopy(current_value[2])
-            new_order, operator_idx = self.apply_ALNS(idx, order, operator_weight, operator_counter)
+            new_order, operator_idx = self.apply_ALNS(idx, order, operator_weight, operator_counter, compare)
             """计算每个订单的消耗，功率应该累加，但是时间不应该"""
             total_time_order, total_power_order = self.order_time_and_power(new_order, idx, 'picture')
             # 记录绘制甘特图的信息
@@ -674,7 +682,6 @@ class Arm:
                 energy_range = max(worst_value[1] - best_value[1], 1e-6)
                 delta = - ((total_time_order - current_value[0]) / time_range + (total_power_order - current_value[1]) / energy_range) / 2
                 prob = math.exp(delta / T)
-                print(prob)
                 if random.random() < prob:
                     # 当前解优于测试解，但满足模拟退火逻辑，依然更新当前解，设置较低的算子得分
                     current_value = (total_time_order, total_power_order, new_order, timeline_record)
@@ -693,12 +700,18 @@ class Arm:
                     best_value = (total_time_order, total_power_order, new_order, timeline_record)
                     operator_score[operator_idx] = 1.8
             # 更新算子的权重
-            operator_weight[operator_idx] = operator_weight[operator_idx] * lambda_rate + \
-                (1 - lambda_rate) * operator_weight[operator_idx] / operator_score[operator_idx]
+            operator_score[operator_idx] **= 1.5  # 通过指数放大差异
+            operator_weight[operator_idx] = round(
+                operator_weight[operator_idx] * lambda_rate +(1 - lambda_rate) * operator_score[operator_idx] / operator_counter[operator_idx], 2)
+            # 计算总和
+            total_weight = sum(operator_weight)
+            # 计算每个权重的占比
+            weight_percentage = [round((weight / total_weight) * 100,2) for weight in operator_weight]
+
             # 记录更新过程
             time_record.append(best_value[0])
             energy_record.append(best_value[1])
-            weight_record.append(operator_weight)
+            weight_record.append(weight_percentage[:])
             # 降低温度
             T *= a
             current_iteration += 1
@@ -779,7 +792,7 @@ class Arm:
                 current_index += 1
         return None, None  # 如果没有找到，返回None
 
-    def apply_ALNS(self, idx, orders, operator_weight, operator_counter):
+    def apply_ALNS(self, idx, orders, operator_weight, operator_counter,compare):
         """
         使用ALNS算法优化订单顺序
         """

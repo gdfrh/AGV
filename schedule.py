@@ -51,7 +51,7 @@ class Schedule:
                 self.arm.orders_list.append(self.orders)
                 self.machine_counts.append(new_list)  # 列表形式记录机器臂数量
 
-    def arm_loop(self):
+    def arm_loop(self, compare):
         """实现机器臂的 NSGA-II算法来优化机器臂数量"""
-        main_loop(pop_size, max_gen, self.machine_counts, self.arm)
+        main_loop(pop_size, max_gen, self.machine_counts, self.arm, compare)
 

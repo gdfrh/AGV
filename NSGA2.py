@@ -436,7 +436,7 @@ def associate_to_reference_points(normalized_obj, ref_points):
     return np.argmin(distances, axis=1)
 # ------------------------
 # NSGA2主循环
-def main_loop(pop_size, max_gen, init_population, init_arm):
+def main_loop(pop_size, max_gen, init_population, init_arm, compare):
     point_record = []  # 记录所有的点
     # NSGA-III参数初始化
     ref_points = generate_reference_points(num_obj, divisions)
@@ -488,7 +488,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
         """此时len(population_R)>=2 * pop_size"""
         for i in range(len(population_R)):
             # 通过调用 function_1，解包返回的元组（total_energy, total_time）
-            total_energy, total_time, total_order = init_arm.object_function_compare(population_R[i], i)
+            total_energy, total_time, total_order = init_arm.object_function_compare(population_R[i], i, compare)
             point_record.append((total_energy, total_time))
             objective1.append(round(total_energy, 2))  # 将 total_energy 添加到 objective1
             objective2.append(round(total_time, 2))  # 将 total_time 添加到 objective2
@@ -505,6 +505,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             new_agv_count = []
             new_iteration_value = []
             new_temperature = []
+            new_weight = []
 
             level = 0
             while len(population_P_next) + len(fronts[level]) <= pop_size:
@@ -516,6 +517,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                     obj_order_next.append(obj_order[s])
                     new_iteration_value.append(init_arm.iteration_value[s])
                     new_temperature.append(init_arm.SA_temperature[s])
+                    new_weight.append(init_arm.weight[s])
 
                 level += 1
             if len(population_P_next) != pop_size:
@@ -529,6 +531,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                     obj_order_next.append(obj_order[sort_solution[i]])
                     new_iteration_value.append(init_arm.iteration_value[sort_solution[i]])
                     new_temperature.append(init_arm.SA_temperature[sort_solution[i]])
+                    new_weight.append(init_arm.weight[sort_solution[i]])
             # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
             """保留最优解"""
             for i in fronts[0]:
@@ -548,6 +551,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                     'agv_timeline_history': init_arm.agv_timeline_history[i][:],  # 小车时间节点记录
                     'iteration_value': init_arm.iteration_value[i],
                     'temprature': init_arm.SA_temperature[i],
+                    'weights': init_arm.weight[i]
                 }
                 # 保存最优解和其分布信息
                 best_solutions_info.append(best_solution_info)
@@ -560,6 +564,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             init_arm.orders_list = copy.deepcopy(obj_order_next)
             init_arm.iteration_value = copy.deepcopy(new_iteration_value)
             init_arm.SA_temperature = copy.deepcopy(new_temperature)
+            init_arm.weight = copy.deepcopy(new_weight)
             # 获取 init_arm.SA_temperature 的长度
             current_length = len(init_arm.SA_temperature)
             target_length = 2 * pop_size  # 目标长度为 2 * pop_size
@@ -659,7 +664,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 'timeline_history_2': init_arm.timeline_history_2[i][:],
                 'timeline_history_3': init_arm.timeline_history_3[i][:],
                 'agv_timeline_history': init_arm.agv_timeline_history[i][:],
-                'iteration_value': init_arm.iteration_value[i]
+                'iteration_value': init_arm.iteration_value[i],
+                'weights': init_arm.weight[i],
                 }
                 best_solutions_info.append(best_solution_info)
 
@@ -687,6 +693,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             timeline_history_3 = []
             agv_timeline_history = []
             iterations_value = []
+            weights = []
             for s in fronts[0]:
                 energy_pic.append(best_solution_1[s])
                 time_pic.append(best_solution_2[s])
@@ -699,30 +706,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 timeline_history_3.append(best_solutions_info[s]['timeline_history_3'])
                 agv_timeline_history.append(best_solutions_info[s]['agv_timeline_history'])
                 iterations_value.append(best_solutions_info[s]['iteration_value'])
-
-            # 1. 定义要创建的文件夹名称
-            folder_name = "Gantt_Chart"  # 可以修改为任意文件夹名称/路径
-            # 2. 创建文件夹（如果不存在）
-            os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
-            # 3. 构造完整文件路径
-            file_path0 = os.path.join(folder_name, 'timeline_history.pkl')
-            file_path1 = os.path.join(folder_name, 'timeline_history_1.pkl')
-            file_path2 = os.path.join(folder_name, 'timeline_history_2.pkl')
-            file_path3 = os.path.join(folder_name, 'timeline_history_3.pkl')
-            file_path4 = os.path.join(folder_name, 'agv_timeline_history.pkl')
-
-            # 将数据保存到文件
-            with open(file_path0, 'wb') as file:
-                pickle.dump(timeline_history[0], file)
-            with open(file_path1, 'wb') as file:
-                pickle.dump(timeline_history_1[0], file)
-            with open(file_path2, 'wb') as file:
-                pickle.dump(timeline_history_2[0], file)
-            with open(file_path3, 'wb') as file:
-                pickle.dump(timeline_history_3[0], file)
-
-            with open(file_path4, 'wb') as file:
-                pickle.dump(agv_timeline_history[0], file)
+                weights.append(best_solutions_info[s]['weights'])
 
                 # 数据字典
             data = {
@@ -742,14 +726,49 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
             with open(file_path, 'wb') as file:
                 pickle.dump(data, file)
 
-
+            new_data = {
+                'energy': energy_pic,
+                'time': time_pic
+            }
+            # 1. 定义要创建的文件夹名称
+            folder_name = f"tenth_compare/{total_machines}_{total_agv}_{num_orders}"  # 可以修改为任意文件夹名称/路径
+            # 2. 创建文件夹（如果不存在）
+            os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            # 3. 构造完整文件路径
+            file_path = get_next_filename(folder_name, f'{compare}')
+            # 4. 保存文件到新文件夹
+            with open(file_path, 'wb') as file:
+                pickle.dump(new_data, file)
             # 记录数据来绘制帕累托拥挤距离
             file_path = get_next_filename('Pareto_Crowding_Distance', f'{compare}')
+
             with open(file_path, 'wb') as file:
                 pickle.dump(data, file)
 
             # 存储在文件中，之后一起进行绘制
             if compare == 0:
+                # 1. 定义要创建的文件夹名称
+                folder_name = "Gantt_Chart"  # 可以修改为任意文件夹名称/路径
+                # 2. 创建文件夹（如果不存在）
+                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+                # 3. 构造完整文件路径
+                file_path0 = os.path.join(folder_name, 'timeline_history.pkl')
+                file_path1 = os.path.join(folder_name, 'timeline_history_1.pkl')
+                file_path2 = os.path.join(folder_name, 'timeline_history_2.pkl')
+                file_path3 = os.path.join(folder_name, 'timeline_history_3.pkl')
+                file_path4 = os.path.join(folder_name, 'agv_timeline_history.pkl')
+
+                # 将数据保存到文件
+                with open(file_path0, 'wb') as file:
+                    pickle.dump(timeline_history, file)
+                with open(file_path1, 'wb') as file:
+                    pickle.dump(timeline_history_1, file)
+                with open(file_path2, 'wb') as file:
+                    pickle.dump(timeline_history_2, file)
+                with open(file_path3, 'wb') as file:
+                    pickle.dump(timeline_history_3, file)
+                with open(file_path4, 'wb') as file:
+                    pickle.dump(agv_timeline_history, file)
                 # 1. 定义要创建的文件夹名称
                 folder_name = "Bar_plot"  # 可以修改为任意文件夹名称/路径
                 # 2. 创建文件夹（如果不存在）
@@ -764,49 +783,52 @@ def main_loop(pop_size, max_gen, init_population, init_arm):
                 file_path = os.path.join(folder_name, 'iterations.pkl')
                 with open(file_path, 'wb') as file:
                     pickle.dump(iterations_value, file)
+                file_path = os.path.join(folder_name, 'weights.pkl')
+                with open(file_path, 'wb') as file:
+                    pickle.dump(weights, file)
 
                 file_path = os.path.join("Scatter_plot", 'all_point.pkl')
                 with open(file_path, 'wb') as file:
                     pickle.dump(point_record, file)
 
-            if compare == 4:
-                new_data = {
-                    'energy': energy_pic,
-                    'time': time_pic
-                }
-                # 1. 定义要创建的文件夹名称
-                folder_name = "greedy_repair_t_e"  # 可以修改为任意文件夹名称/路径
-                # 2. 创建文件夹（如果不存在）
-                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
-                # 3. 构造完整文件路径
-                file_path = os.path.join(folder_name, f'{len(os.listdir(folder_name)) + 1}.pkl')
-                # 4. 保存文件到新文件夹
-                with open(file_path, 'wb') as file:
-                    pickle.dump(new_data, file)
-                folder_name = "iterations"  # 可以修改为任意文件夹名称/路径
-                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
-                file_path = os.path.join(folder_name, 'iterations_greedy.pkl')
-                with open(file_path, 'wb') as file:
-                    pickle.dump(iterations_value[0], file)
-            if compare == 5:
-                new_data = {
-                    'energy': energy_pic,
-                    'time': time_pic
-                }
-                # 1. 定义要创建的文件夹名称
-                folder_name = "regret_repair_t_e"  # 可以修改为任意文件夹名称/路径
-                # 2. 创建文件夹（如果不存在）
-                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
-                # 3. 构造完整文件路径
-                file_path = os.path.join(folder_name, f'{len(os.listdir(folder_name)) + 1}.pkl')
-                # 4. 保存文件到新文件夹
-                with open(file_path, 'wb') as file:
-                    pickle.dump(new_data, file)
-                folder_name = "iterations"  # 可以修改为任意文件夹名称/路径
-                os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
-                file_path = os.path.join(folder_name, 'iterations_regret.pkl')
-                with open(file_path, 'wb') as file:
-                    pickle.dump(iterations_value[0], file)
+            # if compare == 4:
+            #     new_data = {
+            #         'energy': energy_pic,
+            #         'time': time_pic
+            #     }
+            #     # 1. 定义要创建的文件夹名称
+            #     folder_name = "greedy_repair_t_e"  # 可以修改为任意文件夹名称/路径
+            #     # 2. 创建文件夹（如果不存在）
+            #     os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            #     # 3. 构造完整文件路径
+            #     file_path = os.path.join(folder_name, f'{len(os.listdir(folder_name)) + 1}.pkl')
+            #     # 4. 保存文件到新文件夹
+            #     with open(file_path, 'wb') as file:
+            #         pickle.dump(new_data, file)
+            #     folder_name = "iterations"  # 可以修改为任意文件夹名称/路径
+            #     os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            #     file_path = os.path.join(folder_name, 'iterations_greedy.pkl')
+            #     with open(file_path, 'wb') as file:
+            #         pickle.dump(iterations_value[0], file)
+            # if compare == 5:
+            #     new_data = {
+            #         'energy': energy_pic,
+            #         'time': time_pic
+            #     }
+            #     # 1. 定义要创建的文件夹名称
+            #     folder_name = "regret_repair_t_e"  # 可以修改为任意文件夹名称/路径
+            #     # 2. 创建文件夹（如果不存在）
+            #     os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            #     # 3. 构造完整文件路径
+            #     file_path = os.path.join(folder_name, f'{len(os.listdir(folder_name)) + 1}.pkl')
+            #     # 4. 保存文件到新文件夹
+            #     with open(file_path, 'wb') as file:
+            #         pickle.dump(new_data, file)
+            #     folder_name = "iterations"  # 可以修改为任意文件夹名称/路径
+            #     os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            #     file_path = os.path.join(folder_name, 'iterations_regret.pkl')
+            #     with open(file_path, 'wb') as file:
+            #         pickle.dump(iterations_value[0], file)
 
         gen_no += 1
 
