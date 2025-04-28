@@ -164,12 +164,13 @@ ax.legend(
 
 # 调整边距
 plt.subplots_adjust(right=0.75)  # 为图例留出空间
-
+# 获取当前时间
+current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
 # 显示图表
 plt.tight_layout()
 save_path = 'results/'
 os.makedirs(save_path, exist_ok=True)
-file_name = 'compare.png'  # 文件名包含案例编号
+file_name = f'compare{current_time}.png'  # 文件名包含案例编号
 plt.savefig(os.path.join(save_path, file_name), dpi=300, bbox_inches='tight')
 plt.close()  # 关闭图形避免内存泄漏
 # ------------------------
@@ -319,6 +320,66 @@ for case_idx, case_data in enumerate(loaded_data):
     plt.close()
 
 # ------------------------
+# 绘制权重数量选择图
+file_path = glob.glob('iterations/counters.pkl')
+with open(file_path[0], 'rb') as file:
+    loaded_data = pickle.load(file)
+for case_idx, case_data in enumerate(loaded_data):
+
+    # 转换为NumPy数组方便处理
+    weights_array = np.array(case_data)
+
+    # 设置中文显示（如果不需要可删除）
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    # 1. 折线图（推荐首选）
+    plt.figure(figsize=(10, 6))
+
+    # 提取每个权重的变化序列
+    operator1 = weights_array[:, 0]
+    operator2 = weights_array[:, 1]
+    operator3 = weights_array[:, 2]
+
+    # 生成迭代次数序列
+    iterations = np.arange(len(weights_array))
+
+    # 绘制三条曲线
+    plt.plot(iterations, operator1,
+             label='随机破坏修复',
+             color='#1f77b4',
+             # marker='o',
+             linestyle='-')
+
+    plt.plot(iterations, operator2,
+             label='后悔修复',
+             color='#ff7f0e',
+             # marker='s',
+             linestyle='--')
+
+    plt.plot(iterations, operator3,
+             label='贪婪修复',
+             color='#2ca02c',
+             # marker='^',
+             linestyle='-.')
+
+    # 图表装饰
+    plt.xlabel('迭代次数', fontsize=12)
+    plt.ylabel('选择次数', fontsize=12)
+    plt.title('ALNS算子选择次数变化趋势', fontsize=14, pad=20)
+    plt.legend(title='算子类型',
+               loc='upper left',
+               bbox_to_anchor=(1, 1))  # 图例放在右侧
+    plt.grid(True,
+             linestyle='--',
+             alpha=0.6)
+    plt.tight_layout()
+    save_path = f'results/result_{case_idx}/'
+    os.makedirs(save_path, exist_ok=True)
+    file_name = 'counter.png'  # 文件名包含案例编号
+    plt.savefig(os.path.join(save_path, file_name), dpi=300, bbox_inches='tight')
+    plt.close()  # 关闭图形避免内存泄漏
+# ------------------------
 # 绘制权重迭代图
 file_path = glob.glob('iterations/weights.pkl')
 with open(file_path[0], 'rb') as file:
@@ -378,7 +439,6 @@ for case_idx, case_data in enumerate(loaded_data):
     file_name = 'weight.png'  # 文件名包含案例编号
     plt.savefig(os.path.join(save_path, file_name), dpi=300, bbox_inches='tight')
     plt.close()  # 关闭图形避免内存泄漏
-
 # # ==================== 数据加载 ====================
 # file_path = glob.glob('iterations/iterations_greedy.pkl')
 # # 从 pkl 文件加载数据

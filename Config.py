@@ -100,7 +100,7 @@ num_orders = 15
 similarity_percent = 0.2
 # ------------------------
 # ALNS 迭代次数
-iteration = 50
+iteration = 10
 init_temperature = 100
 # ------------------------
 # 对比实验：
@@ -110,7 +110,7 @@ compare_number = 7
 num_obj = 2  # 优化目标数量
 divisions = 4  # 参考点分布密度
 # 设置运行次数
-num_runs = 9  # 你可以根据需要修改运行次数
+num_runs = 10  # 你可以根据需要修改运行次数
 # ALNS轮盘赌,初始都用[1,1,1]
 # operators = [随机破坏修复， 后悔修复， 贪心修复]
 

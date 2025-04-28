@@ -506,6 +506,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
             new_iteration_value = []
             new_temperature = []
             new_weight = []
+            new_counter = []
 
             level = 0
             while len(population_P_next) + len(fronts[level]) <= pop_size:
@@ -518,6 +519,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
                     new_iteration_value.append(init_arm.iteration_value[s])
                     new_temperature.append(init_arm.SA_temperature[s])
                     new_weight.append(init_arm.weight[s])
+                    new_counter.append(init_arm.counter[s])
 
                 level += 1
             if len(population_P_next) != pop_size:
@@ -532,6 +534,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
                     new_iteration_value.append(init_arm.iteration_value[sort_solution[i]])
                     new_temperature.append(init_arm.SA_temperature[sort_solution[i]])
                     new_weight.append(init_arm.weight[sort_solution[i]])
+                    new_counter.append(init_arm.counter[sort_solution[i]])
             # — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — — —
             """保留最优解"""
             for i in fronts[0]:
@@ -551,7 +554,8 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
                     'agv_timeline_history': init_arm.agv_timeline_history[i][:],  # 小车时间节点记录
                     'iteration_value': init_arm.iteration_value[i],
                     'temprature': init_arm.SA_temperature[i],
-                    'weights': init_arm.weight[i]
+                    'weights': init_arm.weight[i],
+                    'counter': init_arm.counter[i]
                 }
                 # 保存最优解和其分布信息
                 best_solutions_info.append(best_solution_info)
@@ -565,6 +569,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
             init_arm.iteration_value = copy.deepcopy(new_iteration_value)
             init_arm.SA_temperature = copy.deepcopy(new_temperature)
             init_arm.weight = copy.deepcopy(new_weight)
+            init_arm.counter = copy.deepcopy(new_counter)
             # 获取 init_arm.SA_temperature 的长度
             current_length = len(init_arm.SA_temperature)
             target_length = 2 * pop_size  # 目标长度为 2 * pop_size
@@ -666,6 +671,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
                 'agv_timeline_history': init_arm.agv_timeline_history[i][:],
                 'iteration_value': init_arm.iteration_value[i],
                 'weights': init_arm.weight[i],
+                'counter': init_arm.counter[i]
                 }
                 best_solutions_info.append(best_solution_info)
 
@@ -694,6 +700,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
             agv_timeline_history = []
             iterations_value = []
             weights = []
+            counters = []
             for s in fronts[0]:
                 energy_pic.append(best_solution_1[s])
                 time_pic.append(best_solution_2[s])
@@ -707,6 +714,7 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
                 agv_timeline_history.append(best_solutions_info[s]['agv_timeline_history'])
                 iterations_value.append(best_solutions_info[s]['iteration_value'])
                 weights.append(best_solutions_info[s]['weights'])
+                counters.append(best_solutions_info[s]['counter'])
 
                 # 数据字典
             data = {
@@ -786,6 +794,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
                 file_path = os.path.join(folder_name, 'weights.pkl')
                 with open(file_path, 'wb') as file:
                     pickle.dump(weights, file)
+                file_path = os.path.join(folder_name, 'counters.pkl')
+                with open(file_path, 'wb') as file:
+                    pickle.dump(counters, file)
 
                 file_path = os.path.join("Scatter_plot", 'all_point.pkl')
                 with open(file_path, 'wb') as file:

@@ -50,6 +50,7 @@ class Arm:
         self.agv_timeline_history = []  # 存储小车时间轴的历史状态
         self.iteration_value = []   # 记录迭代效果
         self.weight = []  # 记录权重
+        self.counter = []  # 记录算子使用次数
         self.SA_temperature = [init_temperature] * (2 * pop_size + 1)  # 记录模拟退火温度
         # ------------------------
         """小车"""
@@ -139,6 +140,7 @@ class Arm:
             max_agv_zone = agv_distribute.index(max(agv_distribute))
             # 将差额加到小车最多的生产区
             agv_distribute[max_agv_zone] += difference
+        # agv_distribute = [2,6,1,2,2,2]
         # 4. 对每个生产区的生产单元按机器数量从大到小排序
         for zone in self.machines_count:
             # 排序每个生产区的单元，按机器数量从大到小
@@ -601,6 +603,7 @@ class Arm:
         time_record = []
         energy_record = []
         weight_record = []
+        counter_record = []
         # 模拟退火温度
         T = copy.deepcopy(self.SA_temperature[idx])
         # 降温速度
@@ -641,7 +644,9 @@ class Arm:
         total_weight = sum(operator_weight)
         # 计算每个权重的占比
         weight_percentage = [(weight / total_weight) * 100 for weight in operator_weight]
+        # 先试试次数
         weight_record.append(weight_percentage[:])
+        counter_record.append(operator_counter[:])
         while current_iteration < iteration:
             if current_iteration % 10 == 0:
                 print(current_iteration)
@@ -712,6 +717,7 @@ class Arm:
             time_record.append(best_value[0])
             energy_record.append(best_value[1])
             weight_record.append(weight_percentage[:])
+            counter_record.append(operator_counter[:])
             # 降低温度
             T *= a
             current_iteration += 1
@@ -725,10 +731,12 @@ class Arm:
         if value_length - 1 < idx:
             self.iteration_value.append((time_record, energy_record))
             self.weight.append(weight_record)
+            self.counter.append(counter_record)
         else:
             self.iteration_value[idx][0].extend(time_record)
             self.iteration_value[idx][1].extend(energy_record)
             self.weight[idx].extend(weight_record)
+            self.counter.extend(counter_record)
 
         self.SA_temperature[idx] = T
 

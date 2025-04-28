@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 import numpy as np
 import os
+from Config import *
 from collections import defaultdict
 
 
@@ -19,49 +20,43 @@ def process_grouped_data(folder_path, output_prefix, target_folder):
         file_groups[prefix].append(fp)
 
     # 遍历每个分组
+    all_files_data = []
     for prefix, files in file_groups.items():
-        all_files_data = []
-
+        energy = []
+        time = []
         # 处理组内每个文件
         for file_path in files:
             with open(file_path, 'rb') as file:
                 loaded_data = pickle.load(file)
-
                 # 数据统计计算
-                energy = loaded_data['energy']
-                time = loaded_data['time']
+                energy.extend(loaded_data['energy'][:])
+                time.extend(loaded_data['time'][:])
+        file_stats = {
+            'Filename': f'{prefix}_data',
+            'Energy_Mean': np.mean(energy),
+            'Energy_Best': np.min(energy),
+            'Energy_Variance': np.var(energy),
+            'Time_Mean': np.mean(time),
+            'Time_Best': np.min(time),
+            'Time_Variance': np.var(time)
+        }
+        all_files_data.append(file_stats)
 
-                file_stats = {
-                    'Filename': os.path.basename(file_path),
-                    'Energy_Mean': np.mean(energy),
-                    'Energy_Best': np.min(energy),
-                    'Energy_Variance': np.var(energy),
-                    'Time_Mean': np.mean(time),
-                    'Time_Best': np.min(time),
-                    'Time_Variance': np.var(time)
-                }
-                all_files_data.append(file_stats)
+    # 生成DataFrame
+    df = pd.DataFrame(all_files_data)
+    columns_order = [
+        'Filename',
+        'Energy_Mean', 'Energy_Best', 'Energy_Variance',
+        'Time_Mean', 'Time_Best', 'Time_Variance'
+    ]
+    df = df[columns_order]
 
-        # 生成DataFrame
-        df = pd.DataFrame(all_files_data)
-        columns_order = [
-            'Filename',
-            'Energy_Mean', 'Energy_Best', 'Energy_Variance',
-            'Time_Mean', 'Time_Best', 'Time_Variance'
-        ]
-        df = df[columns_order]
-
-        # 输出信息
-        print(f"\nProcessing prefix group: {prefix}")
-        print(f"Found {len(files)} files in group")
-        print(df.head())
-
-        # 保存Excel
-        os.makedirs(target_folder, exist_ok=True)
-        output_name = f"{output_prefix}_{prefix}.xlsx"
-        output_path = os.path.join(target_folder, output_name)
-        df.to_excel(output_path, index=False)
-        print(f"Saved group {prefix} to: {output_path}")
+    # 保存Excel
+    os.makedirs(target_folder, exist_ok=True)
+    output_name = f"{output_prefix}.xlsx"
+    output_path = os.path.join(target_folder, output_name)
+    df.to_excel(output_path, index=False)
 
 
-process_grouped_data('tenth_compare/50_15_15', 'tenth_comparison', 'results')
+
+process_grouped_data('tenth_compare/45_15_15', f'comparison_45_15_15', 'results')

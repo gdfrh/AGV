@@ -96,7 +96,6 @@ for load_idx, loaded_data in enumerate(loaded_datas):
         for task_idx, task in enumerate(tasks):
             start, end = task['transport']
             order_num = task['order_number']
-
             # 绘制运输任务
             ax.barh(
                 y=agv_idx,
@@ -112,54 +111,54 @@ for load_idx, loaded_data in enumerate(loaded_datas):
             ax.text(
                 x=(start + end) / 2,
                 y=agv_idx,
-                s=f'订单{order_num}\n{end - start:.1f}s',
+                s=f'订单{order_num+1}\n{end - start:.1f}s',
                 ha='center',
                 va='center',
                 color='black',
                 fontsize=8
             )
-            # 包含开始时间和结束时间
-            if end - start > 10:
-                ax.text(
-                    x= start + 5,
-                    y= agv_idx - 0.42,
-                    s=f'{start:.1f}',
-                    ha='center',
-                    va='center',
-                    color='black',
-                    fontsize=8
-                )
-                ax.text(
-                    x= end - 5,
-                    y= agv_idx - 0.42,
-                    s=f'{end:.1f}',
-                    ha='center',
-                    va='center',
-                    color='black',
-                    fontsize=8
-                )
-            elif end - start <= 10:
-                ax.text(
-                    x= start + 1.5,
-                    y= agv_idx - 0.42,
-                    s=f'{start:.1f}',
-                    ha='center',
-                    va='center',
-                    color='black',
-                    fontsize=8
-                )
-                ax.text(
-                    x= end - 1.5,
-                    y= agv_idx - 0.42,
-                    s=f'{end:.1f}',
-                    ha='center',
-                    va='center',
-                    color='black',
-                    fontsize=8
-                )
+            # # 包含开始时间和结束时间
+            # if end - start > 10:
+            #     ax.text(
+            #         x= start + 5,
+            #         y= agv_idx - 0.42,
+            #         s=f'{start:.1f}',
+            #         ha='center',
+            #         va='center',
+            #         color='black',
+            #         fontsize=8
+            #     )
+            #     ax.text(
+            #         x= end - 5,
+            #         y= agv_idx - 0.42,
+            #         s=f'{end:.1f}',
+            #         ha='center',
+            #         va='center',
+            #         color='black',
+            #         fontsize=8
+            #     )
+            # elif end - start <= 10:
+            #     ax.text(
+            #         x= start + 1.5,
+            #         y= agv_idx - 0.42,
+            #         s=f'{start:.1f}',
+            #         ha='center',
+            #         va='center',
+            #         color='black',
+            #         fontsize=8
+            #     )
+            #     ax.text(
+            #         x= end - 1.5,
+            #         y= agv_idx - 0.42,
+            #         s=f'{end:.1f}',
+            #         ha='center',
+            #         va='center',
+            #         color='black',
+            #         fontsize=8
+            #     )
     # 坐标轴优化
     ax.set_yticks(range(len(results)))
-    ax.set_yticklabels([f'AGV {i}' for i in range(len(results))])
+    ax.set_yticklabels([f'AGV {i+1}' for i in range(len(results))])
     ax.set_xlabel('时间（秒）', fontsize=12)
     ax.set_title('AGV运输任务甘特图', fontsize=14, pad=20)
 
@@ -168,7 +167,7 @@ for load_idx, loaded_data in enumerate(loaded_datas):
 
     # 创建图例
     legend_handles = [
-        mpatches.Patch(color=color_map[i], label=f'订单 {i}')
+        mpatches.Patch(color=color_map[i], label=f'订单 {i+1}')
         for i in range(len(color_map))
     ]
     ax.legend(
@@ -535,9 +534,9 @@ def plot_gantt_for_order(load_idx, results, results_1, results_2, results_3=None
     # 设置坐标轴标签
     ax.set_xlim(left=0)  # 设置x轴的最小值为0
     ax.set_yticks(range(len(results_1[load_idx])))
-    ax.set_yticklabels([f'Order {i}' for i in range(len(results_1[load_idx]))])
+    ax.set_yticklabels([f'Order {i+1}' for i in range(len(results_1[load_idx]))])
     ax.set_xlabel('Time')
-    ax.set_title('Orders transport Gantt Chart')
+    ax.set_title('订单处理甘特图')
     # 反向y轴
     ax.invert_yaxis()
     # 设置图例
@@ -654,29 +653,29 @@ for load_idx, loaded_data in enumerate(loaded_datas):
                 plt.text(
                     x=(start + end) / 2,
                     y=current_position + unit,
-                    s=f'订单{order_number}\n{end - start:.1f}s',
+                    s=f'订单{order_number+1}\n{end - start:.1f}s',
                     ha='center',
                     va='center',
                     color='black',
                     fontsize=8
                 )
-                # 添加任务标签
-                plt.text(
-                    x=start,
-                    y=current_position + unit,
-                    s=f'{start:.1f}s',
-                    ha='center',
-                    va='center',
-                    color='black',
-                    fontsize=8
-                )
+                # # 添加任务标签
+                # plt.text(
+                #     x=start,
+                #     y=current_position + unit,
+                #     s=f'{start:.1f}s',
+                #     ha='center',
+                #     va='center',
+                #     color='black',
+                #     fontsize=8
+                # )
 
         # 更新位置，以便下一个区域显示在下方
         current_position += max_units
 
     # 设置Y轴标签
     plt.yticks(range(current_position),
-               [f'{zone} 单元 {unit}' for zone, max_units in valid_units.items() for unit in range(max_units)])
+               [f'{zone} 单元 {unit+1}' for zone, max_units in valid_units.items() for unit in range(max_units)])
 
     # 添加图表和坐标轴标题
     plt.xlabel('时间')
@@ -685,7 +684,7 @@ for load_idx, loaded_data in enumerate(loaded_datas):
 
     # 创建自定义的图例
     legend_handles = [Line2D([0], [0], color=order_color_map[order_number], lw=4) for order_number in order_color_map]
-    legend_labels = [f'订单 {order_number}' for order_number in order_color_map]
+    legend_labels = [f'订单 {order_number+1}' for order_number in order_color_map]
     # 显示图例
     plt.legend(handles=legend_handles, labels=legend_labels, bbox_to_anchor=(1.05, 1), loc='upper left')
     # 反向y轴
