@@ -65,7 +65,7 @@ distance_matrix = [
 
 # ------------------------
 # 机器臂配置
-total_machines = 50  # 总机器数
+total_machines = 40  # 总机器数
 
 # 存储机器臂的分配
 machine_count_list = []  # 列表
@@ -84,7 +84,7 @@ zone_requirements = [
 ]
 # ------------------------
 # 小车配置
-total_agv = 15  # 总车辆数
+total_agv = 10  # 总车辆数
 agv_speed = 2    # 小车速度
 
 # ------------------------
@@ -95,12 +95,12 @@ number_limits = 0.5  # 交叉变异对象的数量需求
 mutation_probability = 0.2  # 变异概率
 # ------------------------
 # 订单数
-num_orders = 15
+num_orders = 9
 # 订单相似破坏率
 similarity_percent = 0.2
 # ------------------------
 # ALNS 迭代次数
-iteration = 10
+iteration = 1
 init_temperature = 100
 # ------------------------
 # 对比实验：

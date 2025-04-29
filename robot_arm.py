@@ -24,18 +24,18 @@ class Arm:
             ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
             ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
             ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
-            ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
-            ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
+            # ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
+            # ['铸造区', '清洗区', '组装区', '配置区', '包装区'],
             ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
             ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
             ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
-            ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
-            ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
+            # ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
+            # ['铸造区', '清洗区', '焊接区', '配置区', '喷漆区', '包装区'],
             ['铸造区', '清洗区', '配置区', '包装区'],
             ['铸造区', '清洗区', '配置区', '包装区'],
             ['铸造区', '清洗区', '配置区', '包装区'],
-            ['铸造区', '清洗区', '配置区', '包装区'],
-            ['铸造区', '清洗区', '配置区', '包装区'],
+            # ['铸造区', '清洗区', '配置区', '包装区'],
+            # ['铸造区', '清洗区', '配置区', '包装区'],
 ]
         self.orders_list = []   # 用来记录每一个解的订单顺序排列
         """用False表示空闲，True表示忙碌"""
@@ -462,7 +462,7 @@ class Arm:
                                 order_matrix[row, col] = None
                                 max_unit_index, max_machines = self.find_false_max_machines(start_zone)  # 暂时选择机器臂最多的单元
                                 order_time, order_total_power = self.calculate_reduction(start_zone, max_machines)
-                                order_power = order_total_power * order_time * random.uniform(0.99, 1.01)
+                                order_power = order_total_power * order_time * random.uniform(1, 1.1)
                                 # 记录使用时间和功率
                                 use_power += order_power
                                 time_line.add_timeline((order_time + time_line.current_time), row,
@@ -535,7 +535,7 @@ class Arm:
                                                     start_zone)  # 暂时选择机器臂最多的单元
                                                 order_time, order_total_power = self.calculate_reduction(start_zone, max_machines)
                                                 # 生成一个0.99到1.01之间的随机浮动值
-                                                order_power = order_total_power * order_time * random.uniform(0.99, 1.01)
+                                                order_power = order_total_power * order_time * random.uniform(1.00, 1.10)
                                                 # 记录使用时间和功率
                                                 use_power += order_power
                                                 time_line.add_timeline((order_time + time_line.current_time), rows,
