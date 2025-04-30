@@ -58,4 +58,4 @@ def process_grouped_data(folder_path, output_prefix, target_folder):
     df.to_excel(output_path, index=False)
 
 
-process_grouped_data('tenth_compare/40_10_9', f'comparison_40_10_9', 'results')
+process_grouped_data('tenth_compare/55_18_15', f'comparison_55_18_15', 'results')

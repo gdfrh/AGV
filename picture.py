@@ -450,12 +450,12 @@ def plot_gantt_for_order(load_idx, results, results_1, results_2, results_3=None
             label='等待AGV',
             linewidth=0.5
         ),
-        mpatches.Patch(
-            facecolor='white',
-            edgecolor='black',
-            label='等待生产区处理',
-            linewidth=0.5
-        )
+        # mpatches.Patch(
+        #     facecolor='white',
+        #     edgecolor='black',
+        #     label='等待生产区处理',
+        #     linewidth=0.5
+        # )
     ]
     # 为Orders绘制条形
     for order_idx, tasks in enumerate(results[load_idx]):

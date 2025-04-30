@@ -92,8 +92,8 @@ df_final = pd.concat([df, df_dicts], axis=1)
 
 # 使用 Plotly Express 创建散点图
 fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter Plot",
-                 hover_data=['agv_distribution',  '组装区', '铸造区', '清洗区', '包装区', '焊接区', '喷漆区',
-                             '配置区'], color='group')
+                 hover_data=['agv_distribution',  '铸造区', '清洗区', '组装区', '配置区', '焊接区', '喷漆区','包装区'
+                             ], color='group')
 
 # # # 显示图表
 fig.show()

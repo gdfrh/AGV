@@ -8,7 +8,7 @@ from schedule import Schedule
 # # 打印车间地图
 # map.display()
 for compare in range(compare_number):
-    if compare not in (0,1,3,6):
+    if compare == 0:
         for _ in range(num_runs):
             scheduler = Schedule(work_name, total_machines, num_orders, zone_requirements)
             scheduler.arm_random()
