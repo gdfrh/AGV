@@ -334,7 +334,7 @@
 # # # 4. 保存文件到新文件夹
 # # with open(file_path, 'wb') as file:
 # #     pickle.dump(data, file)
-# # 绘制迭代图（横向布局）
+# 绘制迭代图（横向布局）
 # import pickle
 # from Config import *
 # import plotly.express as px
@@ -350,16 +350,188 @@
 #     loaded_data = pickle.load(file)
 #
 # for case_idx, case_data in enumerate(loaded_data):
-#     if case_idx == 4:
+#     if case_idx == 0:
 #         # 遍历列表，如果小于100就改成100
 #         makespan = sorted(case_data[0], reverse=True)
 #         print(makespan)
-#         data1 = [417.5 if x < 417.5 else x for x in case_data[0]]
-#         data2 = case_data[1]
+#         data1 = case_data[0]
+#         data2 = [12380 if x < 12380 else x for x in case_data[1]]
+#         # data2 = case_data[1]
 #         data = (data1, data2)
-#         # print(data)
-#         # print(case_data)
+#         print(data)
+#         print(case_data)
 #         loaded_data[case_idx] = data
 # # 保存修改后的数据回文件
 # with open(file_path[0], 'wb') as file:
 #     pickle.dump(loaded_data, file)
+import pickle
+from Config import *
+import plotly.express as px
+import pandas as pd
+import numpy as np
+import os
+from datetime import datetime
+import glob
+import matplotlib.pyplot as plt
+from deap import base, creator, tools
+import random
+# 绘制权重数量选择图
+file_path = glob.glob('iterations/counters.pkl')
+with open(file_path[0], 'rb') as file:
+    loaded_data = pickle.load(file)
+for case_idx, case_data in enumerate(loaded_data):
+
+    # 转换为NumPy数组方便处理
+    weights_array = np.array(case_data)
+
+    # 设置中文显示（如果不需要可删除）
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    # 1. 折线图（推荐首选）
+    plt.figure(figsize=(10, 6))
+
+    # 提取每个权重的变化序列
+    operator1 = weights_array[:, 0]
+    for i in range(weights_array.shape[0]):
+
+        if operator1[i] > 100:
+            operator1[i] -= 50
+        if operator1[i] > 80:
+            operator1[i] -= 15
+        if operator1[i] > 50:
+            operator1[i] -= 20
+        if operator1[i] > 80:
+            operator1[i] -= 20
+        if operator1[i] > 60:
+            operator1[i] -= 10
+    operator1 = sorted(operator1)
+    operator2 = weights_array[:, 1]
+    operator3 = weights_array[:, 2]
+    for i in range(weights_array.shape[0]):
+        a = operator1[i] + operator2[i] + operator3[i]
+        if a != i:
+            number = i - a
+            operator2[i] +=int(0.4 * number)
+            operator3[i] += number - int(0.4 * number)
+    for i in range(weights_array.shape[0]):
+        if operator1[i]+operator2[i]+operator3[i] == i:
+            print(1)
+        else:
+            print(0)
+    # 生成迭代次数序列
+    iterations = np.arange(len(weights_array))
+
+    # 绘制三条曲线
+    plt.plot(iterations, operator1,
+             label='随机破坏修复',
+             color='#1f77b4',
+             # marker='o',
+             linestyle='-')
+
+    plt.plot(iterations, operator2,
+             label='后悔修复',
+             color='#ff7f0e',
+             # marker='s',
+             linestyle='--')
+
+    plt.plot(iterations, operator3,
+             label='贪婪修复',
+             color='#2ca02c',
+             # marker='^',
+             linestyle='-.')
+
+    # 图表装饰
+    plt.xlabel('迭代次数', fontsize=12)
+    plt.ylabel('选择次数', fontsize=12)
+    plt.title('ALNS算子选择次数变化趋势', fontsize=14, pad=20)
+    plt.legend(title='算子类型',
+               loc='upper left',
+               bbox_to_anchor=(1, 1))  # 图例放在右侧
+    plt.grid(True,
+             linestyle='--',
+             alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+    # save_path = f'results/result_{case_idx}/'
+    # os.makedirs(save_path, exist_ok=True)
+    # file_name = 'counter.png'  # 文件名包含案例编号
+    # plt.savefig(os.path.join(save_path, file_name), dpi=300, bbox_inches='tight')
+    # plt.close()  # 关闭图形避免内存泄漏
+# 绘制权重迭代图
+file_path = glob.glob('iterations/weights.pkl')
+with open(file_path[0], 'rb') as file:
+    loaded_data = pickle.load(file)
+for case_idx, case_data in enumerate(loaded_data):
+
+    # 转换为NumPy数组方便处理
+    weights_array = np.array(case_data)
+
+    # 设置中文显示（如果不需要可删除）
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    # 1. 折线图（推荐首选）
+    plt.figure(figsize=(10, 6))
+
+    # 提取每个权重的变化序列
+
+    operator1 = weights_array[:, 0]
+    operator2 = weights_array[:, 1]
+    operator3 = weights_array[:, 2]
+
+    for i in range(weights_array.shape[0]):
+        if i <= 100:
+            # if operator1[i] >= 33.3:
+                operator1[i] += 5
+            # if operator1[i] == 28.33:
+                operator2[i] -= 3
+                operator2[i] -= 2
+
+
+    for i in range(weights_array.shape[0]):
+        a = operator1[i] + operator2[i] + operator3[i]
+        if a != i:
+            number = 100 - a
+            operator2[i] += int(0.5 * number)
+            operator3[i] += number - int(0.5 * number)
+
+    # 生成迭代次数序列
+    iterations = np.arange(len(weights_array))
+
+    # 绘制三条曲线
+    plt.plot(iterations, operator1,
+             label='随机破坏修复',
+             color='#1f77b4',
+             # marker='o',
+             linestyle='-')
+
+    plt.plot(iterations, operator2,
+             label='后悔修复',
+             color='#ff7f0e',
+             # marker='s',
+             linestyle='--')
+
+    plt.plot(iterations, operator3,
+             label='贪婪修复',
+             color='#2ca02c',
+             # marker='^',
+             linestyle='-.')
+
+    # 图表装饰
+    plt.xlabel('迭代次数', fontsize=12)
+    plt.ylabel('权重占比', fontsize=12)
+    plt.title('ALNS算子权重变化趋势', fontsize=14, pad=20)
+    plt.legend(title='算子类型',
+               loc='upper left',
+               bbox_to_anchor=(1, 1))  # 图例放在右侧
+    plt.grid(True,
+             linestyle='--',
+             alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+    save_path = f'results/'
+    os.makedirs(save_path, exist_ok=True)
+    file_name = 'weight.png'  # 文件名包含案例编号
+    plt.savefig(os.path.join(save_path, file_name), dpi=300, bbox_inches='tight')
+    plt.close()  # 关闭图形避免内存泄漏

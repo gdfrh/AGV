@@ -100,7 +100,7 @@ num_orders = 15
 similarity_percent = 0.2
 # ------------------------
 # ALNS 迭代次数
-iteration = 10
+iteration = 500
 init_temperature = 100
 # ------------------------
 # 对比实验：

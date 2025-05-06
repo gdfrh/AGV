@@ -748,7 +748,9 @@ def main_loop(pop_size, max_gen, init_population, init_arm, compare):
             with open(file_path, 'wb') as file:
                 pickle.dump(new_data, file)
             # 记录数据来绘制帕累托拥挤距离
-            file_path = get_next_filename('Pareto_Crowding_Distance', f'{compare}')
+            folder_name = f'Pareto_Crowding_Distance/{total_machines}_{total_agv}_{num_orders}'
+            os.makedirs(folder_name, exist_ok=True)  # exist_ok=True 防止文件夹已存在的报错
+            file_path = get_next_filename(folder_name, f'{compare}')
 
             with open(file_path, 'wb') as file:
                 pickle.dump(data, file)

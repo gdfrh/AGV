@@ -704,8 +704,14 @@ class Arm:
                     # 测试解与最优解互相支配，接受最优解(与当前解相互支配不可能好于最优解)
                     best_value = (total_time_order, total_power_order, new_order, timeline_record)
                     operator_score[operator_idx] = 1.8
-            # 更新算子的权重
-            operator_score[operator_idx] **= 1.5  # 通过指数放大差异
+
+            if operator_idx == 0:
+                # lambda_rate =
+                operator_score[operator_idx] **= 1  # 通过指数放大差异
+            else:
+                # lambda_rate = 0.8
+                # 更新算子的权重
+                operator_score[operator_idx] **= 3  # 通过指数放大差异
             operator_weight[operator_idx] = round(
                 operator_weight[operator_idx] * lambda_rate +(1 - lambda_rate) * operator_score[operator_idx] / operator_counter[operator_idx], 2)
             # 计算总和

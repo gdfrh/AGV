@@ -96,7 +96,7 @@ fig = px.scatter(df_final, x='energy', y='time', title="Energy vs. Time Scatter 
                              ], color='group')
 
 # # # 显示图表
-fig.show()
+# fig.show()
 
 # 定义图例映射关系
 legend_mapping = {
@@ -190,7 +190,21 @@ for time, energy in loaded_data:  # 假设数据格式为(time, energy)
     ind = creator.Individual([time, energy])
     ind.fitness.values = (time, energy)  # 设置适应度值
     pop.append(ind)
-
+# # 手动添加前沿解（示例数据，根据实际情况修改）
+# manual_pareto_points = [
+#     [12100.0, 410.5],   # 理论最优解示例（需自定义）
+#     [11950.0, 415.5],   # 确保同时满足：
+#     [12250.0, 400.5],
+#     [11900.0, 430.5],
+#     [12750.0, 380.5],
+#     [11850.0, 455.5]
+# ]
+#
+# # 将手动解加入种群
+# for time, energy in manual_pareto_points:
+#     ind = creator.Individual([time, energy])
+#     ind.fitness.values = (time, energy)
+#     pop.append(ind)  # 注意要添加到种群中
 # 执行非支配排序（只需执行一次）
 fronts = tools.sortNondominated(pop, len(pop))
 
@@ -234,7 +248,7 @@ ax.scatter(
 ax.set_xlabel('Energy Consumption', fontsize=12)
 ax.set_ylabel('Completion Time', fontsize=12)
 ax.set_title('Pareto Front Visualization', fontsize=14, pad=15)
-
+ax.set_ylim(bottom=300)  # Y轴从300开始
 # === 新增前沿连线代码 ===
 if len(first_front_points) > 1:  # 仅当有多个点时绘制连线
     sorted_front = first_front_points[np.argsort(first_front_points[:, 1])]
