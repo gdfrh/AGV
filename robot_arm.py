@@ -612,16 +612,23 @@ class Arm:
         if compare == 4 or compare == 5:
             # 轮盘赌的初始权重
             operator_weight = [1, 1]
-            # 算子的使用次数
-            operator_counter = [0, 0]
+            if len(self.counter) - 1 < idx:
+                # 算子的使用次数
+                operator_counter = [0, 0]
+            else:
+                operator_counter = self.counter[idx]
             # 算子的初始得分
             operator_score = [1, 1]
 
         else:
             # 轮盘赌的初始权重
             operator_weight = [1, 1, 1]
-            # 算子的使用次数
-            operator_counter = [0, 0, 0]
+            if len(self.counter) - 1 < idx:
+                # 算子的使用次数
+                operator_counter = [0, 0, 0]
+            else:
+                operator_counter = self.counter[idx][-1]
+
             # 算子的初始得分
             operator_score = [1, 1, 1]
         # 算子的挥发系数
@@ -742,10 +749,9 @@ class Arm:
             self.iteration_value[idx][0].extend(time_record)
             self.iteration_value[idx][1].extend(energy_record)
             self.weight[idx].extend(weight_record)
-            self.counter.extend(counter_record)
+            self.counter[idx].extend(counter_record)
 
         self.SA_temperature[idx] = T
-
         return total_power_order, total_time_order, best_order
 
     """现在所计算出来的都是一个订单的时间和功率并且是用了最多机器臂情况下的结果"""

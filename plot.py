@@ -282,6 +282,16 @@ with open(file_path[0], 'rb') as file:
     loaded_data = pickle.load(file)
 
 for case_idx, case_data in enumerate(loaded_data):
+    # makespan = case_data[0]
+    # energy = case_data[1]
+    # for i in range(len(makespan)):
+    #     if i != len(makespan) - 1:
+    #         if makespan[i+1] > makespan[i]:
+    #             makespan[i+1] = makespan[i]
+    # for i in range(len(energy)):
+    #     if i != len(makespan) - 1:
+    #         if energy[i+1] > energy[i]:
+    #             energy[i+1] = energy[i]
     makespan = sorted(case_data[0], reverse=True)
     energy = sorted(case_data[1], reverse=True)
     num_iterations = len(makespan)
@@ -338,6 +348,7 @@ for case_idx, case_data in enumerate(loaded_data):
 file_path = glob.glob('iterations/counters.pkl')
 with open(file_path[0], 'rb') as file:
     loaded_data = pickle.load(file)
+    print(loaded_data)
 for case_idx, case_data in enumerate(loaded_data):
 
     # 转换为NumPy数组方便处理
